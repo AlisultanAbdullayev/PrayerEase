@@ -21,7 +21,9 @@ struct SettingsView: View {
             footerSection
         }
         .onChange(of: notificationManager.beforeMinutes) { _,_ in
-            notificationManager.scheduleLongTermNotifications()
+            Task {
+                await notificationManager.scheduleLongTermNotifications()
+            }
         }
         .onDisappear {
             isNotifyBeforeExpanded = false

@@ -11,6 +11,7 @@ import Adhan
 import BackgroundTasks
 import CoreLocation
 
+@MainActor
 final class NotificationManager: ObservableObject {
     static let shared = NotificationManager()
     
@@ -54,19 +55,15 @@ final class NotificationManager: ObservableObject {
         prayerTimeManager.updateLocation(location)
     }
     
-    @MainActor
-    private func requestNotificationAuthorization() {
-        notificationCenter.requestAuthorization(options: [.alert, .sound]) { [weak self] granted, error in
-            if let error = error {
-                print("Error requesting notification authorization: \(error.localizedDescription)")
-            } else {
-                print("Notification authorization \(granted ? "granted" : "denied")")
-                if granted {
-//                    DispatchQueue.main.async {
-                        self?.scheduleLongTermNotifications()
-//                    }
-                }
+    private func requestNotificationAuthorization() async {
+        do {
+            let granted = try await notificationCenter.requestAuthorization(options: [.alert, .sound])
+            print("Notification authorization \(granted ? "granted" : "denied")")
+            if granted {
+                await scheduleLongTermNotifications()
             }
+        } catch {
+            print("Error requesting notification authorization: \(error.localizedDescription)")
         }
     }
     
@@ -94,13 +91,13 @@ final class NotificationManager: ObservableObject {
             task.setTaskCompleted(success: false)
         }
         
-        DispatchQueue.main.async {
-            self.scheduleLongTermNotifications()
+        Task {
+            await self.scheduleLongTermNotifications()
             task.setTaskCompleted(success: true)
         }
     }
     
-    func scheduleLongTermNotifications() {
+    func scheduleLongTermNotifications() async {
         guard currentLocation != nil else {
             print("Location not available. Cannot schedule notifications.")
             return
@@ -187,6 +184,8 @@ final class NotificationManager: ObservableObject {
         } else {
             notificationSettings[prayerName] = sendNotification
         }
-        scheduleLongTermNotifications()
+        Task {
+            await scheduleLongTermNotifications()
+        }
     }
 }

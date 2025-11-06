@@ -126,7 +126,9 @@ struct ContentView: View {
     
     private func updatePrayerTimesAndNotifications() {
         updatePrayerTimes()
-        notificationManager.scheduleLongTermNotifications()
+        Task {
+            await notificationManager.scheduleLongTermNotifications()
+        }
         WidgetCenter.shared.reloadAllTimelines()
     }
     

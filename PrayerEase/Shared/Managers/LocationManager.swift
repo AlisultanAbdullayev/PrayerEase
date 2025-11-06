@@ -9,6 +9,7 @@
 import Adhan
 import SwiftUI
 import CoreLocation
+import MapKit
 
 final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published private(set) var locationName: String = "N/A" {
@@ -26,9 +27,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     @Published var headingAccuracy: Double = 0.0
     
     private let cLLocationManager = CLLocationManager()
-    private let geocoder = CLGeocoder()
     private let userDefaults = UserDefaults(suiteName: "group.com.alijaver.SalahTime")
-    private let notificationManager = NotificationManager.shared
     private let prayerTimeManager = PrayerTimeManager.shared
     
     override init() {
@@ -77,12 +76,58 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     }
     
     private func fetchGeocoder(tempLocation: CLLocation) {
-        geocoder.reverseGeocodeLocation(tempLocation) { [weak self] placemarks, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    self?.error = error
-                } else if let placemark = placemarks?.first {
-                    self?.locationName = placemark.locality ?? placemark.administrativeArea ?? placemark.country ?? "Unknown location"
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            
+            // Use MKLocalSearch as the replacement for deprecated CLGeocoder
+            let searchRequest = MKLocalSearch.Request()
+            searchRequest.naturalLanguageQuery = String(
+                format: "%.6f, %.6f", 
+                tempLocation.coordinate.latitude, 
+                tempLocation.coordinate.longitude
+            )
+            searchRequest.region = MKCoordinateRegion(
+                center: tempLocation.coordinate, 
+                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+            )
+            
+            let search = MKLocalSearch(request: searchRequest)
+            
+            do {
+                let response = try await search.start()
+                if let mapItem = response.mapItems.first {
+                    self.locationName = mapItem.name ?? "Unknown location"
+                } else {
+                    // Fallback to coordinate display if no results
+                    self.locationName = String(format: "%.3f, %.3f", 
+                                             tempLocation.coordinate.latitude, 
+                                             tempLocation.coordinate.longitude)
+                }
+            } catch {
+                self.error = error
+                // Try a different approach - search by coordinate string
+                let coordinateSearchRequest = MKLocalSearch.Request()
+                coordinateSearchRequest.naturalLanguageQuery = String(
+                    format: "%.6f, %.6f", 
+                    tempLocation.coordinate.latitude, 
+                    tempLocation.coordinate.longitude
+                )
+                coordinateSearchRequest.region = MKCoordinateRegion(
+                    center: tempLocation.coordinate, 
+                    span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+                )
+                
+                let coordinateSearch = MKLocalSearch(request: coordinateSearchRequest)
+                
+                do {
+                    let coordinateResponse = try await coordinateSearch.start()
+                    if let mapItem = coordinateResponse.mapItems.first {
+                        self.locationName = mapItem.name ?? "Unknown location"
+                    } else {
+                        self.locationName = "Unknown location"
+                    }
+                } catch {
+                    self.locationName = "Unknown location"
                 }
             }
         }
@@ -91,8 +136,10 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     private func updateDependentManagers() {
         guard let location = userLocation else { return }
         prayerTimeManager.updateLocation(location)
-        notificationManager.updateLocation(location)
-        notificationManager.scheduleLongTermNotifications()
+        Task { @MainActor in
+            NotificationManager.shared.updateLocation(location)
+            await NotificationManager.shared.scheduleLongTermNotifications()
+        }
     }
     
     func calculateQiblaDirection(from location: CLLocation) -> Int {

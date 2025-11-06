@@ -10,7 +10,7 @@ import CoreLocation
 
 extension Double {
     var radiansToDegrees: Double {
-        self * .pi / 180
+        self * 180 / .pi
     }
 }
 
@@ -22,11 +22,13 @@ extension UserDefaults {
     }
     
     func location(forKey key: String) -> CLLocation? {
-        if let locationDictionary = self.object(forKey: key) as? Dictionary<String,NSNumber> {
-            let locationLat = locationDictionary["lat"]!.doubleValue
-            let locationLon = locationDictionary["long"]!.doubleValue
-            return CLLocation(latitude: locationLat, longitude: locationLon)
+        guard let locationDictionary = self.object(forKey: key) as? Dictionary<String, NSNumber>,
+              let locationLat = locationDictionary["lat"],
+              let locationLon = locationDictionary["long"] else {
+            return nil
         }
-        return nil
+        
+        return CLLocation(latitude: locationLat.doubleValue, 
+                         longitude: locationLon.doubleValue)
     }
 }
