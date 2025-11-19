@@ -37,7 +37,11 @@ struct LocationNotFoundView: View {
                 .padding()
             
             Spacer()
-            
+
+            Text("Enable Location Access from Settings")
+                .font(.callout)
+                .foregroundColor(.secondary)
+
             Button {
                 if let url = URL(string: UIApplication.openSettingsURLString){
                     UIApplication.shared.open(url, options: [:], completionHandler: nil)
@@ -47,16 +51,12 @@ struct LocationNotFoundView: View {
                 Label("Allow location access", systemImage: "location.fill")
                     .frame(maxWidth: .infinity)
             }
-            .foregroundStyle(.white)
-            .padding()
-            .background(.accent)
-            .cornerRadius(15)
-            
-            Text("Enable Location Access from Settings")
-                .font(.callout)
-                .foregroundColor(.secondary)
+            .buttonStyle(.glassProminent)
+            .buttonSizing(.automatic)
+            .controlSize(.large)
+
         }
-        .padding(30)
+        .padding()
     }
 }
 

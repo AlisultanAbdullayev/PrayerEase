@@ -16,7 +16,7 @@ class ChatController: ObservableObject {
     @Published var botTypingText: String = "" // New property for typing animation
     
     let openAI = OpenAI(apiToken: "")
-    
+
     @MainActor
     func sendNewMessage(content: String) {
         isLoading = true
@@ -50,7 +50,7 @@ class ChatController: ObservableObject {
             messages: self.messages.map {
                 .init(role: .user, content: $0.content)!
             },
-            model: .gpt4_o_mini
+            model: .gpt4_turbo
         )
         
         openAI.chats(query: query) { result in

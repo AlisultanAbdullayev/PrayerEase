@@ -50,7 +50,7 @@ struct SettingsView: View {
     
     private var minutesBeforePicker: some View {
         SettingsRowWithSelection(text: Text("Minutes before"), systemImage: "hourglass") {
-            Picker("Minute", selection: $notificationManager.beforeMinutes) {
+            Picker("", selection: $notificationManager.beforeMinutes) {
                 ForEach(notificationManager.minuteOptions, id: \.self) { minute in
                     Text(minute == 60 ? "1 hour" : "\(minute) minutes").tag(minute)
                 }
@@ -72,7 +72,7 @@ struct SettingsView: View {
     
     private var madhabPicker: some View {
         SettingsRowWithSelection(text: Text("Madhab"), systemImage: "doc.plaintext") {
-            Picker("Madhab", selection: $prayerTimeManager.madhab) {
+            Picker("", selection: $prayerTimeManager.madhab) {
                 ForEach(prayerTimeManager.madhabs, id: \.self) { madhab in
                     Text(madhab == .hanafi ? "Hanafi" : "Default (Shafi, Maliki, Hanbali)")
                         .tag(madhab)
@@ -83,7 +83,7 @@ struct SettingsView: View {
     
     private var institutionPicker: some View {
         SettingsRowWithSelection(text: Text("Institution"), systemImage: "book") {
-            Picker("Institute", selection: $prayerTimeManager.method) {
+            Picker("", selection: $prayerTimeManager.method) {
                 ForEach(prayerTimeManager.methods, id: \.self) { method in
                     Text(methodName(for: method)).tag(method)
                 }

@@ -43,9 +43,8 @@ final class NotificationManager: ObservableObject {
         ]
         self.beforeMinutes = userDefaults.integer(forKey: "beforeMinutes")
         
-        Task {
-            await requestNotificationAuthorization()
-        }
+        requestNotificationAuthorization()
+
         registerBackgroundTask()
     }
     
@@ -53,8 +52,7 @@ final class NotificationManager: ObservableObject {
         self.currentLocation = location
         prayerTimeManager.updateLocation(location)
     }
-    
-    @MainActor
+
     private func requestNotificationAuthorization() {
         notificationCenter.requestAuthorization(options: [.alert, .sound]) { [weak self] granted, error in
             if let error = error {
@@ -62,9 +60,7 @@ final class NotificationManager: ObservableObject {
             } else {
                 print("Notification authorization \(granted ? "granted" : "denied")")
                 if granted {
-//                    DispatchQueue.main.async {
                         self?.scheduleLongTermNotifications()
-//                    }
                 }
             }
         }

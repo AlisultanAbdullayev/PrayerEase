@@ -9,6 +9,7 @@
 import Adhan
 import SwiftUI
 import CoreLocation
+import MapKit
 
 final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published private(set) var locationName: String = "N/A" {
@@ -26,7 +27,6 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     @Published var headingAccuracy: Double = 0.0
     
     private let cLLocationManager = CLLocationManager()
-    private let geocoder = CLGeocoder()
     private let userDefaults = UserDefaults(suiteName: "group.com.alijaver.SalahTime")
     private let notificationManager = NotificationManager.shared
     private let prayerTimeManager = PrayerTimeManager.shared
@@ -63,7 +63,9 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         userLocation = location
-        fetchGeocoder(tempLocation: location)
+        Task {
+            await fetchGeocoder(tempLocation: location)
+        }
         manager.stopUpdatingLocation()
     }
     
@@ -75,22 +77,35 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         self.error = error
     }
-    
-    private func fetchGeocoder(tempLocation: CLLocation) {
-        geocoder.reverseGeocodeLocation(tempLocation) { [weak self] placemarks, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    self?.error = error
-                } else if let placemark = placemarks?.first {
-                    self?.locationName = placemark.locality ?? placemark.administrativeArea ?? placemark.country ?? "Unknown location"
-                }
+
+    @MainActor
+    private func fetchGeocoder(tempLocation: CLLocation) async {
+
+        if let request = MKReverseGeocodingRequest(location: tempLocation) {
+            do {
+                let mapItems = try await request.mapItems
+                let mapItem = mapItems.first
+                self.locationName = mapItem?.addressRepresentations?.cityWithContext ?? "Unknown location"
+            } catch  {
+                print(error.localizedDescription)
             }
         }
+
+//        geocoder.reverseGeocodeLocation(tempLocation) { [weak self] placemarks, error in
+//            DispatchQueue.main.async {
+//                if let error = error {
+//                    self?.error = error
+//                } else if let placemark = placemarks?.first {
+//                    self?.locationName = placemark.locality ?? placemark.administrativeArea ?? placemark.country ?? "Unknown location"
+//                }
+//            }
+//        }
     }
     
     private func updateDependentManagers() {
         guard let location = userLocation else { return }
         prayerTimeManager.updateLocation(location)
+        prayerTimeManager.fetchPrayerTimes(for: Date())
         notificationManager.updateLocation(location)
         notificationManager.scheduleLongTermNotifications()
     }

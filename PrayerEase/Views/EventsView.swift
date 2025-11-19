@@ -18,14 +18,27 @@ struct EventsView: View {
                 prayerTimesList
             }
             .task {
-                if let location = locationManager.userLocation {
-                    prayerTimesManager.updateLocation(location)
-                    prayerTimesManager.fetchMonthlyPrayerTimes(for: Date())
-                }
+                updateMonthlyPrayerTimes()
+            }
+            .onChange(of: locationManager.userLocation) { _, _ in
+                updateMonthlyPrayerTimes()
+            }
+            .onChange(of: prayerTimesManager.madhab) { _, _ in
+                updateMonthlyPrayerTimes()
+            }
+            .onChange(of: prayerTimesManager.method) { _, _ in
+                updateMonthlyPrayerTimes()
             }
             .font(.caption)
             .foregroundStyle(.secondary)
             .navigationTitle("Monthly view")
+        }
+    }
+
+    private func updateMonthlyPrayerTimes() {
+        if let location = locationManager.userLocation {
+            prayerTimesManager.updateLocation(location)
+            prayerTimesManager.fetchMonthlyPrayerTimes(for: Date())
         }
     }
     

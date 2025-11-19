@@ -11,7 +11,8 @@ import Adhan
 struct LeftTimeSection: View {
     let prayers: PrayerTimes
     @State private var currentTime = Date()
-    
+    @State private var timer: Timer?
+
     private var timeUntilNextPrayer: Date {
         if let nextPrayer = prayers.nextPrayer() {
             return prayers.time(for: nextPrayer)
@@ -19,11 +20,11 @@ struct LeftTimeSection: View {
             return Calendar.current.date(byAdding: .day, value: 1, to: prayers.fajr)!
         }
     }
-    
+
     private var timeRemainingText: Text {
         Text(timeUntilNextPrayer, style: .timer)
     }
-    
+
     var body: some View {
         Section {
             timeRemainingText
@@ -31,6 +32,7 @@ struct LeftTimeSection: View {
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .fontDesign(.rounded)
+                .id(prayers.fajr) // Force refresh when prayers change
         } header: {
             Text("Time until next prayer")
                 .foregroundColor(.accentColor)
@@ -40,15 +42,20 @@ struct LeftTimeSection: View {
         .onAppear(perform: startTimer)
         .onDisappear(perform: stopTimer)
     }
-    
+
     private func startTimer() {
-        Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+        // Invalidate existing timer if any
+        timer?.invalidate()
+
+        // Create and store new timer
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             currentTime = Date()
         }
     }
-    
+
     private func stopTimer() {
-        // If you need to stop the timer, implement the logic here
+        timer?.invalidate()
+        timer = nil
     }
 }
 

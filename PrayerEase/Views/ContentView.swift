@@ -58,8 +58,15 @@ struct ContentView: View {
             // Schedule initial background refresh when the app launches
 //            (UIApplication.shared.delegate as? SalahTimeApp)?.scheduleNextAppRefresh()
         }
-        .onChange(of: prayerTimeManager.madhab) { updatePrayerTimesAndNotifications() }
-        .onChange(of: prayerTimeManager.method) { updatePrayerTimesAndNotifications() }
+        .onChange(of: locationManager.userLocation) { _, _ in
+            updatePrayerTimes()
+        }
+        .onChange(of: prayerTimeManager.madhab) { _, _ in
+            updatePrayerTimesAndNotifications()
+        }
+        .onChange(of: prayerTimeManager.method) { _, _ in
+            updatePrayerTimesAndNotifications()
+        }
     }
     
     private var dateAndHijriSection: some View {
