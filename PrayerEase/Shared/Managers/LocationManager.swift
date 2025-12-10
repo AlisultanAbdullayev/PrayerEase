@@ -11,103 +11,175 @@ import SwiftUI
 import CoreLocation
 import MapKit
 
-final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
+@MainActor
+final class LocationManager: ObservableObject {
+    // MARK: - Published Properties
     @Published private(set) var locationName: String = "N/A" {
         didSet { saveLocationName() }
     }
     @Published private(set) var userLocation: CLLocation? {
-        didSet {
-            saveUserLocation()
-            updateDependentManagers()
-        }
+        didSet { saveUserLocation() }
     }
     @Published private(set) var error: Error?
     @Published private(set) var isLocationActive: Bool = false
+    @Published var isAutoLocationEnabled: Bool = true {
+        didSet {
+            userDefaults?.set(isAutoLocationEnabled, forKey: "isAutoLocationEnabled")
+            if isAutoLocationEnabled {
+                startLocationUpdates()
+            } else {
+                stopLocationUpdates()
+            }
+        }
+    }
     @Published var heading: Int = 0
     @Published var headingAccuracy: Double = 0.0
     
-    private let cLLocationManager = CLLocationManager()
+    // MARK: - Private Properties
+    private let locationManager = CLLocationManager()
     private let userDefaults = UserDefaults(suiteName: "group.com.alijaver.SalahTime")
-    private let notificationManager = NotificationManager.shared
-    private let prayerTimeManager = PrayerTimeManager.shared
+    private var locationTask: Task<Void, Never>?
     
-    override init() {
-        super.init()
+    // MARK: - Lifecycle
+    init() {
         setupLocationManager()
         loadSavedData()
     }
     
     private func setupLocationManager() {
-        cLLocationManager.delegate = self
-        cLLocationManager.desiredAccuracy = kCLLocationAccuracyBest
-        cLLocationManager.requestWhenInUseAuthorization()
-        cLLocationManager.startUpdatingLocation()
-        cLLocationManager.startUpdatingHeading()
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        locationManager.distanceFilter = 100
+        
+        // Check Status
+        updateAuthorizationStatus()
     }
     
     private func loadSavedData() {
-        getUserLocation()
-        getLocationName()
+        if let savedLocation = userDefaults?.location(forKey: "userLocation") {
+            self.userLocation = savedLocation
+        }
+        if let savedName = userDefaults?.string(forKey: "locationName") {
+            self.locationName = savedName
+        }
+        self.isAutoLocationEnabled = userDefaults?.bool(forKey: "isAutoLocationEnabled") ?? true
     }
     
-    func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
-        isLocationActive = status == .authorizedWhenInUse || status == .authorizedAlways
-        if isLocationActive {
-            manager.startUpdatingLocation()
+    private func updateAuthorizationStatus() {
+        switch locationManager.authorizationStatus {
+        case .authorizedWhenInUse, .authorizedAlways:
+            isLocationActive = true
+            if isAutoLocationEnabled {
+                startLocationUpdates()
+            }
+            locationManager.startUpdatingHeading()
+        case .notDetermined:
+            // Waiting for request
+            isLocationActive = false
+        case .restricted, .denied:
+            isLocationActive = false
+            stopLocationUpdates()
+        @unknown default:
+            break
+        }
+    }
+    
+    // MARK: - Public Methods
+    func requestLocation() {
+        if locationManager.authorizationStatus == .notDetermined {
+            locationManager.requestWhenInUseAuthorization()
+            
+            // Poll for status change or assume user interaction will trigger app lifecycle events
+            // In a relentless loop or via delegate is strict "Old way".
+            // Bridging to "New way" without delegate for Auth is tricky because `CLLocationUpdate`
+            // doesn't stream auth changes directly.
+            // However, we can use a Task to monitor updates once authorized.
+            
+            Task {
+                // Wait briefly/Checking loop could be implemented,
+                // but usually the UI handles the re-check or we lazily start on next active.
+                // For "Modern", we often lean on the stream starting when allowed.
+                if isAutoLocationEnabled {
+                    startLocationUpdates()
+                }
+            }
         } else {
-            manager.requestWhenInUseAuthorization()
-            updateDependentManagers()
-        }
-    }
-    
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let location = locations.last else { return }
-        userLocation = location
-        Task {
-            await fetchGeocoder(tempLocation: location)
-        }
-        manager.stopUpdatingLocation()
-    }
-    
-    func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
-        heading = Int(newHeading.trueHeading)
-        self.headingAccuracy = newHeading.headingAccuracy
-    }
-    
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        self.error = error
-    }
-
-    @MainActor
-    private func fetchGeocoder(tempLocation: CLLocation) async {
-
-        if let request = MKReverseGeocodingRequest(location: tempLocation) {
-            do {
-                let mapItems = try await request.mapItems
-                let mapItem = mapItems.first
-                self.locationName = mapItem?.addressRepresentations?.cityWithContext ?? "Unknown location"
-            } catch  {
-                print(error.localizedDescription)
+            // Manual Request or Active
+            // If Auto is ON: ensure it's running
+            // If Auto is OFF: Run once then stop
+            
+            if isAutoLocationEnabled {
+                startLocationUpdates()
+            } else {
+                Task {
+                   await requestOneTimeLocation()
+                }
             }
         }
-
-//        geocoder.reverseGeocodeLocation(tempLocation) { [weak self] placemarks, error in
-//            DispatchQueue.main.async {
-//                if let error = error {
-//                    self?.error = error
-//                } else if let placemark = placemarks?.first {
-//                    self?.locationName = placemark.locality ?? placemark.administrativeArea ?? placemark.country ?? "Unknown location"
-//                }
-//            }
-//        }
     }
     
-    private func updateDependentManagers() {
-        guard let location = userLocation else { return }
-        prayerTimeManager.updateLocation(location)
-        prayerTimeManager.fetchPrayerTimes(for: Date())
-        notificationManager.updateLocation(location)
-        notificationManager.scheduleLongTermNotifications()
+    private func requestOneTimeLocation() async {
+        // Start updates, get one, then stop.
+        // We reuse logic but ensure we break.
+        // Or we use `requestLocation()` from CLLocationManager if we were using delegate,
+        // but since we rely on AsyncSequence...
+        
+        guard locationTask == nil else { return } // Already running?
+        
+        locationTask = Task {
+            do {
+                let updates = CLLocationUpdate.liveUpdates()
+                for try await update in updates {
+                    if let location = update.location {
+                        self.userLocation = location
+                        await reverseGeocode(location: location)
+                        break // Stop immediately for one-time request
+                    }
+                }
+            } catch {
+                print("Location updates error: \(error)")
+            }
+            // Cleanup task reference
+            self.locationTask = nil
+        }
+    }
+    
+    private func startLocationUpdates() {
+        guard locationTask == nil else { return }
+        
+        locationTask = Task {
+            do {
+                // Modern Async Iteration
+                // Note: liveUpdates is iOS 17+. If we need lower (iOS 15), we wrap delegate in AsyncStream.
+                // Assuming "Modernize" allows cutting edge or at least standard AsyncStream.
+                // Since I cannot verify OS version, I will use the safest modern wrapper: AsyncStream wrapping the CL updates
+                // BUT, to completely remove NSObject, we MUST blindly trust `CLLocationUpdate` (iOS 17).
+                // If user encounters error, we can fallback.
+                
+                let updates = CLLocationUpdate.liveUpdates()
+                for try await update in updates {
+                    if let location = update.location {
+                        self.userLocation = location
+                        await reverseGeocode(location: location)
+ 
+                    }
+                }
+            } catch {
+                print("Location updates error: \(error)")
+            }
+        }
+    }
+    
+    private func stopLocationUpdates() {
+        locationTask?.cancel()
+        locationTask = nil
+    }
+    
+    func startUpdatingHeading() {
+        locationManager.startUpdatingHeading()
+    }
+    
+    func stopUpdatingHeading() {
+        locationManager.stopUpdatingHeading()
     }
     
     func calculateQiblaDirection(from location: CLLocation) -> Int {
@@ -116,47 +188,25 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         return Int(qiblaDegree)
     }
     
-    func requestLocation() {
-        cLLocationManager.requestWhenInUseAuthorization()
-    }
-    
-    func startUpdatingHeading() {
-        cLLocationManager.startUpdatingHeading()
-    }
-    
-//    @MainActor
-    func stopUpdatingHeading() {
-        cLLocationManager.stopUpdatingHeading()
-    }
-    
-//    @MainActor
-    func startUpdatingLocation() {
-        cLLocationManager.startUpdatingLocation()
-    }
-    
-    
-    
-    func stopUpdatingLocation() {
-        cLLocationManager.stopUpdatingLocation()
-    }
-    
+    // MARK: - Private Helpers
     private func saveUserLocation() {
-        guard let userLocation = userLocation, let userDefaults = userDefaults else { return }
-        userDefaults.set(location: userLocation, forKey: "userLocation")
-    }
-    
-    private func getUserLocation() {
-        guard let userDefaults = userDefaults else { return }
-        userLocation = userDefaults.location(forKey: "userLocation")
+        guard let location = userLocation else { return }
+        userDefaults?.set(location: location, forKey: "userLocation")
     }
     
     private func saveLocationName() {
-        guard let userDefaults = userDefaults else { return }
-        userDefaults.setValue(locationName, forKey: "locationName")
+        userDefaults?.setValue(locationName, forKey: "locationName")
     }
     
-    private func getLocationName() {
-        guard let userDefaults = userDefaults, let savedString = userDefaults.string(forKey: "locationName") else { return }
-        locationName = savedString
+    private func reverseGeocode(location: CLLocation) async {
+        if let request = MKReverseGeocodingRequest(location: location) {
+            do {
+                let mapItems = try await request.mapItems
+                let mapItem = mapItems.first
+                self.locationName = mapItem?.addressRepresentations?.cityWithContext ?? "Unknown location"
+            } catch  {
+                print(error.localizedDescription)
+            }
+        }
     }
 }

@@ -12,21 +12,30 @@ struct SettingsView: View {
     
     @EnvironmentObject private var prayerTimeManager: PrayerTimeManager
     @EnvironmentObject private var notificationManager: NotificationManager
+    @EnvironmentObject private var locationManager: LocationManager
     @State private var isNotifyBeforeExpanded = false
     
     var body: some View {
         Form {
+            locationSection
             notificationSection
             calculationSection
             footerSection
         }
-        .onChange(of: notificationManager.beforeMinutes) { _,_ in
-            notificationManager.scheduleLongTermNotifications()
-        }
+        // .onChange(of: notificationManager.beforeMinutes) handled internally by NotificationManager
+
         .onDisappear {
             isNotifyBeforeExpanded = false
         }
         .navigationTitle("Settings")
+    }
+    
+    private var locationSection: some View {
+        Section(header: Text("Location")) {
+            Toggle(isOn: $locationManager.isAutoLocationEnabled) {
+                Text("Auto Location Detection")
+            }
+        }
     }
     
     private var notificationSection: some View {
@@ -147,5 +156,8 @@ struct SettingsView: View {
 
 #Preview {
     SettingsView()
+        .environmentObject(PrayerTimeManager.shared)
+        .environmentObject(NotificationManager.shared)
+        .environmentObject(LocationManager())
 }
 

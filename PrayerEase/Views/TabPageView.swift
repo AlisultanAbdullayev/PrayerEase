@@ -7,12 +7,10 @@
 
 import SwiftUI
 
-import SwiftUI
-
 struct TabPageView: View {
-    
+
     @State private var selectedTab: Tab = .time
-    
+
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
@@ -31,14 +29,14 @@ struct TabPageView: View {
             }
             .tag(Tab.qibla)
 
-            NavigationStack {
-                ChatView()
-            }
-            .tabItem {
-                Label(Tab.chat.title, systemImage: Tab.chat.imageName)
-            }
-            .tag(Tab.qibla)
-            
+            // NavigationStack {
+            //     ChatView()
+            // }
+            // .tabItem {
+            //     Label(Tab.chat.title, systemImage: Tab.chat.imageName)
+            // }
+            // .tag(Tab.qibla)
+
             NavigationStack {
                 EventsView()
             }
@@ -46,7 +44,7 @@ struct TabPageView: View {
                 Label(Tab.calendar.title, systemImage: Tab.calendar.imageName)
             }
             .tag(Tab.calendar)
-            
+
             NavigationStack {
                 SettingsView()
             }
@@ -59,14 +57,14 @@ struct TabPageView: View {
 }
 
 extension TabPageView {
-    
+
     private enum Tab: String, Equatable {
         case time
         case qibla
         case chat
         case calendar
         case settings
-        
+
         fileprivate var imageName: String {
             switch self {
             case .time:
@@ -81,7 +79,7 @@ extension TabPageView {
                 return "gear"
             }
         }
-        
+
         fileprivate var title: String {
             self.rawValue.capitalized
         }

@@ -51,15 +51,19 @@ struct ContentView: View {
             }
         }
         .task {
-            locationManager.startUpdatingLocation()
+            locationManager.requestLocation()
         }
         .onAppear {
             updatePrayerTimes()
             // Schedule initial background refresh when the app launches
 //            (UIApplication.shared.delegate as? SalahTimeApp)?.scheduleNextAppRefresh()
         }
-        .onChange(of: locationManager.userLocation) { _, _ in
-            updatePrayerTimes()
+        .onChange(of: locationManager.userLocation) { _, newLocation in
+            if let location = newLocation {
+                prayerTimeManager.updateLocation(location)
+                notificationManager.updateLocation(location)
+                prayerTimeManager.fetchPrayerTimes(for: currentDate)
+            }
         }
         .onChange(of: prayerTimeManager.madhab) { _, _ in
             updatePrayerTimesAndNotifications()
@@ -115,7 +119,7 @@ struct ContentView: View {
             }
         } header: {
             Button {
-                locationManager.startUpdatingLocation()
+                locationManager.requestLocation()
             } label: {
                 Label(locationManager.locationName,
                       systemImage: locationManager.isLocationActive ? "location.circle.fill" : "location.slash")
@@ -123,6 +127,8 @@ struct ContentView: View {
             }
         }
     }
+    
+
     
     private func updatePrayerTimes() {
         if let location = locationManager.userLocation {
@@ -133,7 +139,7 @@ struct ContentView: View {
     
     private func updatePrayerTimesAndNotifications() {
         updatePrayerTimes()
-        notificationManager.scheduleLongTermNotifications()
+        notificationManager.syncNotifications()
         WidgetCenter.shared.reloadAllTimelines()
     }
     

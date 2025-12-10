@@ -27,7 +27,7 @@ struct PrayerEaseApp: App {
     }
     private func setupApp() {
          locationManager.requestLocation()
-         notificationManager.scheduleLongTermNotifications()
+         notificationManager.syncNotifications()
      }
 }
 

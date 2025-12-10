@@ -33,17 +33,13 @@ struct PrayerTimesList: View {
                 .foregroundColor(prayers.currentPrayer() == prayer ? .accent : nil)
             }
         } header: {
-            locationButton
-        }
-    }
-    
-    private var locationButton: some View {
-        Button {
-            locationManager.startUpdatingLocation()
-        } label: {
-            Label(locationManager.locationName,
-                  systemImage: locationManager.isLocationActive ? "location.circle.fill" : "location.slash")
-                .foregroundColor(.accentColor)
+            Button {
+                locationManager.requestLocation()
+            } label: {
+                Label(locationManager.locationName,
+                      systemImage: locationManager.isLocationActive ? "location.circle.fill" : "location.slash")
+                    .foregroundColor(.accentColor)
+            }
         }
     }
     
