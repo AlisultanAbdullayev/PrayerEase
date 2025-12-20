@@ -47,8 +47,7 @@ struct OnboardingMethodView: View {
                                     .font(.caption)
                             }
                             .padding()
-                            .background(Color(.secondarySystemBackground))
-                            .cornerRadius(10)
+                            .glassEffect(.regular)
                         }
                     }
 
@@ -78,8 +77,7 @@ struct OnboardingMethodView: View {
                                     .font(.caption)
                             }
                             .padding()
-                            .background(Color(.secondarySystemBackground))
-                            .cornerRadius(10)
+                            .glassEffect(.regular)
                         }
                     }
                 }

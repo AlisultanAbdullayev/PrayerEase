@@ -41,9 +41,7 @@ struct OnboardingLocationView: View {
                         isOn: $locationManager.isAutoLocationEnabled
                     )
                     .padding()
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(12)
-                    .padding(.horizontal)
+                    .glassEffect(.regular)
                 }
             }
         )

@@ -58,11 +58,12 @@ struct OnboardingWelcomeView: View {
             Button(action: onContinue) {
                 Text("Get Started")
                     .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity)
+
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.glassProminent)
             .controlSize(.large)
-            .padding(.bottom, 30)
+            .buttonSizing(.flexible)
+            Spacer()
         }
         .padding()
     }

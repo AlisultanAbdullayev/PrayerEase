@@ -54,7 +54,12 @@ final class NotificationManager: ObservableObject {
                 "Fajr": false, "Sunrise": false, "Dhuhr": false,
                 "Asr": false, "Maghrib": false, "Isha": false,
             ]
-        self.beforeMinutes = userDefaults.integer(forKey: "beforeMinutes")
+        let savedMinutes = userDefaults.integer(forKey: "beforeMinutes")
+        if minuteOptions.contains(savedMinutes) {
+            self.beforeMinutes = savedMinutes
+        } else {
+            self.beforeMinutes = 25
+        }
 
         // requestNotificationAuthorization() // Removed auto-request for onboarding flow
         registerBackgroundTask()

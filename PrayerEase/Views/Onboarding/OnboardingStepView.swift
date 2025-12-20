@@ -86,10 +86,10 @@ struct OnboardingStepView<Content: View>: View {
                     Button(action: action) {
                         Text(actionButtonTitle)
                             .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.glassProminent)
                     .controlSize(.large)
+                    .buttonSizing(.flexible)
                 }
 
                 if let secondaryTitle = secondaryActionTitle, let secondaryAction = secondaryAction

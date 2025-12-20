@@ -34,8 +34,7 @@ struct OnboardingNotificationView: View {
                                     .font(.body)
                             }
                             .padding()
-                            .background(Color(uiColor: .secondarySystemBackground))
-                            .cornerRadius(10)
+                            .glassEffect(.regular)
                         }
                     }
                 }
