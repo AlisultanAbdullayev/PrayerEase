@@ -37,16 +37,19 @@ struct SalahTimeRowView: View {
         Button(action: toggleNotification) {
             Image(
                 systemName: notificationManager.notificationSettings[salahName] ?? true
-                    ? "bell.fill" : "bell.slash")
+                    ? "bell.fill" : "bell.slash"
+            )
         }
+
         .buttonStyle(.plain)
+        .sensoryFeedback(
+            .levelChange, trigger: notificationManager.notificationSettings[salahName] ?? true)
     }
 
     private func toggleNotification() {
         let currentSetting = notificationManager.notificationSettings[salahName] ?? true
         notificationManager.updateNotificationSettings(
             for: salahName, sendNotification: !currentSetting)
-        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
     }
 }
 

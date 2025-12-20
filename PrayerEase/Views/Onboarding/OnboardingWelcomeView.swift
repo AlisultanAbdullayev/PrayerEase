@@ -9,6 +9,7 @@ import SwiftUI
 
 struct OnboardingWelcomeView: View {
     var onContinue: () -> Void
+    @State private var isPressed = false
 
     var body: some View {
         VStack(spacing: 30) {
@@ -55,7 +56,10 @@ struct OnboardingWelcomeView: View {
 
             Spacer()
 
-            Button(action: onContinue) {
+            Button(action: {
+                isPressed.toggle()
+                onContinue()
+            }) {
                 Text("Get Started")
                     .fontWeight(.semibold)
 
@@ -63,6 +67,7 @@ struct OnboardingWelcomeView: View {
             .buttonStyle(.glassProminent)
             .controlSize(.large)
             .buttonSizing(.flexible)
+            .sensoryFeedback(.impact(weight: .medium), trigger: isPressed)
             Spacer()
         }
         .padding()

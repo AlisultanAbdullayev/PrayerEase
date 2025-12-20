@@ -7,6 +7,12 @@
 
 import SwiftUI
 
+enum OnboardingStep: Hashable {
+    case location
+    case method
+    case notification
+}
+
 struct OnboardingView: View {
     @Binding var hasCompletedOnboarding: Bool
 
@@ -14,102 +20,72 @@ struct OnboardingView: View {
     @EnvironmentObject var prayerTimeManager: PrayerTimeManager
     @EnvironmentObject var notificationManager: NotificationManager
 
-    @State private var currentStep = 0
+    @State private var path = NavigationPath()
 
     var body: some View {
-        ZStack {
-            switch currentStep {
-            case 0:
-                OnboardingWelcomeView(
-                    onContinue: {
-                        withAnimation {
-                            currentStep = 1
-                        }
-                    }
-                )
-                .transition(
-                    .asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
-            case 1:
-                OnboardingLocationView(
-                    locationManager: locationManager,
-                    onContinue: {
-                        // Ensure method is selected based on current timezone
-                        if let tz = locationManager.userTimeZone {
-                            _ = prayerTimeManager.autoSelectMethod(for: tz)
-                        }
-                        withAnimation {
-                            currentStep = 2
-                        }
-                    }
-                )
-                .transition(
-                    .asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))
-                )
-                // Auto-select method when location (timezone) is found
-                .onChange(of: locationManager.userTimeZone) { _, timeZone in
-                    if let tz = timeZone {
-                        print("DEBUG: OnboardingView observed timezone change: \(tz)")
-                        let found = prayerTimeManager.autoSelectMethod(for: tz)
-                        print("DEBUG: Auto-selected method found: \(found)")
-                    }
+        NavigationStack(path: $path) {
+            OnboardingWelcomeView(
+                onContinue: {
+                    path.append(OnboardingStep.location)
                 }
-                // Sync location to managers so they are ready for next steps
-                .onChange(of: locationManager.userLocation) { _, location in
-                    if let location = location {
-                        print("DEBUG: OnboardingView syncing location to managers: \(location)")
-                        prayerTimeManager.updateLocation(location)
-                        notificationManager.updateLocation(location)
-                    }
-                }
-            case 2:
-                OnboardingMethodView(
-                    prayerTimeManager: prayerTimeManager,
-                    onContinue: {
-                        withAnimation {
-                            currentStep = 3
-                        }
-                    }
-                )
-                .transition(
-                    .asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
-            case 3:
-                OnboardingNotificationView(
-                    notificationManager: notificationManager,
-                    onEnable: {
-                        Task {
-                            let granted = await notificationManager.requestAuthorization()
-                            await MainActor.run {
-                                if !granted {
-                                    notificationManager.disableAllNotifications()
-                                }
-                                completeOnboarding()
+            )
+            .navigationDestination(for: OnboardingStep.self) { step in
+                switch step {
+                case .location:
+                    OnboardingLocationView(
+                        locationManager: locationManager,
+                        onContinue: {
+                            // Ensure method is selected based on current timezone
+                            if let tz = locationManager.userTimeZone {
+                                _ = prayerTimeManager.autoSelectMethod(for: tz)
                             }
+                            path.append(OnboardingStep.method)
                         }
-                    },
-                    onSkip: {
-                        completeOnboarding()
+                    )
+                    // Auto-select method when location (timezone) is found
+                    .onChange(of: locationManager.userTimeZone) { _, timeZone in
+                        if let tz = timeZone {
+                            print("DEBUG: OnboardingView observed timezone change: \(tz)")
+                            let found = prayerTimeManager.autoSelectMethod(for: tz)
+                            print("DEBUG: Auto-selected method found: \(found)")
+                        }
                     }
-                )
-                .transition(
-                    .asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
-            default:
-                EmptyView()
-            }
-        }
-        .overlay(alignment: .topLeading) {
-            if currentStep > 0 {
-                Button(action: {
-                    withAnimation {
-                        currentStep -= 1
+                    // Sync location to managers so they are ready for next steps
+                    .onChange(of: locationManager.userLocation) { _, location in
+                        if let location = location {
+                            print("DEBUG: OnboardingView syncing location to managers: \(location)")
+                            prayerTimeManager.updateLocation(location)
+                            notificationManager.updateLocation(location)
+                        }
                     }
-                }) {
-                    Image(systemName: "chevron.left")
-                        .font(.title2)
-                        .foregroundColor(.primary)
-                        .padding()
-                        .background(Color.white.opacity(0.001))  // Expand hit area
+
+                case .method:
+                    OnboardingMethodView(
+                        prayerTimeManager: prayerTimeManager,
+                        onContinue: {
+                            path.append(OnboardingStep.notification)
+                        }
+                    )
+
+                case .notification:
+                    OnboardingNotificationView(
+                        notificationManager: notificationManager,
+                        onEnable: {
+                            Task {
+                                let granted = await notificationManager.requestAuthorization()
+                                await MainActor.run {
+                                    if !granted {
+                                        notificationManager.disableAllNotifications()
+                                    }
+                                    completeOnboarding()
+                                }
+                            }
+                        },
+                        onSkip: {
+                            completeOnboarding()
+                        }
+                    )
                 }
-                .padding(.top, 40)  // Adjust for status bar safely if needed, or rely on safe area
             }
         }
     }

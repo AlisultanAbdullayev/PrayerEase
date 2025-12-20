@@ -21,6 +21,8 @@ struct OnboardingStepView<Content: View>: View {
     let secondaryActionTitle: String?
     let secondaryAction: (() -> Void)?
 
+    @State private var isPressed = false
+
     init(
         systemImage: String,
         title: String,
@@ -83,13 +85,17 @@ struct OnboardingStepView<Content: View>: View {
 
             VStack(spacing: 16) {
                 if !actionButtonTitle.isEmpty {
-                    Button(action: action) {
+                    Button(action: {
+                        isPressed.toggle()
+                        action()
+                    }) {
                         Text(actionButtonTitle)
                             .fontWeight(.semibold)
                     }
                     .buttonStyle(.glassProminent)
                     .controlSize(.large)
                     .buttonSizing(.flexible)
+                    .sensoryFeedback(.impact(weight: .medium), trigger: isPressed)
                 }
 
                 if let secondaryTitle = secondaryActionTitle, let secondaryAction = secondaryAction

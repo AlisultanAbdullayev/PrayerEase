@@ -35,6 +35,8 @@ struct OnboardingNotificationView: View {
                             }
                             .padding()
                             .glassEffect(.regular)
+                            // .sensoryFeedback(
+                            //     .selection, trigger: notificationManager.notificationSettings[key])
                         }
                     }
                 }

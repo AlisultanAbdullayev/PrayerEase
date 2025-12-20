@@ -5,23 +5,24 @@
 //  Created by Alisultan Abdullah on 10/30/24.
 //
 
-import SwiftUI
 import CoreLocation
+import SwiftUI
 
 struct QiblaView: View {
     @EnvironmentObject var locationManager: LocationManager
-    
+
     var qiblaDirection: Int {
-        locationManager.calculateQiblaDirection(from: locationManager.userLocation ?? CLLocation(latitude: 0, longitude: 0))
+        locationManager.calculateQiblaDirection(
+            from: locationManager.userLocation ?? CLLocation(latitude: 0, longitude: 0))
     }
-    
+
     var body: some View {
         NavigationStack {
-            if (locationManager.isLocationActive) {
+            if locationManager.isLocationActive {
                 GeometryReader { geometry in
                     VStack {
                         compassView(size: geometry.size.width * 0.8)
-                        infoView
+//                        infoView
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
@@ -35,13 +36,13 @@ struct QiblaView: View {
             }
         }
     }
-    
+
     private func compassView(size: CGFloat) -> some View {
         ZStack {
             Circle()
                 .stroke(Color.secondary.opacity(0.3), lineWidth: 5)
                 .frame(width: size, height: size)
-            
+
             ForEach(0..<72) { tick in
                 Rectangle()
                     .fill(Color.secondary)
@@ -49,35 +50,35 @@ struct QiblaView: View {
                     .offset(y: size / 2 - 15)
                     .rotationEffect(.degrees(Double(tick) * 5))
             }
-            
-//            Image(systemName: "arrow.up")
-//                .resizable()
-//                .aspectRatio(contentMode: .fit)
-//                .frame(width: size * 0.2, height: size * 0.2)
-//                .foregroundColor(.red)
-////                .rotationEffect(.degrees(Double(-locationManager.heading)))
-            
+
+            //            Image(systemName: "arrow.up")
+            //                .resizable()
+            //                .aspectRatio(contentMode: .fit)
+            //                .frame(width: size * 0.2, height: size * 0.2)
+            //                .foregroundColor(.red)
+            ////                .rotationEffect(.degrees(Double(-locationManager.heading)))
+
             Image(systemName: "arrow.up")
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .frame(width: size * 0.3, height: size * 0.3)
                 .foregroundStyle(isPointingToQibla ? .accent : .secondary)
-//                .rotationEffect(.degrees(Double(locationManager.heading)))
-//                .rotationEffect(.degrees(Double(qiblaDirection - locationManager.heading)))
-            
+            //                .rotationEffect(.degrees(Double(locationManager.heading)))
+            //                .rotationEffect(.degrees(Double(qiblaDirection - locationManager.heading)))
+
             Text("QIBLA")
                 .font(.title2)
                 .fontWeight(.bold)
                 .foregroundStyle(isPointingToQibla ? .accent : .secondary)
                 .offset(y: -size / 2 - 15)
-      
+
         }
         .rotationEffect(.degrees(Double(qiblaDirection - locationManager.heading)))
-//        .animation(.interactiveSpring, value: locationManager.heading)
+        //        .animation(.interactiveSpring, value: locationManager.heading)
     }
-    
+
     private var infoView: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .center, spacing: 10) {
             Text("Device Heading: \(locationManager.heading)°")
             Text("Qibla Direction: \(qiblaDirection)°")
             Text(isPointingToQibla ? "Pointing to Qibla" : "Align to the Qibla")
@@ -85,28 +86,31 @@ struct QiblaView: View {
                 .foregroundColor(isPointingToQibla ? .accent : .secondary)
             Text("\(locationManager.headingAccuracy, specifier: "%.2f")")
         }
-        .onChange(of: isPointingToQibla, {
-            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-        })
-        .padding()
-        .background(Color.secondary.opacity(0.1))
-        .cornerRadius(10)
+        .onChange(
+            of: isPointingToQibla,
+            {
+                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            }
+        )
+//        .padding(36)
+        .padding(30)
+        .glassEffect()
         .padding()
     }
-    
+
     private var isPointingToQibla: Bool {
         abs(locationManager.heading - qiblaDirection) <= 5
     }
-    
-//    private func startUpdating() {
-//        locationManager.startUpdatingLocation()
-//        locationManager.startUpdatingHeading()
-//    }
-//
-//    private func stopUpdating() {
-//        locationManager.stopUpdatingLocation()
-//        locationManager.stopUpdatingHeading()
-//    }
+
+    //    private func startUpdating() {
+    //        locationManager.startUpdatingLocation()
+    //        locationManager.startUpdatingHeading()
+    //    }
+    //
+    //    private func stopUpdating() {
+    //        locationManager.stopUpdatingLocation()
+    //        locationManager.stopUpdatingHeading()
+    //    }
 }
 
 struct QiblaView_Previews: PreviewProvider {
