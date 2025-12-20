@@ -12,7 +12,7 @@ struct QiblaView: View {
     @EnvironmentObject var locationManager: LocationManager
 
     var qiblaDirection: Double {
-        locationManager.calculateQiblaDirection(
+        QiblaService.calculateQiblaDirection(
             from: locationManager.userLocation ?? CLLocation(latitude: 0, longitude: 0))
     }
 

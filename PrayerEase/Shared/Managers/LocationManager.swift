@@ -164,15 +164,6 @@ final class LocationManager: ObservableObject {
         locationManager.stopUpdatingHeading()
     }
 
-    func calculateQiblaDirection(from location: CLLocation) -> Double {
-        let qiblaDegree = Qibla(
-            coordinates: Coordinates(
-                latitude: location.coordinate.latitude,
-                longitude: location.coordinate.longitude)
-        ).direction
-        return qiblaDegree
-    }
-
     func refreshLocation() async {
         // If auto updates are enabled, ensure the continuous task is running.
         if isAutoLocationEnabled {

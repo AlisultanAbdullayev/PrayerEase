@@ -42,42 +42,9 @@ final class PrayerTimeManager: ObservableObject {
 
     func autoSelectMethod(for timeZoneIdentifier: String) -> Bool {
         print("DEBUG: autoSelectMethod called for \(timeZoneIdentifier)")
-        // Map TimeZone identifiers to methods
-        let targetMethod: CalculationMethod?
 
-        // Simplified mapping based on region prefixes or known cities
-        if timeZoneIdentifier.contains("Riyadh") {
-            targetMethod = .ummAlQura
-        } else if timeZoneIdentifier.contains("Istanbul") {
-            targetMethod = .turkey
-        } else if timeZoneIdentifier.contains("Qatar") {
-            targetMethod = .qatar
-        }  // Asia/Qatar
-        else if timeZoneIdentifier.contains("Kuwait") {
-            targetMethod = .kuwait
-        } else if timeZoneIdentifier.contains("Dubai") {
-            targetMethod = .dubai
-        } else if timeZoneIdentifier.contains("Cairo") {
-            targetMethod = .egyptian
-        } else if timeZoneIdentifier.contains("Karachi") {
-            targetMethod = .karachi
-        } else if timeZoneIdentifier.contains("Singapore") {
-            targetMethod = .singapore
-        } else if timeZoneIdentifier.contains("Tehran") {
-            targetMethod = .tehran
-        } else if timeZoneIdentifier.contains("America") || timeZoneIdentifier.contains("Canada")
-            || timeZoneIdentifier.contains("US")
-        {
-            targetMethod = .northAmerica
-        } else if timeZoneIdentifier.contains("London") {
-            targetMethod = .moonsightingCommittee
-        }  // Or ISNA/London Unified
-        else {
-            targetMethod = nil
-        }
-
-        if let method = targetMethod {
-            self.method = method
+        if let targetMethod = CalculationMethodHelper.autoSelectMethod(for: timeZoneIdentifier) {
+            self.method = targetMethod
             return true
         }
         return false
