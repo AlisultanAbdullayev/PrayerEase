@@ -22,10 +22,19 @@ struct OnboardingLocationView: View {
                 ? "We found your location. You can choose to keep this location updated automatically or manage it manually."
                 : "To provide accurate prayer times and Qibla direction, PrayerEase needs access to your location. Your location data stays on your device.",
             actionButtonTitle: locationManager.userLocation != nil
-                ? "Continue" : "Find Current Location",
+                ? "Continue"
+                : (locationManager.authorizationStatus == .denied
+                    || locationManager.authorizationStatus == .restricted
+                    ? "Open Settings" : "Find Current Location"),
             action: {
                 if locationManager.userLocation != nil {
                     onContinue()
+                } else if locationManager.authorizationStatus == .denied
+                    || locationManager.authorizationStatus == .restricted
+                {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
                 } else {
                     // Initial "Find" action sets auto to true just for the request
                     locationManager.isAutoLocationEnabled = true
@@ -46,6 +55,9 @@ struct OnboardingLocationView: View {
                 }
             }
         )
+        .onAppear {
+            locationManager.updateStatus()
+        }
     }
 }
 

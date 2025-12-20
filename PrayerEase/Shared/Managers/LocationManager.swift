@@ -36,6 +36,7 @@ final class LocationManager: ObservableObject {
     }
     @Published var heading: Double = 0
     @Published var headingAccuracy: Double = 0.0
+    @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
 
     // MARK: - Private Properties
     private let locationManager = CLLocationManager()
@@ -76,8 +77,9 @@ final class LocationManager: ObservableObject {
         }
     }
 
-    // Check status purely based on manager properties, no delegate
-    private func updateStatus() {
+    // MARK: - Public Methods
+    func updateStatus() {
+        authorizationStatus = locationManager.authorizationStatus
         switch locationManager.authorizationStatus {
         case .authorizedAlways, .authorizedWhenInUse:
             isLocationActive = true
@@ -90,7 +92,6 @@ final class LocationManager: ObservableObject {
         }
     }
 
-    // MARK: - Public Methods
     func requestLocation() {
         print("DEBUG: requestLocation called")
         // Just Request Auth

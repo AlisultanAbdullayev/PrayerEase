@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct LocationNotFoundView: View {
+    @EnvironmentObject var locationManager: LocationManager
+
     var body: some View {
         VStack(spacing: 30) {
             Image(systemName: "location.fill")
@@ -42,18 +44,26 @@ struct LocationNotFoundView: View {
 
             Spacer()
 
-            Text("Enable Location Access from Settings")
-                .font(.callout)
-                .foregroundColor(.secondary)
+            Text(
+                locationManager.authorizationStatus == .notDetermined
+                    ? "Enable Location Access" : "Enable Location Access from Settings"
+            )
+            .font(.callout)
+            .foregroundColor(.secondary)
 
             Button {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
+                if locationManager.authorizationStatus == .notDetermined {
+                    locationManager.requestLocation()
+                } else if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url, options: [:], completionHandler: nil)
                 }
 
             } label: {
-                Label("Allow location access", systemImage: "location.fill")
-                    .frame(maxWidth: .infinity)
+                Label(
+                    locationManager.authorizationStatus == .notDetermined
+                        ? "Allow Access" : "Open Settings", systemImage: "location.fill"
+                )
+                .frame(maxWidth: .infinity)
             }
             .buttonStyle(.glassProminent)
             .buttonSizing(.flexible)
@@ -61,9 +71,13 @@ struct LocationNotFoundView: View {
 
         }
         .padding()
+        .onAppear {
+            locationManager.updateStatus()
+        }
     }
 }
 
 #Preview {
     LocationNotFoundView()
+        .environmentObject(LocationManager())
 }
