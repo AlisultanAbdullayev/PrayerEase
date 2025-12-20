@@ -25,6 +25,7 @@ final class PrayerTimeManager: ObservableObject {
     @Published var isMethodManuallySet: Bool = false {
         didSet { UserDefaults.standard.set(isMethodManuallySet, forKey: "isMethodManuallySet") }
     }
+    @Published var dataId = UUID()
 
     private var coordinates: Coordinates?
 
@@ -136,6 +137,7 @@ final class PrayerTimeManager: ObservableObject {
         // Update the prayerTimeIndex to point to today's prayer times
         updateCurrentPrayerTime(for: date)
 
+        dataId = UUID()
         objectWillChange.send()
     }
 
