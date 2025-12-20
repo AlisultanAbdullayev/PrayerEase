@@ -5,11 +5,10 @@
 //  Created by Alisultan Abdullah on 10/30/24.
 //
 
-
 import Adhan
-import SwiftUI
 import CoreLocation
 import MapKit
+import SwiftUI
 
 @MainActor
 final class LocationManager: ObservableObject {
@@ -22,6 +21,9 @@ final class LocationManager: ObservableObject {
     }
     @Published private(set) var error: Error?
     @Published private(set) var isLocationActive: Bool = false
+    @Published private(set) var userTimeZone: String? {
+        didSet { userDefaults?.set(userTimeZone, forKey: "userTimeZone") }
+    }
     @Published var isAutoLocationEnabled: Bool = true {
         didSet {
             userDefaults?.set(isAutoLocationEnabled, forKey: "isAutoLocationEnabled")
@@ -34,26 +36,26 @@ final class LocationManager: ObservableObject {
     }
     @Published var heading: Int = 0
     @Published var headingAccuracy: Double = 0.0
-    
+
     // MARK: - Private Properties
     private let locationManager = CLLocationManager()
     private let userDefaults = UserDefaults(suiteName: "group.com.alijaver.SalahTime")
     private var locationTask: Task<Void, Never>?
-    
+
     // MARK: - Lifecycle
     init() {
         setupLocationManager()
         loadSavedData()
     }
-    
+
     private func setupLocationManager() {
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
         locationManager.distanceFilter = 100
-        
-        // Check Status
-        updateAuthorizationStatus()
+
+        // Check current status on generic init
+        updateStatus()
     }
-    
+
     private func loadSavedData() {
         if let savedLocation = userDefaults?.location(forKey: "userLocation") {
             self.userLocation = savedLocation
@@ -61,151 +63,166 @@ final class LocationManager: ObservableObject {
         if let savedName = userDefaults?.string(forKey: "locationName") {
             self.locationName = savedName
         }
-        self.isAutoLocationEnabled = userDefaults?.bool(forKey: "isAutoLocationEnabled") ?? true
+        self.userTimeZone = userDefaults?.string(forKey: "userTimeZone")
+        if let isEnabled = userDefaults?.object(forKey: "isAutoLocationEnabled") as? Bool {
+            self.isAutoLocationEnabled = isEnabled
+        } else {
+            self.isAutoLocationEnabled = true
+        }
     }
-    
-    private func updateAuthorizationStatus() {
+
+    // Check status purely based on manager properties, no delegate
+    private func updateStatus() {
         switch locationManager.authorizationStatus {
-        case .authorizedWhenInUse, .authorizedAlways:
+        case .authorizedAlways, .authorizedWhenInUse:
             isLocationActive = true
             if isAutoLocationEnabled {
                 startLocationUpdates()
             }
             locationManager.startUpdatingHeading()
-        case .notDetermined:
-            // Waiting for request
+        default:
             isLocationActive = false
-        case .restricted, .denied:
-            isLocationActive = false
-            stopLocationUpdates()
-        @unknown default:
-            break
         }
     }
-    
+
     // MARK: - Public Methods
     func requestLocation() {
-        if locationManager.authorizationStatus == .notDetermined {
-            locationManager.requestWhenInUseAuthorization()
-            
-            // Poll for status change or assume user interaction will trigger app lifecycle events
-            // In a relentless loop or via delegate is strict "Old way".
-            // Bridging to "New way" without delegate for Auth is tricky because `CLLocationUpdate`
-            // doesn't stream auth changes directly.
-            // However, we can use a Task to monitor updates once authorized.
-            
-            Task {
-                // Wait briefly/Checking loop could be implemented,
-                // but usually the UI handles the re-check or we lazily start on next active.
-                // For "Modern", we often lean on the stream starting when allowed.
-                if isAutoLocationEnabled {
-                    startLocationUpdates()
-                }
-            }
-        } else {
-            // Manual Request or Active
-            // If Auto is ON: ensure it's running
-            // If Auto is OFF: Run once then stop
-            
-            if isAutoLocationEnabled {
-                startLocationUpdates()
-            } else {
-                Task {
-                   await requestOneTimeLocation()
-                }
-            }
+        print("DEBUG: requestLocation called")
+        // Just Request Auth
+        locationManager.requestWhenInUseAuthorization()
+
+        // Then start monitoring immediately.
+        // liveUpdates() will suspend until authorized.
+        if isAutoLocationEnabled {
+            print("DEBUG: Auto enabled, checking if updates running")
+            startLocationUpdates(authorizeIfNeeded: true)
         }
     }
-    
-    private func requestOneTimeLocation() async {
-        // Start updates, get one, then stop.
-        // We reuse logic but ensure we break.
-        // Or we use `requestLocation()` from CLLocationManager if we were using delegate,
-        // but since we rely on AsyncSequence...
-        
-        guard locationTask == nil else { return } // Already running?
-        
-        locationTask = Task {
-            do {
-                let updates = CLLocationUpdate.liveUpdates()
-                for try await update in updates {
-                    if let location = update.location {
-                        self.userLocation = location
-                        await reverseGeocode(location: location)
-                        break // Stop immediately for one-time request
-                    }
-                }
-            } catch {
-                print("Location updates error: \(error)")
-            }
-            // Cleanup task reference
-            self.locationTask = nil
-        }
-    }
-    
-    private func startLocationUpdates() {
+
+    private func startLocationUpdates(authorizeIfNeeded: Bool = false) {
+        // Prevent duplicate tasks
+        print("DEBUG: startLocationUpdates called. Existing task: \(locationTask != nil)")
         guard locationTask == nil else { return }
-        
-        locationTask = Task {
+
+        // If we are not explicitly asking for authorization (e.g. startup auto-check),
+        // and status is undetermined, do NOT start (which would trigger implicit prompt).
+        if !authorizeIfNeeded && locationManager.authorizationStatus == .notDetermined {
+            print(
+                "DEBUG: Skipping startLocationUpdates because auth is undetermined and authorizeIfNeeded is false."
+            )
+            return
+        }
+
+        locationTask = Task { [weak self] in
+            guard let self = self else { return }
             do {
-                // Modern Async Iteration
-                // Note: liveUpdates is iOS 17+. If we need lower (iOS 15), we wrap delegate in AsyncStream.
-                // Assuming "Modernize" allows cutting edge or at least standard AsyncStream.
-                // Since I cannot verify OS version, I will use the safest modern wrapper: AsyncStream wrapping the CL updates
-                // BUT, to completely remove NSObject, we MUST blindly trust `CLLocationUpdate` (iOS 17).
-                // If user encounters error, we can fallback.
-                
+                print("DEBUG: Waiting for liveUpdates...")
+                // This sequence waits for authorization implicitly
                 let updates = CLLocationUpdate.liveUpdates()
                 for try await update in updates {
+                    print(
+                        "DEBUG: Update received. Location: \(String(describing: update.location))")
                     if let location = update.location {
+                        // Efficiency optimized: Only process significant changes (> 5km)
+                        if let lastLocation = self.userLocation,
+                            location.distance(from: lastLocation) < 5000
+                        {
+                            print("DEBUG: Location change insignificant (< 5km). Skipping update.")
+                            continue
+                        }
+
                         self.userLocation = location
+                        self.isLocationActive = true
+                        print("DEBUG: Location active, reverse geocoding...")
                         await reverseGeocode(location: location)
- 
+                    } else {
+                        print("DEBUG: Update received but location is nil.")
                     }
                 }
             } catch {
-                print("Location updates error: \(error)")
+                print("DEBUG: Location updates error: \(error)")
             }
         }
     }
-    
+
     private func stopLocationUpdates() {
         locationTask?.cancel()
         locationTask = nil
     }
-    
+
     func startUpdatingHeading() {
         locationManager.startUpdatingHeading()
     }
-    
+
     func stopUpdatingHeading() {
         locationManager.stopUpdatingHeading()
     }
-    
+
     func calculateQiblaDirection(from location: CLLocation) -> Int {
-        let qiblaDegree = Qibla(coordinates: Coordinates(latitude: location.coordinate.latitude,
-                                                         longitude: location.coordinate.longitude)).direction
+        let qiblaDegree = Qibla(
+            coordinates: Coordinates(
+                latitude: location.coordinate.latitude,
+                longitude: location.coordinate.longitude)
+        ).direction
         return Int(qiblaDegree)
     }
-    
+
+    func refreshLocation() async {
+        // If auto updates are enabled, ensure the continuous task is running.
+        if isAutoLocationEnabled {
+            if locationTask == nil {
+                startLocationUpdates(authorizeIfNeeded: true)
+            }
+        } else {
+            // If manual, fetch data once and stop.
+            await startOneTimeUpdate()
+        }
+    }
+
+    private func startOneTimeUpdate() async {
+        print("DEBUG: Starting one-time location update...")
+        do {
+            let updates = CLLocationUpdate.liveUpdates()
+            for try await update in updates {
+                if let location = update.location {
+                    print("DEBUG: One-time update received: \(location)")
+                    self.userLocation = location
+                    self.isLocationActive = true
+                    await reverseGeocode(location: location)
+                    break  // Stop listening after one valid update
+                }
+            }
+        } catch {
+            print("DEBUG: One-time update error: \(error)")
+        }
+    }
+
     // MARK: - Private Helpers
     private func saveUserLocation() {
         guard let location = userLocation else { return }
         userDefaults?.set(location: location, forKey: "userLocation")
     }
-    
+
     private func saveLocationName() {
         userDefaults?.setValue(locationName, forKey: "locationName")
     }
-    
+
     private func reverseGeocode(location: CLLocation) async {
         if let request = MKReverseGeocodingRequest(location: location) {
             do {
                 let mapItems = try await request.mapItems
-                let mapItem = mapItems.first
-                self.locationName = mapItem?.addressRepresentations?.cityWithContext ?? "Unknown location"
-            } catch  {
-                print(error.localizedDescription)
+                if let mapItem = mapItems.first {
+                    // Use modern accessors if possible, forcing name for now
+                    self.locationName =
+                        mapItem.addressRepresentations?.cityWithContext ?? "Unknown location"
+                    if let timeZone = mapItem.timeZone {
+                        self.userTimeZone = timeZone.identifier
+                    } else {
+                        self.userTimeZone = TimeZone.current.identifier
+                    }
+                }
+            } catch {
+                print("Reverse geocode failed: \(error.localizedDescription)")
             }
         }
     }

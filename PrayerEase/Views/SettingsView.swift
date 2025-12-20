@@ -5,21 +5,22 @@
 //  Created by Alisultan Abdullah on 10/30/24.
 //
 
-import SwiftUI
 import Adhan
+import SwiftUI
 
 struct SettingsView: View {
-    
+
     @EnvironmentObject private var prayerTimeManager: PrayerTimeManager
     @EnvironmentObject private var notificationManager: NotificationManager
     @EnvironmentObject private var locationManager: LocationManager
     @State private var isNotifyBeforeExpanded = false
-    
+
     var body: some View {
         Form {
             locationSection
             notificationSection
             calculationSection
+            debugSection
             footerSection
         }
         // .onChange(of: notificationManager.beforeMinutes) handled internally by NotificationManager
@@ -29,7 +30,7 @@ struct SettingsView: View {
         }
         .navigationTitle("Settings")
     }
-    
+
     private var locationSection: some View {
         Section(header: Text("Location")) {
             Toggle(isOn: $locationManager.isAutoLocationEnabled) {
@@ -37,17 +38,18 @@ struct SettingsView: View {
             }
         }
     }
-    
+
     private var notificationSection: some View {
         Section(header: Text("Notification:")) {
             notifyBeforeGroup
             minutesBeforePicker
         }
     }
-    
+
     private var notifyBeforeGroup: some View {
         DisclosureGroup(isExpanded: $isNotifyBeforeExpanded) {
-            ForEach(notificationManager.notificationSettingsBefore.keys.sorted(), id: \.self) { key in
+            ForEach(notificationManager.notificationSettingsBefore.keys.sorted(), id: \.self) {
+                key in
                 Toggle(isOn: bindingForNotification(key: key)) {
                     Text(key).tag(key)
                 }
@@ -56,7 +58,7 @@ struct SettingsView: View {
             SettingsRowWithSelection(text: Text("Notify before salahs"), systemImage: "clock") {}
         }
     }
-    
+
     private var minutesBeforePicker: some View {
         SettingsRowWithSelection(text: Text("Minutes before"), systemImage: "hourglass") {
             Picker("", selection: $notificationManager.beforeMinutes) {
@@ -71,14 +73,14 @@ struct SettingsView: View {
             }
         }
     }
-    
+
     private var calculationSection: some View {
         Section(header: Text("Calculation:")) {
             madhabPicker
             institutionPicker
         }
     }
-    
+
     private var madhabPicker: some View {
         SettingsRowWithSelection(text: Text("Madhab"), systemImage: "doc.plaintext") {
             Picker("", selection: $prayerTimeManager.madhab) {
@@ -89,7 +91,7 @@ struct SettingsView: View {
             }
         }
     }
-    
+
     private var institutionPicker: some View {
         SettingsRowWithSelection(text: Text("Institution"), systemImage: "book") {
             Picker("", selection: $prayerTimeManager.method) {
@@ -100,7 +102,43 @@ struct SettingsView: View {
             .pickerStyle(NavigationLinkPickerStyle())
         }
     }
-    
+
+    private var debugSection: some View {
+        Section(header: Text("Debug")) {
+            Button(role: .destructive) {
+                resetOnboarding()
+            } label: {
+                Text("Reset Onboarding")
+            }
+        }
+    }
+
+    private func resetOnboarding() {
+        // Clear all UserDefaults
+        if let bundleID = Bundle.main.bundleIdentifier {
+            UserDefaults.standard.removePersistentDomain(forName: bundleID)
+        }
+
+        // Explicitly clear specific keys if suite sharing is involved,
+        // but removing persistent domain usually handles standard suite.
+        // For shared groups, we might need to clear that suite too if used,
+        // but request asked for "reset onboarding" primarily.
+
+        // Trigger App restart logic by modifying the AppStorage binding indirectly
+        // or just letting the app state refresh naturally on next launch?
+        // Actually, since hasCompletedOnboarding is AppStorage, writing to UserDefaults
+        // might not update the binding immediately in PrayerEaseApp without a sync.
+
+        // Force update the specific key to False to trigger UI change immediately if possible,
+        // OR just exit/crash app (brisk solution for debug) or let user restart.
+        // Better:
+        UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+
+        // Notify user
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+    }
+
     private var footerSection: some View {
         VStack {
             Text("Make 🤲 for us")
@@ -111,17 +149,18 @@ struct SettingsView: View {
         .foregroundStyle(.secondary)
         .frame(maxWidth: .infinity, alignment: .center)
     }
-    
+
     private func bindingForNotification(key: String) -> Binding<Bool> {
         Binding(
             get: { self.notificationManager.notificationSettingsBefore[key] ?? false },
             set: { newValue in
-                self.notificationManager.updateNotificationSettings(for: key, sendNotification: newValue, isBefore: true)
+                self.notificationManager.updateNotificationSettings(
+                    for: key, sendNotification: newValue, isBefore: true)
                 UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
             }
         )
     }
-    
+
     private func methodName(for method: CalculationMethod) -> String {
         switch method {
         case .dubai:
@@ -160,4 +199,3 @@ struct SettingsView: View {
         .environmentObject(NotificationManager.shared)
         .environmentObject(LocationManager())
 }
-

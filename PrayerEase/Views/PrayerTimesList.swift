@@ -5,23 +5,23 @@
 //  Created by Alisultan Abdullah on 10/30/24.
 //
 
-import SwiftUI
 import Adhan
+import SwiftUI
 
 struct PrayerTimesList: View {
     let prayers: PrayerTimes
     @StateObject private var prayerTimeManager = PrayerTimeManager.shared
     @EnvironmentObject private var locationManager: LocationManager
-    
+
     private let prayerInfo: [(Prayer, String, String)] = [
         (.fajr, "sunrise", "Fajr"),
         (.sunrise, "sun.and.horizon", "Sunrise"),
         (.dhuhr, "sun.max", "Dhuhr"),
         (.asr, "sunset", "Asr"),
         (.maghrib, "moon", "Maghrib"),
-        (.isha, "moon.stars", "Isha")
+        (.isha, "moon.stars", "Isha"),
     ]
-    
+
     var body: some View {
         Section {
             ForEach(prayerInfo, id: \.2) { prayer, imageName, prayerName in
@@ -33,16 +33,15 @@ struct PrayerTimesList: View {
                 .foregroundColor(prayers.currentPrayer() == prayer ? .accent : nil)
             }
         } header: {
-            Button {
-                locationManager.requestLocation()
-            } label: {
-                Label(locationManager.locationName,
-                      systemImage: locationManager.isLocationActive ? "location.circle.fill" : "location.slash")
-                    .foregroundColor(.accentColor)
-            }
+            Label(
+                locationManager.locationName,
+                systemImage: locationManager.isLocationActive
+                    ? "location.circle.fill" : "location.slash"
+            )
+            .foregroundColor(.accentColor)
         }
     }
-    
+
     private func prayerTime(for prayer: Prayer) -> Date {
         switch prayer {
         case .fajr: return prayers.fajr
@@ -59,13 +58,16 @@ struct PrayerTimesList: View {
     let date = Date()
     let calendar = Calendar.current
     let dateComponents = calendar.dateComponents([.year, .month, .day], from: date)
-    let coordinates = Coordinates(latitude: 21.422487, longitude: 39.826206) // Mecca
+    let coordinates = Coordinates(latitude: 21.422487, longitude: 39.826206)  // Mecca
     let params = CalculationMethod.moonsightingCommittee.params
-    
-    guard let prayerTimes = PrayerTimes(coordinates: coordinates, date: dateComponents, calculationParameters: params) else {
+
+    guard
+        let prayerTimes = PrayerTimes(
+            coordinates: coordinates, date: dateComponents, calculationParameters: params)
+    else {
         return Text("Unable to calculate prayer times")
     }
-    
+
     return PrayerTimesList(prayers: prayerTimes)
         .environmentObject(LocationManager())
 }

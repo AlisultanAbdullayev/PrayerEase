@@ -5,8 +5,8 @@
 //  Created by Alisultan Abdullah on 10/30/24.
 //
 
-import SwiftUI
 import Adhan
+import SwiftUI
 import WidgetKit
 
 struct ContentView: View {
@@ -15,10 +15,11 @@ struct ContentView: View {
     @EnvironmentObject private var prayerTimeManager: PrayerTimeManager
     @State private var isSheetShowing = false
     @State private var isLoadFailed = false
-    
+    @State private var isSetupSheetPresented = false
+
     let currentDate = Date()
     let hijriCalendar = Calendar(identifier: .islamicUmmAlQura)
-    
+
     var body: some View {
         Group {
             if locationManager.userLocation == nil {
@@ -32,14 +33,18 @@ struct ContentView: View {
             LocationNotFoundView()
                 .interactiveDismissDisabled()
         }
+        .sheet(isPresented: $isSetupSheetPresented) {
+            SetupSheetView(prayerTimeManager: prayerTimeManager)
+                .interactiveDismissDisabled()
+        }
     }
-    
+
     private var locationNotFoundView: some View {
         VStack {}
             .onAppear { self.isSheetShowing = true }
             .onDisappear { self.isSheetShowing = false }
     }
-    
+
     private var mainContentView: some View {
         Form {
             dateAndHijriSection
@@ -50,19 +55,31 @@ struct ContentView: View {
                 progressView
             }
         }
+        .refreshable {
+            await locationManager.refreshLocation()
+        }
         .task {
-            locationManager.requestLocation()
+            updatePrayerTimes()
+            // locationManager.requestLocation() removed to prevent startup prompt
         }
         .onAppear {
-            updatePrayerTimes()
+
             // Schedule initial background refresh when the app launches
-//            (UIApplication.shared.delegate as? SalahTimeApp)?.scheduleNextAppRefresh()
+            //            (UIApplication.shared.delegate as? SalahTimeApp)?.scheduleNextAppRefresh()
         }
         .onChange(of: locationManager.userLocation) { _, newLocation in
             if let location = newLocation {
                 prayerTimeManager.updateLocation(location)
                 notificationManager.updateLocation(location)
                 prayerTimeManager.fetchPrayerTimes(for: currentDate)
+            }
+        }
+        .onChange(of: locationManager.userTimeZone) { _, timeZone in
+            if let tz = timeZone, !prayerTimeManager.isMethodManuallySet {
+                let found = prayerTimeManager.autoSelectMethod(for: tz)
+                if !found {
+                    isSetupSheetPresented = true
+                }
             }
         }
         .onChange(of: prayerTimeManager.madhab) { _, _ in
@@ -72,7 +89,7 @@ struct ContentView: View {
             updatePrayerTimesAndNotifications()
         }
     }
-    
+
     private var dateAndHijriSection: some View {
         Section {
             VStack {
@@ -88,7 +105,7 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity, alignment: .center)
     }
-    
+
     private var progressView: some View {
         Group {
             if !isLoadFailed {
@@ -105,44 +122,42 @@ struct ContentView: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private func prayerTimesList(prayers: PrayerTimes) -> some View {
         Section {
             ForEach(Prayer.allCases, id: \.self) { prayer in
                 SalahTimeRowView(
                     imageName: imageName(for: prayer),
-                    salahTime: prayerTimeManager.formattedPrayerTime(prayerTime(for: prayer, in: prayers)),
+                    salahTime: prayerTimeManager.formattedPrayerTime(
+                        prayerTime(for: prayer, in: prayers)),
                     salahName: prayer.name
                 )
                 .foregroundColor(prayers.currentPrayer() == prayer ? .accent : .none)
             }
         } header: {
-            Button {
-                locationManager.requestLocation()
-            } label: {
-                Label(locationManager.locationName,
-                      systemImage: locationManager.isLocationActive ? "location.circle.fill" : "location.slash")
-                .foregroundColor(.accentColor)
-            }
+            Label(
+                locationManager.locationName,
+                systemImage: locationManager.isLocationActive
+                    ? "location.circle.fill" : "location.slash"
+            )
+            .foregroundColor(.accentColor)
         }
     }
-    
 
-    
     private func updatePrayerTimes() {
         if let location = locationManager.userLocation {
             prayerTimeManager.updateLocation(location)
             prayerTimeManager.fetchPrayerTimes(for: currentDate)
         }
     }
-    
+
     private func updatePrayerTimesAndNotifications() {
         updatePrayerTimes()
         notificationManager.syncNotifications()
         WidgetCenter.shared.reloadAllTimelines()
     }
-    
+
     private func imageName(for prayer: Prayer) -> String {
         switch prayer {
         case .fajr: return "sunrise"
@@ -153,7 +168,7 @@ struct ContentView: View {
         case .isha: return "moon.stars"
         }
     }
-    
+
     private func prayerTime(for prayer: Prayer, in prayers: PrayerTimes) -> Date {
         switch prayer {
         case .fajr: return prayers.fajr
@@ -164,7 +179,7 @@ struct ContentView: View {
         case .isha: return prayers.isha
         }
     }
-    
+
     private func getFormattedHijriDate(date: Date, calendar: Calendar) -> String {
         let formatter = DateFormatter()
         formatter.calendar = calendar

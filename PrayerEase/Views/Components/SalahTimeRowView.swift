@@ -12,7 +12,7 @@ struct SalahTimeRowView: View {
     let imageName: String
     let salahTime: String
     let salahName: String
-    
+
     var body: some View {
         HStack {
             leadingContent
@@ -23,7 +23,7 @@ struct SalahTimeRowView: View {
         }
         .padding(.vertical, 5)
     }
-    
+
     private var leadingContent: some View {
         HStack {
             Image(systemName: imageName)
@@ -32,17 +32,20 @@ struct SalahTimeRowView: View {
         }
         .frame(width: 110, alignment: .leading)
     }
-    
+
     private var notificationButton: some View {
         Button(action: toggleNotification) {
-            Image(systemName: notificationManager.notificationSettings[salahName] ?? true ? "bell.fill" : "bell.slash")
-                .foregroundColor(.primary)
+            Image(
+                systemName: notificationManager.notificationSettings[salahName] ?? true
+                    ? "bell.fill" : "bell.slash")
         }
+        .buttonStyle(.plain)
     }
-    
+
     private func toggleNotification() {
         let currentSetting = notificationManager.notificationSettings[salahName] ?? true
-        notificationManager.updateNotificationSettings(for: salahName, sendNotification: !currentSetting)
+        notificationManager.updateNotificationSettings(
+            for: salahName, sendNotification: !currentSetting)
         UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
     }
 }
@@ -53,7 +56,7 @@ struct SalahTimeRowView_Previews: PreviewProvider {
             SalahTimeRowView(imageName: "sun", salahTime: "12:30", salahName: "Fajr")
                 .previewLayout(.sizeThatFits)
                 .padding()
-            
+
             SalahTimeRowView(imageName: "moon", salahTime: "19:45", salahName: "Maghrib")
                 .previewLayout(.sizeThatFits)
                 .padding()
