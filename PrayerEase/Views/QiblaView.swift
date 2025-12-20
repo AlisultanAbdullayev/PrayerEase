@@ -11,7 +11,7 @@ import SwiftUI
 struct QiblaView: View {
     @EnvironmentObject var locationManager: LocationManager
 
-    var qiblaDirection: Int {
+    var qiblaDirection: Double {
         locationManager.calculateQiblaDirection(
             from: locationManager.userLocation ?? CLLocation(latitude: 0, longitude: 0))
     }
@@ -22,8 +22,9 @@ struct QiblaView: View {
                 GeometryReader { geometry in
                     VStack {
                         compassView(size: geometry.size.width * 0.8)
-//                        infoView
+                        //                        infoView
                     }
+                    .sensoryFeedback(.success, trigger: isPointingToQibla)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .navigationTitle("Qibla Direction")
@@ -79,23 +80,17 @@ struct QiblaView: View {
 
     private var infoView: some View {
         VStack(alignment: .center, spacing: 10) {
-            Text("Device Heading: \(locationManager.heading)°")
-            Text("Qibla Direction: \(qiblaDirection)°")
+            Text("Device Heading: \(Int(locationManager.heading))°")
+            Text("Qibla Direction: \(Int(qiblaDirection))°")
             Text(isPointingToQibla ? "Pointing to Qibla" : "Align to the Qibla")
                 .fontWeight(.bold)
                 .foregroundColor(isPointingToQibla ? .accent : .secondary)
             Text("\(locationManager.headingAccuracy, specifier: "%.2f")")
         }
-        .onChange(
-            of: isPointingToQibla,
-            {
-                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-            }
-        )
-//        .padding(36)
         .padding(30)
         .glassEffect()
         .padding()
+        .sensoryFeedback(.success, trigger: isPointingToQibla)
     }
 
     private var isPointingToQibla: Bool {

@@ -34,13 +34,14 @@ final class LocationManager: ObservableObject {
             }
         }
     }
-    @Published var heading: Int = 0
+    @Published var heading: Double = 0
     @Published var headingAccuracy: Double = 0.0
 
     // MARK: - Private Properties
     private let locationManager = CLLocationManager()
     private let userDefaults = UserDefaults(suiteName: "group.com.alijaver.SalahTime")
     private var locationTask: Task<Void, Never>?
+    private var locationDelegate: LocationDelegate?
 
     // MARK: - Lifecycle
     init() {
@@ -51,6 +52,10 @@ final class LocationManager: ObservableObject {
     private func setupLocationManager() {
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
         locationManager.distanceFilter = 100
+
+        let adapter = LocationDelegate(manager: self)
+        self.locationDelegate = adapter
+        locationManager.delegate = adapter
 
         // Check current status on generic init
         updateStatus()
@@ -158,13 +163,13 @@ final class LocationManager: ObservableObject {
         locationManager.stopUpdatingHeading()
     }
 
-    func calculateQiblaDirection(from location: CLLocation) -> Int {
+    func calculateQiblaDirection(from location: CLLocation) -> Double {
         let qiblaDegree = Qibla(
             coordinates: Coordinates(
                 latitude: location.coordinate.latitude,
                 longitude: location.coordinate.longitude)
         ).direction
-        return Int(qiblaDegree)
+        return qiblaDegree
     }
 
     func refreshLocation() async {
@@ -224,6 +229,23 @@ final class LocationManager: ObservableObject {
             } catch {
                 print("Reverse geocode failed: \(error.localizedDescription)")
             }
+        }
+    }
+}
+
+// MARK: - Private Delegate Adapter
+private class LocationDelegate: NSObject, CLLocationManagerDelegate {
+    weak var manager: LocationManager?
+
+    init(manager: LocationManager) {
+        self.manager = manager
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+        Task { @MainActor [weak self] in
+            guard let self = self?.manager else { return }
+            self.heading = newHeading.trueHeading
+            self.headingAccuracy = newHeading.headingAccuracy
         }
     }
 }

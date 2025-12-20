@@ -21,7 +21,7 @@ struct SalahTimeRowView: View {
             Spacer()
             Text(salahTime)
         }
-        .padding(.vertical, 5)
+        // .padding(.vertical, 5)
     }
 
     private var leadingContent: some View {
@@ -41,9 +41,9 @@ struct SalahTimeRowView: View {
             )
         }
 
-        .buttonStyle(.plain)
+        .buttonStyle(.glass)
         .sensoryFeedback(
-            .levelChange, trigger: notificationManager.notificationSettings[salahName] ?? true)
+            .selection, trigger: notificationManager.notificationSettings[salahName] ?? false)
     }
 
     private func toggleNotification() {

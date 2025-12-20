@@ -30,7 +30,10 @@ struct PrayerTimesList: View {
                     salahTime: prayerTimeManager.formattedPrayerTime(prayerTime(for: prayer)),
                     salahName: prayerName
                 )
-                .foregroundColor(prayers.currentPrayer() == prayer ? .accent : nil)
+                .foregroundColor(
+                    (prayers.currentPrayer() ?? (prayers.nextPrayer() == .fajr ? .isha : nil))
+                        == prayer
+                        ? .accentColor : .none)
             }
         } header: {
             Label(

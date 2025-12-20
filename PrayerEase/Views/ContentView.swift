@@ -17,7 +17,10 @@ struct ContentView: View {
     @State private var isLoadFailed = false
     @State private var isSetupSheetPresented = false
 
-    let currentDate = Date()
+    @Environment(\.scenePhase) var scenePhase
+    @State private var currentDate = Date()
+    @State private var timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
+
     let hijriCalendar = Calendar(identifier: .islamicUmmAlQura)
 
     var body: some View {
@@ -88,6 +91,18 @@ struct ContentView: View {
         .onChange(of: prayerTimeManager.method) { _, _ in
             updatePrayerTimesAndNotifications()
         }
+        .onChange(of: currentDate) { _, newDate in
+            print("DEBUG: Date changed to \(newDate), updating prayer times")
+            updatePrayerTimes()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                checkForDayChange()
+            }
+        }
+        .onReceive(timer) { _ in
+            checkForDayChange()
+        }
     }
 
     private var dateAndHijriSection: some View {
@@ -125,23 +140,13 @@ struct ContentView: View {
 
     @ViewBuilder
     private func prayerTimesList(prayers: PrayerTimes) -> some View {
-        Section {
-            ForEach(Prayer.allCases, id: \.self) { prayer in
-                SalahTimeRowView(
-                    imageName: imageName(for: prayer),
-                    salahTime: prayerTimeManager.formattedPrayerTime(
-                        prayerTime(for: prayer, in: prayers)),
-                    salahName: prayer.name
-                )
-                .foregroundColor(prayers.currentPrayer() == prayer ? .accent : .none)
-            }
-        } header: {
-            Label(
-                locationManager.locationName,
-                systemImage: locationManager.isLocationActive
-                    ? "location.circle.fill" : "location.slash"
-            )
-            .foregroundColor(.accentColor)
+        PrayerTimesList(prayers: prayers)
+    }
+
+    private func checkForDayChange() {
+        let now = Date()
+        if !Calendar.current.isDate(now, inSameDayAs: currentDate) {
+            currentDate = now
         }
     }
 
@@ -156,28 +161,6 @@ struct ContentView: View {
         updatePrayerTimes()
         notificationManager.syncNotifications()
         WidgetCenter.shared.reloadAllTimelines()
-    }
-
-    private func imageName(for prayer: Prayer) -> String {
-        switch prayer {
-        case .fajr: return "sunrise"
-        case .sunrise: return "sun.and.horizon"
-        case .dhuhr: return "sun.max"
-        case .asr: return "sunset"
-        case .maghrib: return "moon"
-        case .isha: return "moon.stars"
-        }
-    }
-
-    private func prayerTime(for prayer: Prayer, in prayers: PrayerTimes) -> Date {
-        switch prayer {
-        case .fajr: return prayers.fajr
-        case .sunrise: return prayers.sunrise
-        case .dhuhr: return prayers.dhuhr
-        case .asr: return prayers.asr
-        case .maghrib: return prayers.maghrib
-        case .isha: return prayers.isha
-        }
     }
 
     private func getFormattedHijriDate(date: Date, calendar: Calendar) -> String {

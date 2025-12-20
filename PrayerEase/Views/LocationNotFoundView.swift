@@ -56,7 +56,7 @@ struct LocationNotFoundView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.glassProminent)
-            .buttonSizing(.automatic)
+            .buttonSizing(.flexible)
             .controlSize(.large)
 
         }
