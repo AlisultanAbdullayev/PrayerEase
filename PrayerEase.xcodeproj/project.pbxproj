@@ -9,10 +9,41 @@
 /* Begin PBXBuildFile section */
 		C17B30422CD29D8C00BFE815 /* Adhan in Frameworks */ = {isa = PBXBuildFile; productRef = C17B30412CD29D8C00BFE815 /* Adhan */; };
 		C17B30692CD2D8EE00BFE815 /* OpenAI in Frameworks */ = {isa = PBXBuildFile; productRef = C17B30682CD2D8EE00BFE815 /* OpenAI */; };
+		D690B4872EF8703800312C04 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D690B4862EF8703800312C04 /* WidgetKit.framework */; };
+		D690B4892EF8703800312C04 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D690B4882EF8703800312C04 /* SwiftUI.framework */; };
+		D690B4982EF8703800312C04 /* PrayerEaseWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D690B4842EF8703800312C04 /* PrayerEaseWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D690B4A22EF870C600312C04 /* Adhan in Frameworks */ = {isa = PBXBuildFile; productRef = D690B4A12EF870C600312C04 /* Adhan */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		D690B4962EF8703800312C04 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C17B30212CD299F100BFE815 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D690B4832EF8703800312C04;
+			remoteInfo = PrayerEaseWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D690B4202EF6949B00312C04 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				D690B4982EF8703800312C04 /* PrayerEaseWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		C17B30292CD299F100BFE815 /* PrayerEase.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PrayerEase.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D690B4842EF8703800312C04 /* PrayerEaseWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PrayerEaseWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		D690B4862EF8703800312C04 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		D690B4882EF8703800312C04 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -23,6 +54,13 @@
 			);
 			target = C17B30282CD299F100BFE815 /* PrayerEase */;
 		};
+		D690B49C2EF8703800312C04 /* Exceptions for "PrayerEaseWidget" folder in "PrayerEaseWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = D690B4832EF8703800312C04 /* PrayerEaseWidgetExtension */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -32,6 +70,14 @@
 				D690B3BA2EF672C400312C04 /* Exceptions for "PrayerEase" folder in "PrayerEase" target */,
 			);
 			path = PrayerEase;
+			sourceTree = "<group>";
+		};
+		D690B48A2EF8703800312C04 /* PrayerEaseWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				D690B49C2EF8703800312C04 /* Exceptions for "PrayerEaseWidget" folder in "PrayerEaseWidgetExtension" target */,
+			);
+			path = PrayerEaseWidget;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -46,6 +92,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D690B4812EF8703800312C04 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D690B4A22EF870C600312C04 /* Adhan in Frameworks */,
+				D690B4892EF8703800312C04 /* SwiftUI.framework in Frameworks */,
+				D690B4872EF8703800312C04 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -53,6 +109,8 @@
 			isa = PBXGroup;
 			children = (
 				C17B302B2CD299F100BFE815 /* PrayerEase */,
+				D690B48A2EF8703800312C04 /* PrayerEaseWidget */,
+				D690B4852EF8703800312C04 /* Frameworks */,
 				C17B302A2CD299F100BFE815 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -61,8 +119,18 @@
 			isa = PBXGroup;
 			children = (
 				C17B30292CD299F100BFE815 /* PrayerEase.app */,
+				D690B4842EF8703800312C04 /* PrayerEaseWidgetExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		D690B4852EF8703800312C04 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				D690B4862EF8703800312C04 /* WidgetKit.framework */,
+				D690B4882EF8703800312C04 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -75,10 +143,12 @@
 				C17B30252CD299F100BFE815 /* Sources */,
 				C17B30262CD299F100BFE815 /* Frameworks */,
 				C17B30272CD299F100BFE815 /* Resources */,
+				D690B4202EF6949B00312C04 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				D690B4972EF8703800312C04 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				C17B302B2CD299F100BFE815 /* PrayerEase */,
@@ -92,6 +162,29 @@
 			productReference = C17B30292CD299F100BFE815 /* PrayerEase.app */;
 			productType = "com.apple.product-type.application";
 		};
+		D690B4832EF8703800312C04 /* PrayerEaseWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D690B4992EF8703800312C04 /* Build configuration list for PBXNativeTarget "PrayerEaseWidgetExtension" */;
+			buildPhases = (
+				D690B4802EF8703800312C04 /* Sources */,
+				D690B4812EF8703800312C04 /* Frameworks */,
+				D690B4822EF8703800312C04 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D690B48A2EF8703800312C04 /* PrayerEaseWidget */,
+			);
+			name = PrayerEaseWidgetExtension;
+			packageProductDependencies = (
+				D690B4A12EF870C600312C04 /* Adhan */,
+			);
+			productName = PrayerEaseWidgetExtension;
+			productReference = D690B4842EF8703800312C04 /* PrayerEaseWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -99,11 +192,14 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1610;
+				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					C17B30282CD299F100BFE815 = {
 						CreatedOnToolsVersion = 16.1;
+					};
+					D690B4832EF8703800312C04 = {
+						CreatedOnToolsVersion = 26.2;
 					};
 				};
 			};
@@ -126,12 +222,20 @@
 			projectRoot = "";
 			targets = (
 				C17B30282CD299F100BFE815 /* PrayerEase */,
+				D690B4832EF8703800312C04 /* PrayerEaseWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		C17B30272CD299F100BFE815 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D690B4822EF8703800312C04 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -148,7 +252,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D690B4802EF8703800312C04 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D690B4972EF8703800312C04 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D690B4832EF8703800312C04 /* PrayerEaseWidgetExtension */;
+			targetProxy = D690B4962EF8703800312C04 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		C17B30352CD299F300BFE815 /* Debug */ = {
@@ -279,6 +398,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = PrayerEase/PrayerEase.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"PrayerEase/Preview Content\"";
@@ -311,6 +431,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = PrayerEase/PrayerEase.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"PrayerEase/Preview Content\"";
@@ -338,6 +459,68 @@
 			};
 			name = Release;
 		};
+		D690B49A2EF8703800312C04 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = PrayerEaseWidget/PrayerEaseWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PrayerEaseWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = PrayerEaseWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alijaver.PrayerEase.PrayerEaseWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D690B49B2EF8703800312C04 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = PrayerEaseWidget/PrayerEaseWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PrayerEaseWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = PrayerEaseWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alijaver.PrayerEase.PrayerEaseWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -355,6 +538,15 @@
 			buildConfigurations = (
 				C17B30382CD299F300BFE815 /* Debug */,
 				C17B30392CD299F300BFE815 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D690B4992EF8703800312C04 /* Build configuration list for PBXNativeTarget "PrayerEaseWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D690B49A2EF8703800312C04 /* Debug */,
+				D690B49B2EF8703800312C04 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -390,6 +582,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C17B30672CD2D8EE00BFE815 /* XCRemoteSwiftPackageReference "OpenAI" */;
 			productName = OpenAI;
+		};
+		D690B4A12EF870C600312C04 /* Adhan */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C17B30402CD29D8C00BFE815 /* XCRemoteSwiftPackageReference "adhan-swift" */;
+			productName = Adhan;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

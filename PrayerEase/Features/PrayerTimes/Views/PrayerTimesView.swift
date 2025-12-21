@@ -6,6 +6,7 @@
 //
 
 import Adhan
+import CoreLocation
 import SwiftUI
 import WidgetKit
 
@@ -19,54 +20,69 @@ struct PrayerTimesView: View {
     @Environment(\.scenePhase) var scenePhase
 
     var body: some View {
-        Group {
-            if locationManager.userLocation == nil {
-                locationNotFoundView
-            } else {
-                PrayerTimesFormView(viewModel: viewModel)
+        baseView
+            .onChange(of: scenePhase) { _, newPhase in
+                handleScenePhaseChange(newPhase)
             }
-        }
-        .navigationTitle("Salah time")
-        .sheet(isPresented: $viewModel.isSheetShowing) {
-            LocationNotFoundView()
-                .interactiveDismissDisabled()
-        }
-        .sheet(isPresented: $viewModel.isSetupSheetPresented) {
-            SetupSheetView(prayerTimeManager: prayerTimeManager)
-                .interactiveDismissDisabled()
-        }
-        .task {
-            updatePrayerTimes()
-        }
-        .onChange(of: locationManager.userLocation) { _, newLocation in
-            if let location = newLocation {
-                prayerTimeManager.updateLocation(location)
-                notificationManager.updateLocation(location)
-                prayerTimeManager.fetchPrayerTimes(for: viewModel.currentDate)
+    }
+    
+    private var baseView: some View {
+        coreContent
+            .onReceive(locationManager.$locationName) { _ in
+                syncWidgetData()
             }
-        }
-        .onChange(of: locationManager.userTimeZone) { _, timeZone in
-            if let tz = timeZone, !prayerTimeManager.isMethodManuallySet {
-                let found = prayerTimeManager.autoSelectMethod(for: tz)
-                if !found {
-                    viewModel.isSetupSheetPresented = true
-                }
+            .onReceive(prayerTimeManager.$prayerTimes) { _ in
+                syncWidgetData()
             }
-        }
-        .onChange(of: prayerTimeManager.madhab) { _, _ in
-            updatePrayerTimesAndNotifications()
-        }
-        .onChange(of: prayerTimeManager.method) { _, _ in
-            updatePrayerTimesAndNotifications()
-        }
-        .onChange(of: viewModel.currentDate) { _, newDate in
-            print("DEBUG: Date changed to \(newDate), updating prayer times")
-            updatePrayerTimes()
-        }
-        .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .active {
-                viewModel.onSceneActive()
+    }
+    
+    private var coreContent: some View {
+        settingsObservingContent
+            .onReceive(locationManager.$userLocation) { newLocation in
+                handleLocationChange(newLocation)
             }
+            .onReceive(locationManager.$userTimeZone) { timeZone in
+                handleTimeZoneChange(timeZone)
+            }
+    }
+    
+    private var settingsObservingContent: some View {
+        sheetContent
+            .onReceive(prayerTimeManager.$madhab) { _ in
+                updatePrayerTimesAndNotifications()
+            }
+            .onReceive(prayerTimeManager.$method) { _ in
+                updatePrayerTimesAndNotifications()
+            }
+            .onReceive(viewModel.$currentDate) { _ in
+                updatePrayerTimes()
+            }
+    }
+    
+    private var sheetContent: some View {
+        navigationContent
+            .sheet(isPresented: $viewModel.isSheetShowing) {
+                LocationNotFoundView()
+                    .interactiveDismissDisabled()
+            }
+            .sheet(isPresented: $viewModel.isSetupSheetPresented) {
+                SetupSheetView(prayerTimeManager: prayerTimeManager)
+                    .interactiveDismissDisabled()
+            }
+    }
+    
+    private var navigationContent: some View {
+        contentGroup
+            .navigationTitle("Salah time")
+            .task { updatePrayerTimes() }
+    }
+
+    @ViewBuilder
+    private var contentGroup: some View {
+        if locationManager.userLocation == nil {
+            locationNotFoundView
+        } else {
+            PrayerTimesFormView(viewModel: viewModel)
         }
     }
 
@@ -75,30 +91,63 @@ struct PrayerTimesView: View {
             .onAppear { viewModel.isSheetShowing = true }
             .onDisappear { viewModel.isSheetShowing = false }
     }
+    
+    // MARK: - Event Handlers
+    
+    private func handleLocationChange(_ newLocation: CLLocation?) {
+        guard let location = newLocation else { return }
+        prayerTimeManager.updateLocation(location)
+        notificationManager.updateLocation(location)
+        prayerTimeManager.fetchPrayerTimes(for: viewModel.currentDate)
+    }
+    
+    private func handleTimeZoneChange(_ timeZone: String?) {
+        guard let tz = timeZone, !prayerTimeManager.isMethodManuallySet else { return }
+        let found = prayerTimeManager.autoSelectMethod(for: tz)
+        if !found {
+            viewModel.isSetupSheetPresented = true
+        }
+    }
+    
+    private func handleScenePhaseChange(_ newPhase: ScenePhase) {
+        if newPhase == .active {
+            viewModel.onSceneActive()
+            syncWidgetData()
+        }
+    }
 
     private func updatePrayerTimes() {
-        if let location = locationManager.userLocation {
-            prayerTimeManager.updateLocation(location)
-            prayerTimeManager.fetchPrayerTimes(for: viewModel.currentDate)
-        }
+        guard let location = locationManager.userLocation else { return }
+        prayerTimeManager.updateLocation(location)
+        prayerTimeManager.fetchPrayerTimes(for: viewModel.currentDate)
+        syncWidgetData()
     }
 
     private func updatePrayerTimesAndNotifications() {
         updatePrayerTimes()
         notificationManager.syncNotifications()
-        WidgetCenter.shared.reloadAllTimelines()
     }
-}
-
-extension Prayer {
-    var name: String {
-        switch self {
-        case .fajr: return "Fajr"
-        case .sunrise: return "Sunrise"
-        case .dhuhr: return "Dhuhr"
-        case .asr: return "Asr"
-        case .maghrib: return "Maghrib"
-        case .isha: return "Isha"
+    
+    private func syncWidgetData() {
+        guard let prayerTimes = prayerTimeManager.prayerTimes else { return }
+        
+        let islamicDate = viewModel.getFormattedHijriDate()
+        let locationName = locationManager.locationName
+        
+        WidgetDataManager.shared.updateWidgetData(
+            prayerTimes: prayerTimes,
+            locationName: locationName,
+            islamicDate: islamicDate
+        )
+        
+        if WidgetDataManager.shared.isLiveActivityEnabled {
+            Task {
+                await WidgetDataManager.shared.updateLiveActivity(
+                    prayerTimes: prayerTimes,
+                    locationName: locationName,
+                    islamicDate: islamicDate
+                )
+            }
         }
     }
 }

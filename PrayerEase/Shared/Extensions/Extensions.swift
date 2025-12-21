@@ -5,8 +5,9 @@
 //  Created by Alisultan Abdullah on 10/30/24.
 //
 
-import Foundation
+import Adhan
 import CoreLocation
+import Foundation
 
 extension Double {
     var radiansToDegrees: Double {
@@ -28,5 +29,20 @@ extension UserDefaults {
             return CLLocation(latitude: locationLat, longitude: locationLon)
         }
         return nil
+    }
+}
+
+// MARK: - Prayer Extension
+
+extension Prayer {
+    var name: String {
+        switch self {
+        case .fajr: return "Fajr"
+        case .sunrise: return "Sunrise"
+        case .dhuhr: return "Dhuhr"
+        case .asr: return "Asr"
+        case .maghrib: return "Maghrib"
+        case .isha: return "Isha"
+        }
     }
 }

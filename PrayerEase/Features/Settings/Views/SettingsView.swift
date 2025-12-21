@@ -5,6 +5,7 @@
 //  Created by Alisultan Abdullah on 10/30/24.
 //
 
+import ActivityKit
 import Adhan
 import SwiftUI
 
@@ -13,17 +14,18 @@ struct SettingsView: View {
     @EnvironmentObject private var prayerTimeManager: PrayerTimeManager
     @EnvironmentObject private var notificationManager: NotificationManager
     @EnvironmentObject private var locationManager: LocationManager
+    @StateObject private var widgetDataManager = WidgetDataManager.shared
     @State private var isNotifyBeforeExpanded = false
 
     var body: some View {
         Form {
             locationSection
+            liveActivitySection
             notificationSection
             calculationSection
             debugSection
             footerSection
         }
-        // .onChange(of: notificationManager.beforeMinutes) handled internally by NotificationManager
 
         .onDisappear {
             isNotifyBeforeExpanded = false
@@ -37,6 +39,57 @@ struct SettingsView: View {
                 Text("Auto Location Detection")
             }
         }
+    }
+    
+    private var liveActivitySection: some View {
+        Section {
+            Toggle(isOn: $widgetDataManager.isLiveActivityEnabled) {
+                HStack {
+                    Image(systemName: "clock.badge.fill")
+                        .foregroundStyle(.blue)
+                    Text("Live Activity")
+                }
+            }
+            .onChange(of: widgetDataManager.isLiveActivityEnabled) { _, isEnabled in
+                Task {
+                    if isEnabled {
+                        await startLiveActivityIfPossible()
+                    } else {
+                        await widgetDataManager.endLiveActivity()
+                    }
+                }
+            }
+            
+            if !ActivityAuthorizationInfo().areActivitiesEnabled {
+                Text("Live Activities are disabled. Enable them in Settings > PrayerEase.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("Live Activity")
+        } footer: {
+            Text("Shows prayer countdown on your Lock Screen and Dynamic Island.")
+        }
+    }
+    
+    private func startLiveActivityIfPossible() async {
+        guard let prayerTimes = prayerTimeManager.prayerTimes else { return }
+        
+        let islamicDate = getFormattedHijriDate()
+        
+        await widgetDataManager.startLiveActivity(
+            prayerTimes: prayerTimes,
+            locationName: locationManager.locationName,
+            islamicDate: islamicDate
+        )
+    }
+    
+    private func getFormattedHijriDate() -> String {
+        let hijriCalendar = Calendar(identifier: .islamicUmmAlQura)
+        let formatter = DateFormatter()
+        formatter.calendar = hijriCalendar
+        formatter.dateFormat = "d MMMM yyyy"
+        return formatter.string(from: Date())
     }
 
     private var notificationSection: some View {

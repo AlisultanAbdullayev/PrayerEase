@@ -8,22 +8,31 @@
 import Adhan
 import CoreLocation
 import Foundation
+import Combine
 
 final class PrayerTimeManager: ObservableObject {
     static let shared = PrayerTimeManager()
+
+    // MARK: - App Group Configuration
+    // Replace this with your actual App Group ID from Xcode capabilities
+    static let appGroupId = "group.com.alijaver.PrayerEase"
+
+    private var userDefaults: UserDefaults {
+        UserDefaults(suiteName: Self.appGroupId) ?? .standard
+    }
 
     @Published var prayerTimes: PrayerTimes?
     @Published var prayerTimesArr = [PrayerTimes]()
     @Published var prayerTimeIndex: Int?
     @Published var madhab: Madhab = .shafi {
-        didSet { UserDefaults.standard.set(madhab.rawValue, forKey: "madhab") }
+        didSet { userDefaults.set(madhab.rawValue, forKey: "madhab") }
     }
     @Published var method: CalculationMethod = .turkey {
-        didSet { UserDefaults.standard.set(method.rawValue, forKey: "method") }
+        didSet { userDefaults.set(method.rawValue, forKey: "method") }
     }
 
     @Published var isMethodManuallySet: Bool = false {
-        didSet { UserDefaults.standard.set(isMethodManuallySet, forKey: "isMethodManuallySet") }
+        didSet { userDefaults.set(isMethodManuallySet, forKey: "isMethodManuallySet") }
     }
     @Published var dataId = UUID()
 
@@ -33,11 +42,11 @@ final class PrayerTimeManager: ObservableObject {
     let methods: [CalculationMethod] = CalculationMethod.allCases
 
     private init() {
-        self.madhab = Madhab(rawValue: UserDefaults.standard.integer(forKey: "madhab")) ?? .shafi
+        self.madhab = Madhab(rawValue: userDefaults.integer(forKey: "madhab")) ?? .shafi
         self.method =
-            CalculationMethod(rawValue: UserDefaults.standard.string(forKey: "method") ?? "")
+            CalculationMethod(rawValue: userDefaults.string(forKey: "method") ?? "")
             ?? .turkey
-        self.isMethodManuallySet = UserDefaults.standard.bool(forKey: "isMethodManuallySet")
+        self.isMethodManuallySet = userDefaults.bool(forKey: "isMethodManuallySet")
     }
 
     func autoSelectMethod(for timeZoneIdentifier: String) -> Bool {

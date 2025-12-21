@@ -9,6 +9,7 @@ import Adhan
 import CoreLocation
 import MapKit
 import SwiftUI
+import Combine
 
 @MainActor
 final class LocationManager: ObservableObject {
@@ -40,7 +41,7 @@ final class LocationManager: ObservableObject {
 
     // MARK: - Private Properties
     private let locationManager = CLLocationManager()
-    private let userDefaults = UserDefaults(suiteName: "group.com.alijaver.SalahTime")
+    private let userDefaults = UserDefaults(suiteName: "group.com.alijaver.PrayerEase")
     private var locationTask: Task<Void, Never>?
     private var locationDelegate: LocationDelegate?
 

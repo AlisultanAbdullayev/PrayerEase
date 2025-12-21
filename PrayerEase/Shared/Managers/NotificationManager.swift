@@ -4,11 +4,16 @@
 //
 //  Created by Alisultan Abdullah on 10/30/24.
 //
+//  NOTE: This file should ONLY be included in the main app target, NOT in widget extensions.
+//  In Xcode, uncheck the widget extension target in this file's Target Membership.
+//
 
 import Adhan
 import BackgroundTasks
+import Combine
 import CoreLocation
 import Foundation
+import MapKit
 import UserNotifications
 
 @MainActor
@@ -61,7 +66,6 @@ final class NotificationManager: ObservableObject {
             self.beforeMinutes = 25
         }
 
-        // requestNotificationAuthorization() // Removed auto-request for onboarding flow
         registerBackgroundTask()
     }
 
@@ -81,32 +85,26 @@ final class NotificationManager: ObservableObject {
     }
 
     func requestAuthorization() async -> Bool {
-        return await withCheckedContinuation { continuation in
-            notificationCenter.requestAuthorization(options: [.alert, .sound]) {
-                [weak self] granted, error in
-                if let error = error {
-                    print(
-                        "Error requesting notification authorization: \(error.localizedDescription)"
-                    )
-                } else {
-                    print("Notification authorization \(granted ? "granted" : "denied")")
-                    if granted {
-                        Task { @MainActor in
-                            self?.syncNotifications()
-                        }
-                    }
-                }
-                continuation.resume(returning: granted)
+        do {
+            let granted = try await notificationCenter.requestAuthorization(options: [.alert, .sound])
+            print("Notification authorization \(granted ? "granted" : "denied")")
+            if granted {
+                syncNotifications()
             }
+            return granted
+        } catch {
+            print("Error requesting notification authorization: \(error.localizedDescription)")
+            return false
         }
     }
 
     private func registerBackgroundTask() {
-        BGTaskScheduler.shared.register(
+        _ = BGTaskScheduler.shared.register(
             forTaskWithIdentifier: "com.alijaver.SalahTimes.refreshNotifications", using: nil
         ) { [weak self] task in
-            Task { @MainActor in
-                self?.handleAppRefresh(task: task as! BGAppRefreshTask)
+            guard let appRefreshTask = task as? BGAppRefreshTask else { return }
+            Task { @MainActor [weak self] in
+                await self?.handleAppRefresh(task: appRefreshTask)
             }
         }
     }
@@ -114,7 +112,7 @@ final class NotificationManager: ObservableObject {
     private func scheduleBackgroundRefresh() {
         let request = BGAppRefreshTaskRequest(
             identifier: "com.alijaver.SalahTimes.refreshNotifications")
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 12 * 3600)  // Refresh twice a day roughly, or at least check frequently.
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 12 * 3600)  // Refresh twice a day roughly
 
         do {
             try BGTaskScheduler.shared.submit(request)
@@ -123,18 +121,15 @@ final class NotificationManager: ObservableObject {
         }
     }
 
-    private func handleAppRefresh(task: BGAppRefreshTask) {
+    private func handleAppRefresh(task: BGAppRefreshTask) async {
         scheduleBackgroundRefresh()  // Schedule next one
 
         task.expirationHandler = {
             task.setTaskCompleted(success: false)
         }
 
-        // Use Task for modern concurrency
-        Task {
-            self.syncNotifications()
-            task.setTaskCompleted(success: true)
-        }
+        syncNotifications()
+        task.setTaskCompleted(success: true)
     }
 
     /// The Single Source of Truth for scheduling.
@@ -164,6 +159,12 @@ final class NotificationManager: ObservableObject {
             else { continue }
 
             scheduleDailyNotifications(for: prayerTimes)
+
+            // After scheduling for today, update widget shared data
+            // Adding helper call here as per instructions
+            if dayOffset == 0 {
+                updateWidgetSharedData(prayerTimes: prayerTimes) // <-- New helper call
+            }
         }
 
         scheduleBackgroundRefresh()  // Always ensure BG task is kept alive
@@ -274,5 +275,93 @@ final class NotificationManager: ObservableObject {
         for key in notificationSettingsBefore.keys {
             notificationSettingsBefore[key] = false
         }
+    }
+
+    // MARK: - Widget Shared Data Helper
+
+    /// Writes next prayer info, all prayer times, location name, and Islamic date to shared UserDefaults for Widget usage.
+    /// Keys:
+    /// - widget_nextPrayer: String (name of next prayer)
+    /// - widget_nextPrayerTime: String (ISO8601 date string)
+    /// - widget_prayerTimes: [String: String] dictionary with prayer names and ISO8601 date strings
+    /// - widget_locationName: String (current location name or empty)
+    /// - widget_islamicDate: String (formatted Islamic date)
+    private func updateWidgetSharedData(prayerTimes: PrayerTimes) {
+        let sharedDefaults = UserDefaults(suiteName: "group.com.alijaver.PrayerEase")
+        guard let sharedDefaults = sharedDefaults else {
+            print("Failed to access shared UserDefaults for widget")
+            return
+        }
+
+        // Prepare ISO8601 date formatter
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        // Dictionary of all prayer times as ISO8601 strings
+        let prayerDict: [String: String] = [
+            "Fajr": isoFormatter.string(from: prayerTimes.fajr),
+            "Sunrise": isoFormatter.string(from: prayerTimes.sunrise),
+            "Dhuhr": isoFormatter.string(from: prayerTimes.dhuhr),
+            "Asr": isoFormatter.string(from: prayerTimes.asr),
+            "Maghrib": isoFormatter.string(from: prayerTimes.maghrib),
+            "Isha": isoFormatter.string(from: prayerTimes.isha),
+        ]
+
+        sharedDefaults.set(prayerDict, forKey: "widget_prayerTimes")
+
+        // Determine next prayer and its time (next upcoming from now)
+        let now = Date()
+        // Array of tuples sorted by time ascending
+        let sortedPrayers = prayerDict.compactMap { (name, isoString) -> (String, Date)? in
+            if let date = isoFormatter.date(from: isoString) {
+                return (name, date)
+            }
+            return nil
+        }.sorted { $0.1 < $1.1 }
+
+        var nextPrayerName: String? = nil
+        var nextPrayerTime: Date? = nil
+
+        for (name, time) in sortedPrayers {
+            if time > now {
+                nextPrayerName = name
+                nextPrayerTime = time
+                break
+            }
+        }
+
+        // If no next prayer found (all passed), fallback to first prayer tomorrow (or first in list)
+        if nextPrayerName == nil, let firstPrayer = sortedPrayers.first {
+            nextPrayerName = firstPrayer.0
+            nextPrayerTime = firstPrayer.1
+        }
+
+        if let nextPrayerName = nextPrayerName {
+            sharedDefaults.set(nextPrayerName, forKey: "widget_nextPrayer")
+        } else {
+            sharedDefaults.removeObject(forKey: "widget_nextPrayer")
+        }
+
+        if let nextPrayerTime = nextPrayerTime {
+            sharedDefaults.set(isoFormatter.string(from: nextPrayerTime), forKey: "widget_nextPrayerTime")
+        } else {
+            sharedDefaults.removeObject(forKey: "widget_nextPrayerTime")
+        }
+
+        // Save locationName - we'll use cached location name from LocationManager via shared defaults
+        // The LocationManager already stores locationName in shared defaults
+        let locationName = sharedDefaults.string(forKey: "locationName") ?? ""
+        sharedDefaults.set(locationName, forKey: "widget_locationName")
+
+        // Save Islamic date string for today using Umm al-Qura calendar
+        let islamicCalendar = Calendar(identifier: .islamicUmmAlQura)
+        let islamicDateFormatter = DateFormatter()
+        islamicDateFormatter.calendar = islamicCalendar
+        islamicDateFormatter.dateStyle = .medium
+        islamicDateFormatter.timeStyle = .none
+        let islamicDateString = islamicDateFormatter.string(from: Date())
+        sharedDefaults.set(islamicDateString, forKey: "widget_islamicDate")
+
+        sharedDefaults.synchronize()
     }
 }
