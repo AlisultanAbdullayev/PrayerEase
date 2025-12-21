@@ -18,6 +18,6 @@ struct PrayerEaseWidgetBundle: WidgetBundle {
         PrayerEaseWidgetLiveActivity()
         
         // Control Center Widget
-        PrayerEaseControlWidget()
+        PrayerEaseWidgetControl()
     }
 }
