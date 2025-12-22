@@ -196,9 +196,18 @@ struct AccessoryRectangularView: View {
                 .font(.headline)
                 .monospacedDigit()
 
-            Text(entry.locationName)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            ViewThatFits(in: .horizontal) {
+                Text(entry.locationName)
+                    .font(.footnote)
+
+                Text(entry.locationName.components(separatedBy: ",").first ?? entry.locationName)
+                    .font(.footnote)
+
+                Text(entry.locationName.components(separatedBy: ",").first ?? entry.locationName)
+                    .font(.footnote)
+                    .minimumScaleFactor(0.8)
+            }
+            .foregroundStyle(.secondary)
         }
     }
 }
@@ -221,9 +230,18 @@ struct LocationLabel: View {
         HStack(spacing: 3) {
             Image(systemName: "location.fill")
                 .font(.caption2)
-            Text(name)
-                .font(.caption)
-                .lineLimit(1)
+
+            ViewThatFits(in: .horizontal) {
+                Text(name)
+                    .font(.caption)
+
+                Text(name.components(separatedBy: ",").first ?? name)
+                    .font(.caption)
+
+                Text(name.components(separatedBy: ",").first ?? name)
+                    .font(.caption)
+                    .minimumScaleFactor(0.8)
+            }
         }
         .foregroundStyle(.secondary)
     }

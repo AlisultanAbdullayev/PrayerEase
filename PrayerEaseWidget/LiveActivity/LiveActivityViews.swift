@@ -48,19 +48,18 @@ struct ExpandedLeadingView: View {
 
     var body: some View {
         HStack(alignment: .lastTextBaseline, spacing: 4) {
-            Text(state.nextPrayerName)
-                .font(.headline)
-                .foregroundStyle(accentGreen)
-                .lineLimit(1)
-
-            Text("at \(state.nextPrayerTime, format: .dateTime.hour().minute())")
+            Text(state.nextPrayerName + ":")
                 .font(.subheadline)
-                //                .fontWeight(.semibold)
+                .foregroundStyle(accentGreen)
+
+            Text("\(state.nextPrayerTime, format: .dateTime.hour().minute())")
+                .font(.subheadline)
                 .foregroundStyle(.primary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+
         }
-        .padding(.leading, 3)
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+        .padding(.leading, 4)
     }
 }
 
@@ -88,8 +87,24 @@ struct ExpandedBottomView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "location.fill")
                         .font(.caption2)
-                    Text(state.locationName)
+
+                    ViewThatFits(in: .horizontal) {
+                        Text(state.locationName)
+                            .font(.caption)
+
+                        Text(
+                            state.locationName.components(separatedBy: ",").first
+                                ?? state.locationName
+                        )
                         .font(.caption)
+
+                        Text(
+                            state.locationName.components(separatedBy: ",").first
+                                ?? state.locationName
+                        )
+                        .font(.caption)
+                        .minimumScaleFactor(0.8)
+                    }
                 }
                 Spacer()
                 Text(state.islamicDate)

@@ -92,7 +92,15 @@ struct UnifiedHeaderView: View {
                     .foregroundStyle(.secondary)
                 HStack(spacing: 4) {
                     Image(systemName: "location.fill")
-                    Text(locationName)
+
+                    ViewThatFits(in: .horizontal) {
+                        Text(locationName)
+
+                        Text(locationName.components(separatedBy: ",").first ?? locationName)
+
+                        Text(locationName.components(separatedBy: ",").first ?? locationName)
+                            .minimumScaleFactor(0.8)
+                    }
                 }
                 .font(.footnote)
 
