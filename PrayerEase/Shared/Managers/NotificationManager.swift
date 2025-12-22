@@ -86,7 +86,9 @@ final class NotificationManager: ObservableObject {
 
     func requestAuthorization() async -> Bool {
         do {
-            let granted = try await notificationCenter.requestAuthorization(options: [.alert, .sound])
+            let granted = try await notificationCenter.requestAuthorization(options: [
+                .alert, .sound,
+            ])
             print("Notification authorization \(granted ? "granted" : "denied")")
             if granted {
                 syncNotifications()
@@ -163,7 +165,7 @@ final class NotificationManager: ObservableObject {
             // After scheduling for today, update widget shared data
             // Adding helper call here as per instructions
             if dayOffset == 0 {
-                updateWidgetSharedData(prayerTimes: prayerTimes) // <-- New helper call
+                updateWidgetSharedData(prayerTimes: prayerTimes)  // <-- New helper call
             }
         }
 
@@ -287,81 +289,24 @@ final class NotificationManager: ObservableObject {
     /// - widget_locationName: String (current location name or empty)
     /// - widget_islamicDate: String (formatted Islamic date)
     private func updateWidgetSharedData(prayerTimes: PrayerTimes) {
-        let sharedDefaults = UserDefaults(suiteName: "group.com.alijaver.PrayerEase")
-        guard let sharedDefaults = sharedDefaults else {
-            print("Failed to access shared UserDefaults for widget")
-            return
-        }
+        // Retrieve location name from shared defaults (best effort)
+        let locationName =
+            UserDefaults(suiteName: "group.com.alijaver.PrayerEase")?.string(forKey: "locationName")
+            ?? ""
 
-        // Prepare ISO8601 date formatter
-        let isoFormatter = ISO8601DateFormatter()
-        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-
-        // Dictionary of all prayer times as ISO8601 strings
-        let prayerDict: [String: String] = [
-            "Fajr": isoFormatter.string(from: prayerTimes.fajr),
-            "Sunrise": isoFormatter.string(from: prayerTimes.sunrise),
-            "Dhuhr": isoFormatter.string(from: prayerTimes.dhuhr),
-            "Asr": isoFormatter.string(from: prayerTimes.asr),
-            "Maghrib": isoFormatter.string(from: prayerTimes.maghrib),
-            "Isha": isoFormatter.string(from: prayerTimes.isha),
-        ]
-
-        sharedDefaults.set(prayerDict, forKey: "widget_prayerTimes")
-
-        // Determine next prayer and its time (next upcoming from now)
-        let now = Date()
-        // Array of tuples sorted by time ascending
-        let sortedPrayers = prayerDict.compactMap { (name, isoString) -> (String, Date)? in
-            if let date = isoFormatter.date(from: isoString) {
-                return (name, date)
-            }
-            return nil
-        }.sorted { $0.1 < $1.1 }
-
-        var nextPrayerName: String? = nil
-        var nextPrayerTime: Date? = nil
-
-        for (name, time) in sortedPrayers {
-            if time > now {
-                nextPrayerName = name
-                nextPrayerTime = time
-                break
-            }
-        }
-
-        // If no next prayer found (all passed), fallback to first prayer tomorrow (or first in list)
-        if nextPrayerName == nil, let firstPrayer = sortedPrayers.first {
-            nextPrayerName = firstPrayer.0
-            nextPrayerTime = firstPrayer.1
-        }
-
-        if let nextPrayerName = nextPrayerName {
-            sharedDefaults.set(nextPrayerName, forKey: "widget_nextPrayer")
-        } else {
-            sharedDefaults.removeObject(forKey: "widget_nextPrayer")
-        }
-
-        if let nextPrayerTime = nextPrayerTime {
-            sharedDefaults.set(isoFormatter.string(from: nextPrayerTime), forKey: "widget_nextPrayerTime")
-        } else {
-            sharedDefaults.removeObject(forKey: "widget_nextPrayerTime")
-        }
-
-        // Save locationName - we'll use cached location name from LocationManager via shared defaults
-        // The LocationManager already stores locationName in shared defaults
-        let locationName = sharedDefaults.string(forKey: "locationName") ?? ""
-        sharedDefaults.set(locationName, forKey: "widget_locationName")
-
-        // Save Islamic date string for today using Umm al-Qura calendar
+        // Calculate Islamic date
         let islamicCalendar = Calendar(identifier: .islamicUmmAlQura)
         let islamicDateFormatter = DateFormatter()
         islamicDateFormatter.calendar = islamicCalendar
         islamicDateFormatter.dateStyle = .medium
         islamicDateFormatter.timeStyle = .none
         let islamicDateString = islamicDateFormatter.string(from: Date())
-        sharedDefaults.set(islamicDateString, forKey: "widget_islamicDate")
 
-        sharedDefaults.synchronize()
+        // Delegate to WidgetDataManager to ensure consistent format
+        WidgetDataManager.shared.updateWidgetData(
+            prayerTimes: prayerTimes,
+            locationName: locationName,
+            islamicDate: islamicDateString
+        )
     }
 }
