@@ -81,12 +81,43 @@ struct PrayerTimelineProvider: TimelineProvider {
         var entries: [PrayerWidgetEntry] = []
         let calendar = Calendar.current
 
-        // Create entries for next 4 hours
-        for minuteOffset in stride(from: 0, to: 240, by: 15) {  // Reduced frequency for performance
+        // 1. Standard 15-min entries
+        for minuteOffset in stride(from: 0, to: 240, by: 15) {
             guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
             else { continue }
             entries.append(loadEntry(for: entryDate))
         }
+
+        // 2. Critical update entries (Format switching: 1h+ -> min, min -> timer)
+        let loadedPrayers = loadPrayerTimes(for: now)
+        // Candidates: Today's future prayers + Tomorrow's Fajr (extrapolated)
+        var candidates = loadedPrayers.filter { $0.time > now.addingTimeInterval(-3600) }  // Include if within 1h ago incase
+        if let first = loadedPrayers.first,
+            let tomorrowFajr = calendar.date(byAdding: .day, value: 1, to: first.time)
+        {
+            candidates.append(WidgetPrayerTime(name: first.name, time: tomorrowFajr))
+        }
+
+        let protectionWindow = now.addingTimeInterval(14400)  // 4 hours
+
+        for prayer in candidates {
+            // T-1h switch (force refresh to switch from "Xh+" to "59 min")
+            // Use 59m 55s (3595s) to be safe inside the < 3600 block
+            let tMinus1h = prayer.time.addingTimeInterval(-3595)
+
+            // T-1m switch (force refresh to switch from "X min" to Timer)
+            // Use 60s exactly or slightly less? View uses <= 60. So 60 is fine.
+            let tMinus1m = prayer.time.addingTimeInterval(-60)
+
+            for trigger in [tMinus1h, tMinus1m] {
+                if trigger > now && trigger < protectionWindow {
+                    entries.append(loadEntry(for: trigger))
+                }
+            }
+        }
+
+        // 3. Sort
+        entries.sort(by: { $0.date < $1.date })
 
         let refreshDate = calendar.date(byAdding: .minute, value: 15, to: now) ?? now
         let timeline = Timeline(entries: entries, policy: .after(refreshDate))

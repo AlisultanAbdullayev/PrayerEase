@@ -171,14 +171,34 @@ struct AccessoryCircularView: View {
 
     var body: some View {
         Gauge(value: 1.0 - progress) {
-            Text(entry.nextPrayerName.prefix(1))
+            Text(prayerShortName)
                 .font(.caption2.bold())
         } currentValueLabel: {
-            Text(entry.nextPrayerTime, style: .timer)
+            timeLabel
                 .multilineTextAlignment(.center)
                 .font(.caption2)
         }
         .gaugeStyle(.accessoryCircular)
+    }
+
+    private var prayerShortName: String {
+        if let prayer = entry.prayerTimes.first(where: { $0.name == entry.nextPrayerName }) {
+            return prayer.shortName
+        }
+        return String(entry.nextPrayerName.prefix(3)).uppercased()
+    }
+
+    @ViewBuilder
+    private var timeLabel: some View {
+        let timeInterval = entry.nextPrayerTime.timeIntervalSince(entry.date)
+        if timeInterval >= 3600 {  // >= 1 hour
+            let hours = Int(timeInterval / 3600)
+            Text("\(hours)h+")
+        } else if timeInterval <= 60 {
+            Text(entry.nextPrayerTime, style: .timer)
+        } else {
+            Text(entry.nextPrayerTime, style: .relative)
+        }
     }
 }
 
