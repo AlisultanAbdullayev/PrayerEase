@@ -21,7 +21,6 @@ struct SalahTimeRowView: View {
             Spacer()
             Text(salahTime)
         }
-        // .padding(.vertical, 5)
     }
 
     private var leadingContent: some View {

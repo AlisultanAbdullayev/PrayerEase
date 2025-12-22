@@ -15,8 +15,6 @@ struct PrayerTimesFormView: View {
 
     var body: some View {
         Form {
-            dateAndHijriSection
-
             if let prayerTimes = prayerTimeManager.prayerTimes {
                 LeftTimeSection(prayers: prayerTimes)
                 PrayerTimesList(prayers: prayerTimes)
@@ -27,22 +25,21 @@ struct PrayerTimesFormView: View {
         .refreshable {
             await locationManager.refreshLocation()
         }
-    }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(viewModel.getFormattedHijriDate())
+                        .font(.footnote)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.accent)
 
-    private var dateAndHijriSection: some View {
-        Section {
-            VStack {
-                Text(viewModel.getFormattedHijriDate())
-                    .font(.title2)
-                    .foregroundStyle(.accent)
-                Text(viewModel.currentDate, style: .date)
-                    .foregroundStyle(.secondary)
-                    .font(.title3)
+                    Text(viewModel.currentDate, style: .date)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding()
             }
-            .fontDesign(.rounded)
-            .fontWeight(.semibold)
         }
-        .frame(maxWidth: .infinity, alignment: .center)
     }
 
     private var progressView: some View {

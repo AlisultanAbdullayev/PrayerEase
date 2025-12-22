@@ -26,78 +26,75 @@ struct PrayerTimesList: View {
     }
 
     var body: some View {
-        Section {
-            ForEach(currentPrayers) { item in
-                SalahTimeRowView(
-                    imageName: item.icon,
-                    salahTime: item.isNative
-                        ? prayerTimeManager.formattedPrayerTime(item.time)
-                        : formattedTime(item.time),
-                    salahName: item.name
+        Group {
+            Section {
+                ForEach(standardPrayers) { item in
+                    SalahTimeRowView(
+                        imageName: item.icon,
+                        salahTime: item.isNative
+                            ? prayerTimeManager.formattedPrayerTime(item.time)
+                            : formattedTime(item.time),
+                        salahName: item.name
+                    )
+                    .foregroundColor(isHighlighted(item) ? .accentColor : .none)
+                }
+            } header: {
+                Label(
+                    locationManager.locationName,
+                    systemImage: locationManager.isLocationActive
+                        ? "location.circle.fill" : "location.slash"
                 )
-                .foregroundColor(isHighlighted(item) ? .accentColor : .none)
+                .foregroundColor(.accentColor)
             }
-        } header: {
-            Label(
-                locationManager.locationName,
-                systemImage: locationManager.isLocationActive
-                    ? "location.circle.fill" : "location.slash"
-            )
-            .foregroundColor(.accentColor)
+
+            if !optionalPrayers.isEmpty {
+                Section(header: Text("Optional Prayers")) {
+                    ForEach(optionalPrayers) { item in
+                        SalahTimeRowView(
+                            imageName: item.icon,
+                            salahTime: formattedTime(item.time),
+                            salahName: item.name
+                        )
+                    }
+                }
+            }
         }
     }
 
-    private var currentPrayers: [PrayerItem] {
-        var items: [PrayerItem] = []
-
-        // 0. Fajr
-        items.append(
+    private var standardPrayers: [PrayerItem] {
+        [
             PrayerItem(
                 name: "Fajr", time: prayers.fajr, icon: "sunrise", isNative: true,
-                nativePrayer: .fajr))
-
-        // 1. Sunrise
-        items.append(
+                nativePrayer: .fajr),
             PrayerItem(
                 name: "Sunrise", time: prayers.sunrise, icon: "sun.and.horizon", isNative: true,
-                nativePrayer: .sunrise))
+                nativePrayer: .sunrise),
+            PrayerItem(
+                name: "Dhuhr", time: prayers.dhuhr, icon: "sun.max", isNative: true,
+                nativePrayer: .dhuhr),
+            PrayerItem(
+                name: "Asr", time: prayers.asr, icon: "sunset", isNative: true, nativePrayer: .asr),
+            PrayerItem(
+                name: "Maghrib", time: prayers.maghrib, icon: "moon", isNative: true,
+                nativePrayer: .maghrib),
+            PrayerItem(
+                name: "Isha", time: prayers.isha, icon: "moon.stars", isNative: true,
+                nativePrayer: .isha),
+        ]
+    }
 
-        // 2. Duha (Optional)
+    private var optionalPrayers: [PrayerItem] {
+        var items: [PrayerItem] = []
+
         if widgetDataManager.isDuhaEnabled {
-            let duhaTime = prayers.sunrise.addingTimeInterval(45 * 60)  // +45 mins
+            let duhaTime = prayers.sunrise.addingTimeInterval(45 * 60)
             items.append(
                 PrayerItem(
                     name: "Duha", time: duhaTime, icon: "sun.max.fill", isNative: false,
                     nativePrayer: nil))
         }
 
-        // 3. Dhuhr
-        items.append(
-            PrayerItem(
-                name: "Dhuhr", time: prayers.dhuhr, icon: "sun.max", isNative: true,
-                nativePrayer: .dhuhr))
-
-        // 4. Asr
-        items.append(
-            PrayerItem(
-                name: "Asr", time: prayers.asr, icon: "sunset", isNative: true, nativePrayer: .asr))
-
-        // 5. Maghrib
-        items.append(
-            PrayerItem(
-                name: "Maghrib", time: prayers.maghrib, icon: "moon", isNative: true,
-                nativePrayer: .maghrib))
-
-        // 6. Isha
-        items.append(
-            PrayerItem(
-                name: "Isha", time: prayers.isha, icon: "moon.stars", isNative: true,
-                nativePrayer: .isha))
-
-        // 7. Tahajjud (Next Day Pre-Fajr) -> Appears after Isha
         if widgetDataManager.isTahajjudEnabled {
-            // Calculate: Fajr (Tomorrow) - (FajrTomorrow - MaghribToday) / 3
-            // Fajr Tomorrow = Fajr Today + 24h
             let fajrTomorrow = prayers.fajr.addingTimeInterval(86400)
             let maghribToday = prayers.maghrib
             let nightDuration = fajrTomorrow.timeIntervalSince(maghribToday)
@@ -114,29 +111,43 @@ struct PrayerTimesList: View {
     }
 
     private func isHighlighted(_ item: PrayerItem) -> Bool {
-        // If native, use Adhan logic primarily, but handle overlaps with custom prayers
+        // Only mark native (standard) prayers
+        guard item.isNative else { return false }
+
         let now = Date()
-        let all = currentPrayers
+        // Use standardPrayers directly (since standardPrayers are all native)
+        let nativeItems = standardPrayers
 
-        guard let index = all.firstIndex(of: item) else { return false }
-        let nextIndex = index + 1
-
-        let startTime = item.time
-        let endTime: Date
-
-        if nextIndex < all.count {
-            endTime = all[nextIndex].time
-        } else {
-            // Last item (Isha or something else). Active until Fajr tomorrow.
-            // But visually we just check if now >= start.
-            // Better logic: Highlighting usually means "Current Active Prayer Period".
-            // If now is 11 PM, Isha is active.
-            // If now is 4:05 AM and Tahajjud is 4:00 AM, Tahajjud is active (until Fajr).
-            // Default to 24h wrap for last item?
-            return now >= startTime || (index == all.count - 1 && now < all[0].time)  // Rough logic for Isha wrap
+        // Find the currently active prayer
+        // 1. Before Fajr (Early Morning) -> Highlight Isha (Last native)
+        if let first = nativeItems.first, now < first.time {
+            // Highlight the Last Native Item (Isha)
+            if let last = nativeItems.last {
+                return item.name == last.name
+            }
         }
 
-        return now >= startTime && now < endTime
+        // 2. Iterate to find which slot we are in
+        for i in 0..<nativeItems.count {
+            let current = nativeItems[i]
+            let nextIndex = i + 1
+
+            // Check if we are in this item's slot
+            if nextIndex < nativeItems.count {
+                let next = nativeItems[nextIndex]
+                if now >= current.time && now < next.time {
+                    return item.name == current.name
+                }
+            } else {
+                // Last item (Isha). Since we handled "Before Fajr" above,
+                // if we are here and now >= current.time, it must be the last item active.
+                if now >= current.time {
+                    return item.name == current.name
+                }
+            }
+        }
+
+        return false
     }
 
     private func formattedTime(_ date: Date) -> String {
