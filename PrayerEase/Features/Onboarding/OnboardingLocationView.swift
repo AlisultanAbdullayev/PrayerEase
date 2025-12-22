@@ -11,6 +11,7 @@ import SwiftUI
 struct OnboardingLocationView: View {
     @ObservedObject var locationManager: LocationManager
     var onContinue: () -> Void
+    @State private var isShowingManualSearch = false
 
     var body: some View {
         OnboardingStepView(
@@ -36,13 +37,13 @@ struct OnboardingLocationView: View {
                         UIApplication.shared.open(url)
                     }
                 } else {
-                    // Initial "Find" action sets auto to true just for the request
                     locationManager.isAutoLocationEnabled = true
                     locationManager.requestLocation()
                 }
             },
-            secondaryActionTitle: nil,
-            secondaryAction: nil,
+            secondaryActionTitle: locationManager.userLocation == nil ? "Enter Manually" : nil,
+            secondaryAction: locationManager.userLocation == nil
+                ? { isShowingManualSearch = true } : nil,
             customContent: {
                 if locationManager.userLocation != nil {
                     Toggle(
@@ -57,6 +58,11 @@ struct OnboardingLocationView: View {
         )
         .onAppear {
             locationManager.updateStatus()
+        }
+        .sheet(isPresented: $isShowingManualSearch) {
+            NavigationStack {
+                ManualLocationSearchView()
+            }
         }
     }
 }

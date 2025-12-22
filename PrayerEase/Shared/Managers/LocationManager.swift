@@ -29,7 +29,9 @@ final class LocationManager: ObservableObject {
         didSet {
             userDefaults?.set(isAutoLocationEnabled, forKey: "isAutoLocationEnabled")
             if isAutoLocationEnabled {
-                startLocationUpdates()
+                // Passive start: only runs if already authorized.
+                // Explicit prompting must be triggered by UI interactions (Toggles/Buttons).
+                startLocationUpdates(authorizeIfNeeded: false)
             } else {
                 stopLocationUpdates()
             }
@@ -119,11 +121,16 @@ final class LocationManager: ObservableObject {
 
         // If we are not explicitly asking for authorization (e.g. startup auto-check),
         // and status is undetermined, do NOT start (which would trigger implicit prompt).
-        if !authorizeIfNeeded && locationManager.authorizationStatus == .notDetermined {
-            print(
-                "DEBUG: Skipping startLocationUpdates because auth is undetermined and authorizeIfNeeded is false."
-            )
-            return
+        if locationManager.authorizationStatus == .notDetermined {
+            if !authorizeIfNeeded {
+                print(
+                    "DEBUG: Skipping startLocationUpdates because auth is undetermined and authorizeIfNeeded is false."
+                )
+                return
+            } else {
+                // Explicitly request authorization if instructed
+                locationManager.requestWhenInUseAuthorization()
+            }
         }
 
         locationTask = Task { [weak self] in
@@ -217,6 +224,30 @@ final class LocationManager: ObservableObject {
 
     private func saveLocationName() {
         userDefaults?.setValue(locationName, forKey: "locationName")
+    }
+
+    func setManualLocation(_ location: CLLocation, name: String, timeZone: TimeZone?) {
+        self.isAutoLocationEnabled = false
+        self.userLocation = location
+        self.locationName = name
+        self.userTimeZone = timeZone?.identifier ?? TimeZone.current.identifier
+        self.isLocationActive = true
+    }
+
+    func searchLocation(startingWith query: String) async -> [MKMapItem] {
+        guard !query.isEmpty else { return [] }
+        let request = MKLocalSearch.Request()
+        request.naturalLanguageQuery = query
+        request.resultTypes = .address
+
+        do {
+            let search = MKLocalSearch(request: request)
+            let response = try await search.start()
+            return response.mapItems
+        } catch {
+            print("Search failed: \(error.localizedDescription)")
+            return []
+        }
     }
 
     private func reverseGeocode(location: CLLocation) async {

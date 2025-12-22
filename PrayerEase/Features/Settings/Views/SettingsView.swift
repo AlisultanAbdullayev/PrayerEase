@@ -91,9 +91,29 @@ struct LocationSettingsView: View {
                 Toggle(isOn: $locationManager.isAutoLocationEnabled) {
                     VStack(alignment: .leading) {
                         Text("Auto Location Detection")
-                        Text(locationManager.locationName)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Text(
+                            locationManager.isAutoLocationEnabled
+                                ? locationManager.locationName : "Using manual location"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                }
+                .onChange(of: locationManager.isAutoLocationEnabled) { _, isEnabled in
+                    if isEnabled {
+                        locationManager.requestLocation()
+                    }
+                }
+
+                if !locationManager.isAutoLocationEnabled {
+                    NavigationLink(destination: ManualLocationSearchView()) {
+                        HStack {
+                            Text("Manually Search Location")
+                            Spacer()
+                            Text(locationManager.locationName)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
                     }
                 }
             }
