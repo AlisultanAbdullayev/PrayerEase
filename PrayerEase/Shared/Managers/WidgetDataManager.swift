@@ -249,8 +249,9 @@ final class WidgetDataManager: ObservableObject, Sendable {
     private func findPreviousPrayerTime(prayerTimes: PrayerTimes, before prayer: Prayer) -> Date? {
         switch prayer {
         case .fajr:
-            // Previous day's Isha (approximate as 6 hours before Fajr)
-            return Calendar.current.date(byAdding: .hour, value: -6, to: prayerTimes.fajr)
+            // Use yesterday's Isha to ensure continuity
+            // Approximating as Today's Isha - 24 hours is robust
+            return Calendar.current.date(byAdding: .day, value: -1, to: prayerTimes.isha)
         case .sunrise:
             return prayerTimes.fajr
         case .dhuhr:
