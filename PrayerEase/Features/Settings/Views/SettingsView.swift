@@ -15,30 +15,111 @@ struct SettingsView: View {
     @EnvironmentObject private var notificationManager: NotificationManager
     @EnvironmentObject private var locationManager: LocationManager
     @StateObject private var widgetDataManager = WidgetDataManager.shared
-    @State private var isNotifyBeforeExpanded = false
 
     var body: some View {
         Form {
-            locationSection
-            liveActivitySection
-            optionalPrayersSection
-            notificationSection
-            calculationSection
-            debugSection
-            footerSection
-        }
+            Section {
+                NavigationLink(destination: LocationSettingsView()) {
+                    HStack {
+                        Image(systemName: "location.fill")
+                            .foregroundStyle(.blue)
+                        Text("Location")
+                            .foregroundStyle(.primary)
+                    }
+                }
 
-        .onDisappear {
-            isNotifyBeforeExpanded = false
+                NavigationLink(destination: NotificationSettingsView()) {
+                    HStack {
+                        Image(systemName: "bell.badge.fill")
+                            .foregroundStyle(.red)
+                        Text("Notifications & Display")
+                            .foregroundStyle(.primary)
+                    }
+                }
+
+                NavigationLink(destination: PrayerSettingsView()) {
+                    HStack {
+                        Image(systemName: "hands.sparkles.fill")
+                            .foregroundStyle(.green)
+                        Text("Prayer Settings")
+                            .foregroundStyle(.primary)
+                    }
+                }
+            }
+
+            Section(header: Text("Debug")) {
+                Button(role: .destructive) {
+                    resetOnboarding()
+                } label: {
+                    Text("Reset Onboarding")
+                }
+            }
+
+            Section {
+                VStack {
+                    Text("Make 🤲 for us")
+                    Text("Made with ❤️")
+                    Text("by Alisultan Abdullah")
+                }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .listRowBackground(Color.clear)
         }
         .navigationTitle("Settings")
     }
 
-    private var locationSection: some View {
-        Section(header: Text("Location")) {
-            Toggle(isOn: $locationManager.isAutoLocationEnabled) {
-                Text("Auto Location Detection")
+    private func resetOnboarding() {
+        if let bundleID = Bundle.main.bundleIdentifier {
+            UserDefaults.standard.removePersistentDomain(forName: bundleID)
+        }
+        UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+    }
+}
+
+// MARK: - Subviews
+
+struct LocationSettingsView: View {
+    @EnvironmentObject var locationManager: LocationManager
+
+    var body: some View {
+        Form {
+            Section(header: Text("Location Services")) {
+                Toggle(isOn: $locationManager.isAutoLocationEnabled) {
+                    VStack(alignment: .leading) {
+                        Text("Auto Location Detection")
+                        Text(locationManager.locationName)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
+        }
+        .navigationTitle("Location")
+    }
+}
+
+struct NotificationSettingsView: View {
+    @EnvironmentObject var notificationManager: NotificationManager
+    @EnvironmentObject var prayerTimeManager: PrayerTimeManager
+    @EnvironmentObject var locationManager: LocationManager
+    @StateObject private var widgetDataManager = WidgetDataManager.shared
+    @State private var isNotifyBeforeExpanded = false
+    @State private var isNotifyExactExpanded = false  // Collapsed by default
+
+    var body: some View {
+        Form {
+            liveActivitySection
+            exactAlertsSection
+            qiraaSection
+            preAlertsSection
+        }
+        .navigationTitle("Notifications")
+        .onDisappear {
+            isNotifyBeforeExpanded = false
         }
     }
 
@@ -73,11 +154,147 @@ struct SettingsView: View {
         }
     }
 
+    private var exactAlertsSection: some View {
+        Section(header: Text("Prayer Alerts")) {
+            DisclosureGroup(isExpanded: $isNotifyExactExpanded) {
+                // Standard Prayers
+                ForEach(notificationManager.notificationSettings.keys.sorted(), id: \.self) { key in
+                    // Ensure we don't duplicate optional prayers if they somehow get into this dict later
+                    if key != "Tahajjud" && key != "Duha" {
+                        Toggle(isOn: bindingForNotification(key: key, isBefore: false)) {
+                            Text(key).tag(key)
+                        }
+                    }
+                }
+
+                // Optional Prayers
+                Toggle(
+                    isOn: bindingForOptionalPrayerNotification(
+                        key: "Duha", isEnabledBinding: $widgetDataManager.isDuhaEnabled)
+                ) {
+                    Text("Duha")
+                }
+
+                Toggle(
+                    isOn: bindingForOptionalPrayerNotification(
+                        key: "Tahajjud", isEnabledBinding: $widgetDataManager.isTahajjudEnabled)
+                ) {
+                    Text("Tahajjud")
+                }
+
+            } label: {
+                SettingsRowWithSelection(
+                    text: Text("Notify at prayer time"), systemImage: "bell.fill"
+                ) {}
+            }
+        }
+    }
+
+    private var qiraaSection: some View {
+        Section(header: Text("Qiraa Times")) {
+            Toggle(isOn: bindingForNotification(key: "QiraaAfterSunrise", isBefore: false)) {
+                VStack(alignment: .leading) {
+                    Text("After Sunrise")
+                    Text("45 min after sunrise")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Toggle(isOn: bindingForNotification(key: "QiraaBeforeDhuhr", isBefore: false)) {
+                VStack(alignment: .leading) {
+                    Text("Before Dhuhr")
+                    Text("45 min before dhuhr")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Toggle(isOn: bindingForNotification(key: "QiraaBeforeMaghrib", isBefore: false)) {
+                VStack(alignment: .leading) {
+                    Text("Before Maghrib")
+                    Text("45 min before maghrib")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private var preAlertsSection: some View {
+        Section(header: Text("Pre-Prayer Alerts")) {
+            DisclosureGroup(isExpanded: $isNotifyBeforeExpanded) {
+                ForEach(notificationManager.notificationSettingsBefore.keys.sorted(), id: \.self) {
+                    key in
+                    Toggle(isOn: bindingForNotification(key: key, isBefore: true)) {
+                        Text(key).tag(key)
+                    }
+                }
+            } label: {
+                SettingsRowWithSelection(text: Text("Notify before salahs"), systemImage: "clock") {
+                }
+            }
+
+            SettingsRowWithSelection(text: Text("Minutes before"), systemImage: "hourglass") {
+                Picker("", selection: $notificationManager.beforeMinutes) {
+                    ForEach(notificationManager.minuteOptions, id: \.self) { minute in
+                        Text(minute == 60 ? "1 hour" : "\(minute) minutes").tag(minute)
+                    }
+                }
+            }
+            .onAppear {
+                if !notificationManager.minuteOptions.contains(notificationManager.beforeMinutes) {
+                    notificationManager.beforeMinutes = notificationManager.minuteOptions[3]
+                }
+            }
+        }
+    }
+
+    // Binding for standard prayers
+    private func bindingForNotification(key: String, isBefore: Bool) -> Binding<Bool> {
+        Binding(
+            get: {
+                if isBefore {
+                    return self.notificationManager.notificationSettingsBefore[key] ?? false
+                } else {
+                    return self.notificationManager.notificationSettings[key] ?? false
+                }
+            },
+            set: { newValue in
+                self.notificationManager.updateNotificationSettings(
+                    for: key, sendNotification: newValue, isBefore: isBefore)
+                UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+            }
+        )
+    }
+
+    // Binding for optional prayers with auto-enable logic
+    private func bindingForOptionalPrayerNotification(key: String, isEnabledBinding: Binding<Bool>)
+        -> Binding<Bool>
+    {
+        Binding(
+            get: {
+                // If the feature is enabled, we assume notification is enabled (as per earlier simplified logic),
+                // OR we check the actual notification dict if I added support there.
+                return self.notificationManager.notificationSettings[key]
+                    ?? isEnabledBinding.wrappedValue
+            },
+            set: { newValue in
+                // Update notification setting
+                self.notificationManager.updateNotificationSettings(
+                    for: key, sendNotification: newValue, isBefore: false)
+
+                // Auto-enable feature if notification turned ON
+                if newValue {
+                    isEnabledBinding.wrappedValue = true
+                }
+
+                UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+            }
+        )
+    }
+
     private func startLiveActivityIfPossible() async {
         guard let prayerTimes = prayerTimeManager.prayerTimes else { return }
-
         let islamicDate = getFormattedHijriDate()
-
         await widgetDataManager.startLiveActivity(
             prayerTimes: prayerTimes,
             locationName: locationManager.locationName,
@@ -91,6 +308,19 @@ struct SettingsView: View {
         formatter.calendar = hijriCalendar
         formatter.dateFormat = "d MMMM yyyy"
         return formatter.string(from: Date())
+    }
+}
+
+struct PrayerSettingsView: View {
+    @EnvironmentObject var prayerTimeManager: PrayerTimeManager
+    @StateObject private var widgetDataManager = WidgetDataManager.shared
+
+    var body: some View {
+        Form {
+            optionalPrayersSection
+            calculationSection
+        }
+        .navigationTitle("Prayer Settings")
     }
 
     private var optionalPrayersSection: some View {
@@ -123,163 +353,52 @@ struct SettingsView: View {
         }
     }
 
-    private var notificationSection: some View {
-        Section(header: Text("Notification:")) {
-            notifyBeforeGroup
-            minutesBeforePicker
-        }
-    }
-
-    private var notifyBeforeGroup: some View {
-        DisclosureGroup(isExpanded: $isNotifyBeforeExpanded) {
-            ForEach(notificationManager.notificationSettingsBefore.keys.sorted(), id: \.self) {
-                key in
-                Toggle(isOn: bindingForNotification(key: key)) {
-                    Text(key).tag(key)
-                }
-            }
-        } label: {
-            SettingsRowWithSelection(text: Text("Notify before salahs"), systemImage: "clock") {}
-        }
-    }
-
-    private var minutesBeforePicker: some View {
-        SettingsRowWithSelection(text: Text("Minutes before"), systemImage: "hourglass") {
-            Picker("", selection: $notificationManager.beforeMinutes) {
-                ForEach(notificationManager.minuteOptions, id: \.self) { minute in
-                    Text(minute == 60 ? "1 hour" : "\(minute) minutes").tag(minute)
-                }
-            }
-        }
-        .onAppear {
-            if !notificationManager.minuteOptions.contains(notificationManager.beforeMinutes) {
-                notificationManager.beforeMinutes = notificationManager.minuteOptions[3]
-            }
-        }
-    }
-
     private var calculationSection: some View {
-        Section(header: Text("Calculation:")) {
-            madhabPicker
-            institutionPicker
-        }
-    }
-
-    private var madhabPicker: some View {
-        SettingsRowWithSelection(text: Text("Madhab"), systemImage: "doc.plaintext") {
-            Picker("", selection: $prayerTimeManager.madhab) {
-                ForEach(prayerTimeManager.madhabs, id: \.self) { madhab in
-                    Text(madhab == .hanafi ? "Hanafi" : "Default (Shafi, Maliki, Hanbali)")
-                        .tag(madhab)
+        Section(header: Text("Calculation Method")) {
+            SettingsRowWithSelection(text: Text("Madhab"), systemImage: "doc.plaintext") {
+                Picker("", selection: $prayerTimeManager.madhab) {
+                    ForEach(prayerTimeManager.madhabs, id: \.self) { madhab in
+                        Text(madhab == .hanafi ? "Hanafi" : "Default (Shafi, Maliki, Hanbali)")
+                            .tag(madhab)
+                    }
                 }
             }
-        }
-    }
 
-    private var institutionPicker: some View {
-        SettingsRowWithSelection(text: Text("Institution"), systemImage: "book") {
-            Picker("", selection: $prayerTimeManager.method) {
-                ForEach(prayerTimeManager.methods, id: \.self) { method in
-                    Text(methodName(for: method)).tag(method)
+            SettingsRowWithSelection(text: Text("Institution"), systemImage: "book") {
+                Picker("", selection: $prayerTimeManager.method) {
+                    ForEach(prayerTimeManager.methods, id: \.self) { method in
+                        Text(methodName(for: method)).tag(method)
+                    }
                 }
-            }
-            .pickerStyle(NavigationLinkPickerStyle())
-        }
-    }
-
-    private var debugSection: some View {
-        Section(header: Text("Debug")) {
-            Button(role: .destructive) {
-                resetOnboarding()
-            } label: {
-                Text("Reset Onboarding")
+                .pickerStyle(NavigationLinkPickerStyle())
             }
         }
-    }
-
-    private func resetOnboarding() {
-        // Clear all UserDefaults
-        if let bundleID = Bundle.main.bundleIdentifier {
-            UserDefaults.standard.removePersistentDomain(forName: bundleID)
-        }
-
-        // Explicitly clear specific keys if suite sharing is involved,
-        // but removing persistent domain usually handles standard suite.
-        // For shared groups, we might need to clear that suite too if used,
-        // but request asked for "reset onboarding" primarily.
-
-        // Trigger App restart logic by modifying the AppStorage binding indirectly
-        // or just letting the app state refresh naturally on next launch?
-        // Actually, since hasCompletedOnboarding is AppStorage, writing to UserDefaults
-        // might not update the binding immediately in PrayerEaseApp without a sync.
-
-        // Force update the specific key to False to trigger UI change immediately if possible,
-        // OR just exit/crash app (brisk solution for debug) or let user restart.
-        // Better:
-        UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
-
-        // Notify user
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
-    }
-
-    private var footerSection: some View {
-        VStack {
-            Text("Make 🤲 for us")
-            Text("Made with ❤️")
-            Text("by Alisultan Abdullah")
-        }
-        .font(.subheadline)
-        .foregroundStyle(.secondary)
-        .frame(maxWidth: .infinity, alignment: .center)
-    }
-
-    private func bindingForNotification(key: String) -> Binding<Bool> {
-        Binding(
-            get: { self.notificationManager.notificationSettingsBefore[key] ?? false },
-            set: { newValue in
-                self.notificationManager.updateNotificationSettings(
-                    for: key, sendNotification: newValue, isBefore: true)
-                UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
-            }
-        )
     }
 
     private func methodName(for method: CalculationMethod) -> String {
         switch method {
-        case .dubai:
-            return "Dubai"
-        case .muslimWorldLeague:
-            return "Muslim World League"
-        case .egyptian:
-            return "Egyptian General Authority of Survey"
-        case .karachi:
-            return "University of Islamic Sciences, Karachi"
-        case .ummAlQura:
-            return "Umm Al-Qura University, Makkah"
-        case .moonsightingCommittee:
-            return "Moonsighting Committee Worldwide"
-        case .northAmerica:
-            return "Islamic Society of North America"
-        case .kuwait:
-            return "Kuwait"
-        case .qatar:
-            return "Qatar"
-        case .singapore:
-            return "Majlis Ugama Islam Singapura, Singapore"
-        case .tehran:
-            return "Institute of Geophysics, University of Tehran"
-        case .turkey:
-            return "Diyanet İşleri Başkanlığı, Turkey"
-        case .other:
-            return "Other"
+        case .dubai: return "Dubai"
+        case .muslimWorldLeague: return "Muslim World League"
+        case .egyptian: return "Egyptian General Authority of Survey"
+        case .karachi: return "University of Islamic Sciences, Karachi"
+        case .ummAlQura: return "Umm Al-Qura University, Makkah"
+        case .moonsightingCommittee: return "Moonsighting Committee Worldwide"
+        case .northAmerica: return "Islamic Society of North America"
+        case .kuwait: return "Kuwait"
+        case .qatar: return "Qatar"
+        case .singapore: return "Majlis Ugama Islam Singapura, Singapore"
+        case .tehran: return "Institute of Geophysics, University of Tehran"
+        case .turkey: return "Diyanet İşleri Başkanlığı, Turkey"
+        case .other: return "Other"
         }
     }
 }
 
 #Preview {
-    SettingsView()
-        .environmentObject(PrayerTimeManager.shared)
-        .environmentObject(NotificationManager.shared)
-        .environmentObject(LocationManager())
+    NavigationStack {
+        SettingsView()
+            .environmentObject(PrayerTimeManager.shared)
+            .environmentObject(NotificationManager.shared)
+            .environmentObject(LocationManager())
+    }
 }

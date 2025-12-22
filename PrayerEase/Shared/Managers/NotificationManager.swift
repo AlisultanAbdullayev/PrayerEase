@@ -203,12 +203,39 @@ final class NotificationManager: ObservableObject {
             prayerTimesToNotify.append(("Tahajjud", tahajjudTime))
         }
 
+        // Qiraa / Forbidden Times (as per user request)
+        // 1. 45 min after Sunrise (Ends)
+        if notificationSettings["QiraaAfterSunrise"] == true {
+            prayerTimesToNotify.append(
+                ("Qiraa Ends (Sunrise)", prayerTimes.sunrise.addingTimeInterval(45 * 60)))
+        }
+
+        // 2. 45 min before Dhuhr (Starts)
+        if notificationSettings["QiraaBeforeDhuhr"] == true {
+            prayerTimesToNotify.append(
+                ("Qiraa Starts (Dhuhr)", prayerTimes.dhuhr.addingTimeInterval(-45 * 60)))
+        }
+
+        // 3. 45 min before Maghrib (Starts)
+        if notificationSettings["QiraaBeforeMaghrib"] == true {
+            prayerTimesToNotify.append(
+                ("Qiraa Starts (Maghrib)", prayerTimes.maghrib.addingTimeInterval(-45 * 60)))
+        }
+
         for (prayerName, prayerTime) in prayerTimesToNotify {
             // Determine if we should notify
-            // Standard prayers: check dictionary
-            // Optional prayers: always notify if they are in this list (since they are only added if enabled)
+            // ... (keep existing check logic)
+            // Note: Since we check settings explicitly above for Qiraat, we can force true here or rely on key check
+            // BUT strict key check fails because keys are "QiraaAfterSunrise" vs Name "Qiraa Ends (Sunrise)".
+
+            // Refactored approach:
+            // The loop checks 'shouldNotify'.
+
             var shouldNotify = notificationSettings[prayerName] == true
-            if prayerName == "Tahajjud" || prayerName == "Duha" {
+
+            // Exceptions for optional/custom named prayers
+            if prayerName == "Tahajjud" || prayerName == "Duha" || prayerName.starts(with: "Qiraa")
+            {
                 shouldNotify = true
             }
 
@@ -218,11 +245,7 @@ final class NotificationManager: ObservableObject {
             }
 
             // 2. Early reminder
-            // Reuse same logic or check specific before-settings?
-            // User didn't specify early reminders for Tahajjud, but safe to default to 'before' settings if present,
-            // or just skip early for now unless explicit.
-            // 'notificationSettingsBefore' likely misses keys too.
-            // Let's assume early reminders are NOT enabled for optional prayers by default to avoid spam.
+            // Early reminders are NOT enabled for optional prayers (Tahajjud, Duha, Qiraa) by default to avoid spam.
             if notificationSettingsBefore[prayerName] == true {
                 scheduleNotification(
                     for: prayerTime, with: prayerName, type: .early(minutes: beforeMinutes))
@@ -251,8 +274,17 @@ final class NotificationManager: ObservableObject {
 
         switch type {
         case .exact:
-            content.title = "Salah Time"
-            content.body = "It's time for \(prayerName)"
+            if prayerName.starts(with: "Qiraa") {
+                content.title = "Qiraat Time"
+                if prayerName.contains("Ends") {
+                    content.body = "Forbidden prayer time has ended."
+                } else {
+                    content.body = "Forbidden prayer time has started."
+                }
+            } else {
+                content.title = "Salah Time"
+                content.body = "It's time for \(prayerName)"
+            }
             identifierSuffix = "exact"
 
         case .early(let minutes):
