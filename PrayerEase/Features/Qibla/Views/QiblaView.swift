@@ -20,17 +20,19 @@ struct QiblaView: View {
         NavigationStack {
             if locationManager.isLocationActive {
                 GeometryReader { geometry in
-                    VStack {
+                    VStack(spacing: 12) {
                         compassView(size: geometry.size.width * 0.8)
 
-                        if locationManager.isInterferenceDetected {
+                        if accuracyPercentage < 75 {
                             VStack(spacing: 8) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.title)
                                     .foregroundStyle(.yellow)
 
-                                Text("Compass accuracy is low")
-                                    .font(.headline)
+                                Text(
+                                    "Compass accuracy is low: \(Text("\(accuracyPercentage)%").foregroundStyle(.red))"
+                                )
+                                .font(.headline)
 
                                 Text(
                                     "Metal or magnetic interference detected.\nMove away from electronic devices or recalibrate."
@@ -40,17 +42,17 @@ struct QiblaView: View {
                                 .foregroundStyle(.secondary)
                             }
                             .padding()
-                            .background(.ultraThinMaterial)
-                            .cornerRadius(12)
-                            .padding(.top, 20)
+                            .glassEffect(.clear, in: .rect(cornerRadius: 12))
+                            .padding(.top, 10)
                             .transition(.scale.combined(with: .opacity))
                         }
                     }
                     .animation(
-                        .spring(response: 0.5, dampingFraction: 0.6),
-                        value: locationManager.isInterferenceDetected
+                        .spring(response: 0.6, dampingFraction: 0.7),
+                        value: accuracyPercentage < 75
                     )
                     .sensoryFeedback(.success, trigger: isPointingToQibla)
+                    .sensoryFeedback(.warning, trigger: accuracyPercentage < 75)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .navigationTitle("Qibla Direction")
@@ -89,14 +91,14 @@ struct QiblaView: View {
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .frame(width: size * 0.3, height: size * 0.3)
-                .foregroundStyle(isPointingToQibla ? .accent : .secondary)
+                .foregroundStyle(isPointingToQibla ? .green : .secondary)
             //                .rotationEffect(.degrees(Double(locationManager.heading)))
             //                .rotationEffect(.degrees(Double(qiblaDirection - locationManager.heading)))
 
             Text("QIBLA")
                 .font(.title2)
                 .fontWeight(.bold)
-                .foregroundStyle(isPointingToQibla ? .accent : .secondary)
+                .foregroundStyle(isPointingToQibla ? .green : .secondary)
                 .offset(y: -size / 2 - 15)
 
         }
@@ -104,19 +106,17 @@ struct QiblaView: View {
         //        .animation(.interactiveSpring, value: locationManager.heading)
     }
 
-    private var infoView: some View {
-        VStack(alignment: .center, spacing: 10) {
-            Text("Device Heading: \(Int(locationManager.heading))°")
-            Text("Qibla Direction: \(Int(qiblaDirection))°")
-            Text(isPointingToQibla ? "Pointing to Qibla" : "Align to the Qibla")
-                .fontWeight(.bold)
-                .foregroundColor(isPointingToQibla ? .accent : .secondary)
-            Text("\(locationManager.headingAccuracy, specifier: "%.2f")")
-        }
-        .padding(30)
-        .glassEffect()
-        .padding()
-        .sensoryFeedback(.success, trigger: isPointingToQibla)
+    private var accuracyPercentage: Int {
+        let accuracy = locationManager.headingAccuracy
+        if accuracy < 0 { return 0 }
+        // accuracy is in degrees of error. 0 degrees = 100%. 50 degrees = 50%.
+        return Int(max(0, 100 - accuracy))
+    }
+
+    private var accuracyColor: Color {
+        if accuracyPercentage >= 75 { return .green }  // Good
+        if accuracyPercentage >= 50 { return .yellow }  // Fair
+        return .red  // Poor
     }
 
     private var isPointingToQibla: Bool {
