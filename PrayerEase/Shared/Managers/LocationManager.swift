@@ -6,10 +6,10 @@
 //
 
 import Adhan
+import Combine
 import CoreLocation
 import MapKit
 import SwiftUI
-import Combine
 
 @MainActor
 final class LocationManager: ObservableObject {
@@ -36,7 +36,13 @@ final class LocationManager: ObservableObject {
         }
     }
     @Published var heading: Double = 0
-    @Published var headingAccuracy: Double = 0.0
+    @Published var headingAccuracy: Double = 0.0 {
+        didSet {
+            // Negative start = uncalibrated. > 45 = low accuracy/interference
+            isInterferenceDetected = headingAccuracy < 0 || headingAccuracy > 45
+        }
+    }
+    @Published var isInterferenceDetected: Bool = false
     @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
 
     // MARK: - Private Properties

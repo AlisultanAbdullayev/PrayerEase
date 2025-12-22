@@ -40,13 +40,12 @@ struct SettingsView: View {
             }
         }
     }
-    
+
     private var liveActivitySection: some View {
         Section {
             Toggle(isOn: $widgetDataManager.isLiveActivityEnabled) {
                 HStack {
                     Image(systemName: "clock.badge.fill")
-                        .foregroundStyle(.blue)
                     Text("Live Activity")
                 }
             }
@@ -59,7 +58,7 @@ struct SettingsView: View {
                     }
                 }
             }
-            
+
             if !ActivityAuthorizationInfo().areActivitiesEnabled {
                 Text("Live Activities are disabled. Enable them in Settings > PrayerEase.")
                     .font(.caption)
@@ -71,19 +70,19 @@ struct SettingsView: View {
             Text("Shows prayer countdown on your Lock Screen and Dynamic Island.")
         }
     }
-    
+
     private func startLiveActivityIfPossible() async {
         guard let prayerTimes = prayerTimeManager.prayerTimes else { return }
-        
+
         let islamicDate = getFormattedHijriDate()
-        
+
         await widgetDataManager.startLiveActivity(
             prayerTimes: prayerTimes,
             locationName: locationManager.locationName,
             islamicDate: islamicDate
         )
     }
-    
+
     private func getFormattedHijriDate() -> String {
         let hijriCalendar = Calendar(identifier: .islamicUmmAlQura)
         let formatter = DateFormatter()

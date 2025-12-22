@@ -22,8 +22,34 @@ struct QiblaView: View {
                 GeometryReader { geometry in
                     VStack {
                         compassView(size: geometry.size.width * 0.8)
-                        //                        infoView
+
+                        if locationManager.isInterferenceDetected {
+                            VStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.title)
+                                    .foregroundStyle(.yellow)
+
+                                Text("Compass accuracy is low")
+                                    .font(.headline)
+
+                                Text(
+                                    "Metal or magnetic interference detected.\nMove away from electronic devices or recalibrate."
+                                )
+                                .font(.caption)
+                                .multilineTextAlignment(.center)
+                                .foregroundStyle(.secondary)
+                            }
+                            .padding()
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(12)
+                            .padding(.top, 20)
+                            .transition(.scale.combined(with: .opacity))
+                        }
                     }
+                    .animation(
+                        .spring(response: 0.5, dampingFraction: 0.6),
+                        value: locationManager.isInterferenceDetected
+                    )
                     .sensoryFeedback(.success, trigger: isPointingToQibla)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
