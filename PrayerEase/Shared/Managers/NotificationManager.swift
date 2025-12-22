@@ -175,7 +175,7 @@ final class NotificationManager: ObservableObject {
     }
 
     private func scheduleDailyNotifications(for prayerTimes: PrayerTimes) {
-        let prayerTimesToNotify = [
+        var prayerTimesToNotify = [
             ("Fajr", prayerTimes.fajr),
             ("Sunrise", prayerTimes.sunrise),
             ("Dhuhr", prayerTimes.dhuhr),
@@ -184,13 +184,45 @@ final class NotificationManager: ObservableObject {
             ("Isha", prayerTimes.isha),
         ]
 
+        let storage = PrayerDataStorage.shared
+
+        // Add Duha if enabled
+        if storage.isDuhaEnabled() {
+            let duhaTime = prayerTimes.sunrise.addingTimeInterval(45 * 60)
+            prayerTimesToNotify.append(("Duha", duhaTime))
+        }
+
+        // Add Tahajjud if enabled (Next Day Pre-Fajr)
+        if storage.isTahajjudEnabled() {
+            // Calculate: Fajr (Tomorrow) - (FajrTomorrow - MaghribToday) / 3
+            let fajrTomorrow = prayerTimes.fajr.addingTimeInterval(86400)
+            let nightDuration = fajrTomorrow.timeIntervalSince(prayerTimes.maghrib)
+            let lastThird = nightDuration / 3
+            let tahajjudTime = fajrTomorrow.addingTimeInterval(-lastThird)
+
+            prayerTimesToNotify.append(("Tahajjud", tahajjudTime))
+        }
+
         for (prayerName, prayerTime) in prayerTimesToNotify {
+            // Determine if we should notify
+            // Standard prayers: check dictionary
+            // Optional prayers: always notify if they are in this list (since they are only added if enabled)
+            var shouldNotify = notificationSettings[prayerName] == true
+            if prayerName == "Tahajjud" || prayerName == "Duha" {
+                shouldNotify = true
+            }
+
             // 1. Exact time notification
-            if notificationSettings[prayerName] == true {
+            if shouldNotify {
                 scheduleNotification(for: prayerTime, with: prayerName, type: .exact)
             }
 
             // 2. Early reminder
+            // Reuse same logic or check specific before-settings?
+            // User didn't specify early reminders for Tahajjud, but safe to default to 'before' settings if present,
+            // or just skip early for now unless explicit.
+            // 'notificationSettingsBefore' likely misses keys too.
+            // Let's assume early reminders are NOT enabled for optional prayers by default to avoid spam.
             if notificationSettingsBefore[prayerName] == true {
                 scheduleNotification(
                     for: prayerTime, with: prayerName, type: .early(minutes: beforeMinutes))

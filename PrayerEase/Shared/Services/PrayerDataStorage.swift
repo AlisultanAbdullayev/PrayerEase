@@ -49,8 +49,29 @@ struct PrayerDataStorage {
         defaults.synchronize()
     }
 
+    func isLiveActivityEnabled() -> Bool {
+        userDefaults?.bool(forKey: "isLiveActivityEnabled") ?? true
+    }
+
     func setLiveActivityEnabled(_ enabled: Bool) {
-        userDefaults?.set(enabled, forKey: Keys.isLiveActivityEnabled)
+        userDefaults?.set(enabled, forKey: "isLiveActivityEnabled")
+    }
+
+    // MARK: - Optional Prayers
+    func isTahajjudEnabled() -> Bool {
+        userDefaults?.bool(forKey: "isTahajjudEnabled") ?? false
+    }
+
+    func setTahajjudEnabled(_ enabled: Bool) {
+        userDefaults?.set(enabled, forKey: "isTahajjudEnabled")
+    }
+
+    func isDuhaEnabled() -> Bool {
+        userDefaults?.bool(forKey: "isDuhaEnabled") ?? false
+    }
+
+    func setDuhaEnabled(_ enabled: Bool) {
+        userDefaults?.set(enabled, forKey: "isDuhaEnabled")
     }
 
     // MARK: - Reading
@@ -70,7 +91,4 @@ struct PrayerDataStorage {
         userDefaults?.string(forKey: Keys.islamicDate) ?? ""
     }
 
-    func isLiveActivityEnabled() -> Bool {
-        userDefaults?.bool(forKey: Keys.isLiveActivityEnabled) ?? false
-    }
 }

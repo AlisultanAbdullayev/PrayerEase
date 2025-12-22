@@ -21,6 +21,7 @@ struct SettingsView: View {
         Form {
             locationSection
             liveActivitySection
+            optionalPrayersSection
             notificationSection
             calculationSection
             debugSection
@@ -90,6 +91,36 @@ struct SettingsView: View {
         formatter.calendar = hijriCalendar
         formatter.dateFormat = "d MMMM yyyy"
         return formatter.string(from: Date())
+    }
+
+    private var optionalPrayersSection: some View {
+        Section(header: Text("Optional Prayers")) {
+            Toggle(isOn: $widgetDataManager.isTahajjudEnabled) {
+                HStack {
+                    Image(systemName: "moon.stars")
+                        .foregroundStyle(.purple)
+                    VStack(alignment: .leading) {
+                        Text("Tahajjud")
+                        Text("Last third of the night")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Toggle(isOn: $widgetDataManager.isDuhaEnabled) {
+                HStack {
+                    Image(systemName: "sun.max")
+                        .foregroundStyle(.orange)
+                    VStack(alignment: .leading) {
+                        Text("Duha")
+                        Text("starts 45min after sunrise")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
     }
 
     private var notificationSection: some View {

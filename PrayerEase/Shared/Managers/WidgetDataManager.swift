@@ -23,12 +23,26 @@ final class WidgetDataManager: ObservableObject, Sendable {
         }
     }
 
+    @Published var isTahajjudEnabled: Bool {
+        didSet {
+            storage.setTahajjudEnabled(isTahajjudEnabled)
+        }
+    }
+
+    @Published var isDuhaEnabled: Bool {
+        didSet {
+            storage.setDuhaEnabled(isDuhaEnabled)
+        }
+    }
+
     var isLiveActivityRunning: Bool {
         currentActivity != nil
     }
 
     private init() {
         self.isLiveActivityEnabled = PrayerDataStorage.shared.isLiveActivityEnabled()
+        self.isTahajjudEnabled = PrayerDataStorage.shared.isTahajjudEnabled()
+        self.isDuhaEnabled = PrayerDataStorage.shared.isDuhaEnabled()
 
         // Resume monitoring existing activity if present
         if let existingActivity = Activity<PrayerEaseWidgetAttributes>.activities.first {
