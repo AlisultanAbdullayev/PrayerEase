@@ -45,7 +45,7 @@ struct SettingsView: View {
         Section {
             Toggle(isOn: $widgetDataManager.isLiveActivityEnabled) {
                 HStack {
-                    Image(systemName: "clock.badge.fill")
+                    Image(systemName: "clock.badge")
                         .foregroundStyle(.accent)
                     Text("Live Activity")
                 }

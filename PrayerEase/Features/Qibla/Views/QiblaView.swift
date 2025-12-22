@@ -10,6 +10,7 @@ import SwiftUI
 
 struct QiblaView: View {
     @EnvironmentObject var locationManager: LocationManager
+    @State private var isMapPresented = false
 
     var qiblaDirection: Double {
         QiblaService.calculateQiblaDirection(
@@ -58,6 +59,20 @@ struct QiblaView: View {
                 .navigationTitle("Qibla Direction")
                 .onAppear(perform: locationManager.startUpdatingHeading)
                 .onDisappear(perform: locationManager.stopUpdatingHeading)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            isMapPresented = true
+                        } label: {
+                            Image(systemName: "map.fill")
+                                .font(.headline)
+                                .foregroundStyle(Color.green)
+                        }
+                    }
+                }
+                .sheet(isPresented: $isMapPresented) {
+                    QiblaMapView()
+                }
             } else {
                 Text("Please, enable location services")
                     .foregroundStyle(.secondary)

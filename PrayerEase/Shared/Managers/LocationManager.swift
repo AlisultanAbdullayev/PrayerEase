@@ -163,12 +163,20 @@ final class LocationManager: ObservableObject {
         locationTask = nil
     }
 
+    private var headingRequests = 0
+
     func startUpdatingHeading() {
-        locationManager.startUpdatingHeading()
+        headingRequests += 1
+        if headingRequests == 1 {
+            locationManager.startUpdatingHeading()
+        }
     }
 
     func stopUpdatingHeading() {
-        locationManager.stopUpdatingHeading()
+        headingRequests = max(0, headingRequests - 1)
+        if headingRequests == 0 {
+            locationManager.stopUpdatingHeading()
+        }
     }
 
     func refreshLocation() async {
