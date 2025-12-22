@@ -144,7 +144,7 @@ struct PrayerGridCell: View {
         .fontWeight(isActive ? .bold : .regular)
         .font(.caption)
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
         .background(isActive ? accentGreen : .gray.opacity(0.1), in: .rect)
     }
 }
