@@ -13,6 +13,7 @@ struct PrayerEaseApp: App {
     @StateObject private var locationManager = LocationManager()
     @StateObject private var prayerTimeManager = PrayerTimeManager.shared
     @StateObject private var notificationManager = NotificationManager.shared
+    @StateObject private var connectivityManager = IOSConnectivityManager.shared
 
     @AppStorage("hasCompletedOnboarding") var hasCompletedOnboarding: Bool = false
 

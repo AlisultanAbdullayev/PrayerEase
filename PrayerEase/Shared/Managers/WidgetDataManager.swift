@@ -110,6 +110,9 @@ final class WidgetDataManager: ObservableObject, Sendable {
         // Reload all widget timelines
         WidgetCenter.shared.reloadAllTimelines()
         print("DEBUG Widget: Requested timeline reload")
+
+        // Send data to watch app
+        IOSConnectivityManager.shared.sendCurrentPrayerData()
     }
 
     /// Creates widget-compatible prayer time data

@@ -2,16 +2,27 @@
 //  PrayerEaseWatchApp.swift
 //  PrayerEaseWatch Watch App
 //
-//  Created by Alisultan Abdullah on 12/22/25.
+//  Created by Alisultan Abdullah on 12/23/25.
 //
 
 import SwiftUI
 
 @main
-struct PrayerEaseWatch_Watch_AppApp: App {
+struct PrayerEaseWatchApp: App {
+    @StateObject private var watchDataManager = WatchDataManager.shared
+    @StateObject private var connectivityManager = WatchConnectivityManager.shared
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            WatchRootView()
+                .environmentObject(watchDataManager)
+                .onAppear {
+                    // Load cached prayer data
+                    watchDataManager.loadPrayerData()
+
+                    // Request fresh data from iOS app
+                    connectivityManager.requestPrayerDataUpdate()
+                }
         }
     }
 }
