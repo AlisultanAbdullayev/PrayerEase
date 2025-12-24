@@ -7,6 +7,7 @@
 
 import Combine
 import Foundation
+import WidgetKit
 
 /// Manages prayer data synchronization between iOS app and watchOS app via App Group
 @MainActor
@@ -83,8 +84,42 @@ final class WatchDataManager: ObservableObject {
         self.isDuhaEnabled = isDuhaEnabled
         self.isTahajjudEnabled = isTahajjudEnabled
 
+        // Persist to UserDefaults for widget access
+        persistDataForWidget()
+
         print(
             "DEBUG Watch: Updated from context - \(prayerTimes.count) prayers for \(locationName)")
+    }
+
+    /// Persists data to UserDefaults for widget extension access
+    /// Persists data to UserDefaults for widget extension access
+    private func persistDataForWidget() {
+        // Use App Group UserDefaults so widget extension can access data
+        guard let defaults = UserDefaults(suiteName: appGroupId) else {
+            print("DEBUG Watch: Failed to access App Group for widget persistence")
+            return
+        }
+
+        // Encode and save prayer times (use same keys as iOS app/widget for consistency)
+        if let encoded = try? JSONEncoder().encode(prayerTimes) {
+            defaults.set(encoded, forKey: "widgetPrayerTimes")
+        }
+
+        // Save other data
+        defaults.set(locationName, forKey: "locationName")
+        defaults.set(islamicDate, forKey: "islamicDate")
+        defaults.set(isDuhaEnabled, forKey: "isDuhaEnabled")
+        defaults.set(isTahajjudEnabled, forKey: "isTahajjudEnabled")
+
+        // Reload widget timelines
+        reloadWidgetTimelines()
+
+        print("DEBUG Watch: Persisted data for widget to App Group")
+    }
+
+    /// Reloads all widget timelines
+    private func reloadWidgetTimelines() {
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     /// Returns the current prayer based on current time

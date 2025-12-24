@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		C17B30422CD29D8C00BFE815 /* Adhan in Frameworks */ = {isa = PBXBuildFile; productRef = C17B30412CD29D8C00BFE815 /* Adhan */; };
 		C17B30692CD2D8EE00BFE815 /* OpenAI in Frameworks */ = {isa = PBXBuildFile; productRef = C17B30682CD2D8EE00BFE815 /* OpenAI */; };
+		D634CF0F2EFC73F00045E951 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D690B4862EF8703800312C04 /* WidgetKit.framework */; };
+		D634CF102EFC73F00045E951 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D690B4882EF8703800312C04 /* SwiftUI.framework */; };
+		D634CF1D2EFC73F10045E951 /* WatchWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D634CF0E2EFC73F00045E951 /* WatchWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D66C4BDE2EF93EA300F59A64 /* PrayerEaseWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D66C4BD42EF93EA200F59A64 /* PrayerEaseWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D66C4BE42EF93EC000F59A64 /* Adhan in Frameworks */ = {isa = PBXBuildFile; productRef = D66C4BE32EF93EC000F59A64 /* Adhan */; };
 		D690B4872EF8703800312C04 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D690B4862EF8703800312C04 /* WidgetKit.framework */; };
@@ -20,6 +23,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		D634CF1B2EFC73F10045E951 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C17B30212CD299F100BFE815 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D634CF0D2EFC73F00045E951;
+			remoteInfo = WatchWidgetExtension;
+		};
 		D66C4BDC2EF93EA300F59A64 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = C17B30212CD299F100BFE815 /* Project object */;
@@ -37,6 +47,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		D634CF222EFC73F10045E951 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				D634CF1D2EFC73F10045E951 /* WatchWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D66C4BE22EF93EA300F59A64 /* Embed Watch Content */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -63,6 +84,8 @@
 
 /* Begin PBXFileReference section */
 		C17B30292CD299F100BFE815 /* PrayerEase.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PrayerEase.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D634CF0E2EFC73F00045E951 /* WatchWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WatchWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		D634CF242EFC74C00045E951 /* WatchWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WatchWidgetExtension.entitlements; sourceTree = "<group>"; };
 		D66C4BD42EF93EA200F59A64 /* PrayerEaseWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "PrayerEaseWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D690B4842EF8703800312C04 /* PrayerEaseWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PrayerEaseWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D690B4862EF8703800312C04 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
@@ -72,6 +95,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		D634CF212EFC73F10045E951 /* Exceptions for "WatchWidget" folder in "WatchWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = D634CF0D2EFC73F00045E951 /* WatchWidgetExtension */;
+		};
 		D690B3BA2EF672C400312C04 /* Exceptions for "PrayerEase" folder in "PrayerEase" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -107,6 +137,14 @@
 			path = PrayerEase;
 			sourceTree = "<group>";
 		};
+		D634CF112EFC73F00045E951 /* WatchWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				D634CF212EFC73F10045E951 /* Exceptions for "WatchWidget" folder in "WatchWidgetExtension" target */,
+			);
+			path = WatchWidget;
+			sourceTree = "<group>";
+		};
 		D66C4BD52EF93EA200F59A64 /* PrayerEaseWatch Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "PrayerEaseWatch Watch App";
@@ -129,6 +167,15 @@
 			files = (
 				C17B30692CD2D8EE00BFE815 /* OpenAI in Frameworks */,
 				C17B30422CD29D8C00BFE815 /* Adhan in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D634CF0B2EFC73F00045E951 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D634CF102EFC73F00045E951 /* SwiftUI.framework in Frameworks */,
+				D634CF0F2EFC73F00045E951 /* WidgetKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -158,9 +205,11 @@
 		C17B30202CD299F100BFE815 = {
 			isa = PBXGroup;
 			children = (
+				D634CF242EFC74C00045E951 /* WatchWidgetExtension.entitlements */,
 				C17B302B2CD299F100BFE815 /* PrayerEase */,
 				D690B48A2EF8703800312C04 /* PrayerEaseWidget */,
 				D66C4BD52EF93EA200F59A64 /* PrayerEaseWatch Watch App */,
+				D634CF112EFC73F00045E951 /* WatchWidget */,
 				D690B4852EF8703800312C04 /* Frameworks */,
 				C17B302A2CD299F100BFE815 /* Products */,
 			);
@@ -172,6 +221,7 @@
 				C17B30292CD299F100BFE815 /* PrayerEase.app */,
 				D690B4842EF8703800312C04 /* PrayerEaseWidgetExtension.appex */,
 				D66C4BD42EF93EA200F59A64 /* PrayerEaseWatch Watch App.app */,
+				D634CF0E2EFC73F00045E951 /* WatchWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -218,6 +268,28 @@
 			productReference = C17B30292CD299F100BFE815 /* PrayerEase.app */;
 			productType = "com.apple.product-type.application";
 		};
+		D634CF0D2EFC73F00045E951 /* WatchWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D634CF1E2EFC73F10045E951 /* Build configuration list for PBXNativeTarget "WatchWidgetExtension" */;
+			buildPhases = (
+				D634CF0A2EFC73F00045E951 /* Sources */,
+				D634CF0B2EFC73F00045E951 /* Frameworks */,
+				D634CF0C2EFC73F00045E951 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D634CF112EFC73F00045E951 /* WatchWidget */,
+			);
+			name = WatchWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = WatchWidgetExtension;
+			productReference = D634CF0E2EFC73F00045E951 /* WatchWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		D66C4BD32EF93EA200F59A64 /* PrayerEaseWatch Watch App */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = D66C4BDF2EF93EA300F59A64 /* Build configuration list for PBXNativeTarget "PrayerEaseWatch Watch App" */;
@@ -225,10 +297,12 @@
 				D66C4BD02EF93EA200F59A64 /* Sources */,
 				D66C4BD12EF93EA200F59A64 /* Frameworks */,
 				D66C4BD22EF93EA200F59A64 /* Resources */,
+				D634CF222EFC73F10045E951 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				D634CF1C2EFC73F10045E951 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				D66C4BD52EF93EA200F59A64 /* PrayerEaseWatch Watch App */,
@@ -277,6 +351,9 @@
 					C17B30282CD299F100BFE815 = {
 						CreatedOnToolsVersion = 16.1;
 					};
+					D634CF0D2EFC73F00045E951 = {
+						CreatedOnToolsVersion = 26.2;
+					};
 					D66C4BD32EF93EA200F59A64 = {
 						CreatedOnToolsVersion = 26.2;
 					};
@@ -306,12 +383,20 @@
 				C17B30282CD299F100BFE815 /* PrayerEase */,
 				D690B4832EF8703800312C04 /* PrayerEaseWidgetExtension */,
 				D66C4BD32EF93EA200F59A64 /* PrayerEaseWatch Watch App */,
+				D634CF0D2EFC73F00045E951 /* WatchWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		C17B30272CD299F100BFE815 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D634CF0C2EFC73F00045E951 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -342,6 +427,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D634CF0A2EFC73F00045E951 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D66C4BD02EF93EA200F59A64 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -359,6 +451,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		D634CF1C2EFC73F10045E951 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D634CF0D2EFC73F00045E951 /* WatchWidgetExtension */;
+			targetProxy = D634CF1B2EFC73F10045E951 /* PBXContainerItemProxy */;
+		};
 		D66C4BDD2EF93EA300F59A64 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = D66C4BD32EF93EA200F59A64 /* PrayerEaseWatch Watch App */;
@@ -563,6 +660,72 @@
 			};
 			name = Release;
 		};
+		D634CF1F2EFC73F10045E951 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = WatchWidget/WatchWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WatchWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = WatchWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alijaver.PrayerEase.watchkitapp.WatchWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		D634CF202EFC73F10045E951 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = WatchWidget/WatchWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WatchWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = WatchWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alijaver.PrayerEase.watchkitapp.WatchWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Release;
+		};
 		D66C4BE02EF93EA300F59A64 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -712,6 +875,15 @@
 			buildConfigurations = (
 				C17B30382CD299F300BFE815 /* Debug */,
 				C17B30392CD299F300BFE815 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D634CF1E2EFC73F10045E951 /* Build configuration list for PBXNativeTarget "WatchWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D634CF1F2EFC73F10045E951 /* Debug */,
+				D634CF202EFC73F10045E951 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

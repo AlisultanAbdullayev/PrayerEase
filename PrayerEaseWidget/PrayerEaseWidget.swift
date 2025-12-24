@@ -17,16 +17,33 @@ struct PrayerEaseWidget: Widget {
         StaticConfiguration(kind: kind, provider: PrayerTimelineProvider()) { entry in
             PrayerEaseWidgetEntryView(entry: entry)
                 .containerBackground(for: .widget) {
-                    Color(UIColor.systemBackground)
+                    #if os(iOS)
+                        Color(UIColor.systemBackground)
+                    #else
+                        Color.black
+                    #endif
                 }
         }
         .configurationDisplayName("Prayer Times")
         .description("Unified prayer times widget.")
-        .supportedFamilies([
-            .systemSmall, .systemMedium, .systemLarge, .systemExtraLarge, .accessoryCircular,
-            .accessoryRectangular, .accessoryInline,
-        ])
+        .supportedFamilies(supportedFamilies)
         .contentMarginsDisabled()
+    }
+
+    private var supportedFamilies: [WidgetFamily] {
+        #if os(watchOS)
+            return [
+                .accessoryCircular,
+                .accessoryRectangular,
+                .accessoryInline,
+                .accessoryCorner,
+            ]
+        #else
+            return [
+                .systemSmall, .systemMedium, .systemLarge, .systemExtraLarge,
+                .accessoryCircular, .accessoryRectangular, .accessoryInline,
+            ]
+        #endif
     }
 }
 

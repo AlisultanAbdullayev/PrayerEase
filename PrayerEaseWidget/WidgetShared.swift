@@ -78,8 +78,9 @@ struct UnifiedHeaderView: View {
                 //Countdown
                 Text(countdownDate, style: .timer)
                     .monospacedDigit()
-                    .font(.title2)
+                    .font(.title)
                     .bold()
+                    .fontDesign(.rounded)
                     .contentTransition(.numericText())
             }
 
@@ -102,9 +103,8 @@ struct UnifiedHeaderView: View {
                             .minimumScaleFactor(0.8)
                     }
                 }
-                .font(.footnote)
-
             }
+            .font(.subheadline)
             .foregroundStyle(.secondary)
         }
     }

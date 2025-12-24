@@ -5,13 +5,12 @@
 //  Created by Alisultan Abdullah on 12/24/25.
 //
 
-import WidgetKit
 import SwiftUI
+import WidgetKit
 
 @main
 struct WatchWidgetBundle: WidgetBundle {
     var body: some Widget {
         WatchWidget()
-        WatchWidgetControl()
     }
 }

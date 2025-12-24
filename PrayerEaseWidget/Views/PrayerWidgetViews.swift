@@ -31,6 +31,10 @@ struct PrayerEaseWidgetEntryView: View {
                 AccessoryRectangularView(entry: entry)
             case .accessoryInline:
                 AccessoryInlineView(entry: entry)
+            #if os(watchOS)
+                case .accessoryCorner:
+                    AccessoryCornerView(entry: entry)
+            #endif
             @unknown default:
                 SmallWidgetView(entry: entry)
             }
@@ -47,12 +51,11 @@ struct SmallWidgetView: View {
         VStack(alignment: .leading, spacing: 0) {
             Text(entry.nextPrayerName)
                 .foregroundStyle(accentGreen)
-                .font(.headline)
+                .fontWeight(.semibold)
 
             Text("at \(entry.nextPrayerTime, format: .dateTime.hour().minute())")
-                .font(.subheadline)
                 .foregroundStyle(.secondary)
-                .padding(.top, 1)
+                .fontWeight(.semibold)
 
             Spacer(minLength: 8)
 
@@ -210,21 +213,17 @@ struct AccessoryRectangularView: View {
             Text(
                 "\(entry.nextPrayerName): \(entry.nextPrayerTime, format: .dateTime.hour().minute())"
             )
-            .font(.footnote)
 
             Text(entry.nextPrayerTime, style: .timer)
-                .font(.headline)
+                .bold()
                 .monospacedDigit()
 
             ViewThatFits(in: .horizontal) {
                 Text(entry.locationName)
-                    .font(.footnote)
 
                 Text(entry.locationName.components(separatedBy: ",").first ?? entry.locationName)
-                    .font(.footnote)
 
                 Text(entry.locationName.components(separatedBy: ",").first ?? entry.locationName)
-                    .font(.footnote)
                     .minimumScaleFactor(0.8)
             }
             .foregroundStyle(.secondary)
@@ -238,6 +237,21 @@ struct AccessoryInlineView: View {
     var body: some View {
         Text(
             "\(entry.nextPrayerName) at \(entry.nextPrayerTime, format: .dateTime.hour().minute())")
+    }
+}
+
+// MARK: - Corner Complication (watchOS)
+
+struct AccessoryCornerView: View {
+    let entry: PrayerWidgetEntry
+
+    var body: some View {
+        Text(entry.nextPrayerTime, style: .timer)
+            .font(.system(size: 16, weight: .semibold, design: .rounded))
+            .monospacedDigit()
+            .widgetLabel {
+                Text(entry.nextPrayerName)
+            }
     }
 }
 
