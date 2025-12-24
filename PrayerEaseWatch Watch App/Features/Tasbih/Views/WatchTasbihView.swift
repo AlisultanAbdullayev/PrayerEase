@@ -11,7 +11,6 @@ import SwiftUI
 struct WatchTasbihView: View {
     @StateObject private var viewModel = TasbihViewModel()
     @State private var showSettings = false
-    @State private var customTarget: Int = 33
 
     var body: some View {
         VStack(spacing: 0) {
@@ -49,121 +48,46 @@ struct TasbihSettingsView: View {
     @ObservedObject var viewModel: TasbihViewModel
     @Environment(\.dismiss) private var dismiss
 
-    @State private var selectedTarget: Int
-    @State private var showCustomTargetInput = false
-    @State private var customTargetText = ""
-
-    let presetTargets = [33, 66, 99]
+    @State private var targetText: String = ""
 
     init(viewModel: TasbihViewModel) {
         self.viewModel = viewModel
-        _selectedTarget = State(initialValue: viewModel.targetCount)
+        _targetText = State(initialValue: String(viewModel.targetCount))
     }
 
     var body: some View {
         NavigationStack {
-            settingsList
-        }
-    }
+            List {
+                // Target section with TextField
+                Section("Target Count") {
+                    TextField("Enter target", text: $targetText)
+                        .onChange(of: targetText) { _, newValue in
+                            // Update target when text changes
+                            if let target = Int(newValue), target > 0 {
+                                viewModel.setTarget(target)
+                            }
+                        }
+                }
 
-    private var settingsList: some View {
-        List {
-            targetSection
-            resetSection
-        }
-        .navigationTitle("Tasbih Settings")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Done") {
-                    dismiss()
+                // Reset section
+                Section {
+                    Button(role: .destructive) {
+                        viewModel.resetCurrent()
+                        dismiss()
+                    } label: {
+                        Label("Reset Current", systemImage: "arrow.counterclockwise")
+                    }
+
+                    Button(role: .destructive) {
+                        viewModel.resetTotal()
+                        dismiss()
+                    } label: {
+                        Label("Reset Total", systemImage: "trash")
+                    }
                 }
             }
-        }
-        .alert("Custom Target", isPresented: $showCustomTargetInput) {
-            customTargetAlert
-        } message: {
-            Text("Enter your custom target count")
-        }
-    }
-
-    private var targetSection: some View {
-        Section("Target Count") {
-            ForEach(presetTargets, id: \.self) { target in
-                targetButton(for: target)
-            }
-
-            customTargetButton
-        }
-    }
-
-    private func targetButton(for target: Int) -> some View {
-        Button {
-            selectedTarget = target
-            viewModel.setTarget(target)
-            WKInterfaceDevice.current().play(.click)
-        } label: {
-            HStack {
-                Text("\(target)")
-                    .foregroundStyle(.primary)
-                Spacer()
-                if selectedTarget == target {
-                    Image(systemName: "checkmark")
-                        .foregroundStyle(Color.accentColor)
-                }
-            }
-        }
-    }
-
-    private var customTargetButton: some View {
-        Button {
-            showCustomTargetInput = true
-        } label: {
-            HStack {
-                Text("Custom")
-                    .foregroundStyle(.primary)
-                Spacer()
-                if !presetTargets.contains(selectedTarget) {
-                    Text("\(selectedTarget)")
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-    }
-
-    private var resetSection: some View {
-        Section {
-            Button(role: .destructive) {
-                viewModel.resetCurrent()
-                dismiss()
-            } label: {
-                Label("Reset Current", systemImage: "arrow.counterclockwise")
-            }
-
-            Button(role: .destructive) {
-                viewModel.resetTotal()
-                dismiss()
-            } label: {
-                Label("Reset Total", systemImage: "trash")
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var customTargetAlert: some View {
-        TextField("Target", text: $customTargetText)
-//            .keyboardType(.numberPad)
-
-        Button("Cancel", role: .cancel) {
-            customTargetText = ""
-        }
-
-        Button("Set") {
-            if let target = Int(customTargetText), target > 0 {
-                selectedTarget = target
-                viewModel.setTarget(target)
-            }
-            customTargetText = ""
+            .navigationTitle("Tasbih Settings")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }

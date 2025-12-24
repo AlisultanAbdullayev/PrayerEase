@@ -57,13 +57,18 @@ struct PrayerCountdownView: View {
     }
 
     private var formattedCountdown: String {
-        guard timeRemaining > 0 else { return "00:00:00" }
+        guard timeRemaining > 0 else { return "00:00" }
 
         let hours = Int(timeRemaining) / 3600
         let minutes = (Int(timeRemaining) % 3600) / 60
         let seconds = Int(timeRemaining) % 60
 
-        return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        // Show MM:SS if less than 1 hour, otherwise H:MM:SS
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        } else {
+            return String(format: "%02d:%02d", minutes, seconds)
+        }
     }
 
     private func startTimer() {

@@ -12,6 +12,7 @@ struct WatchQiblaView: View {
     @StateObject private var viewModel = WatchQiblaViewModel()
     @State private var isMapPresented = false
     @State private var showWarning = false
+    @State private var hasShownWarning = false
 
     var body: some View {
         if viewModel.isLocationActive {
@@ -29,38 +30,38 @@ struct WatchQiblaView: View {
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 viewModel.startUpdating()
+                // Show warning once if accuracy is low when view appears
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    if viewModel.accuracyPercentage > 0 && viewModel.accuracyPercentage < 75
+                        && !hasShownWarning
+                    {
+                        showWarning = true
+                        hasShownWarning = true
+                    }
+                }
             }
             .onDisappear {
                 viewModel.stopUpdating()
             }
-            .onChange(of: viewModel.accuracyPercentage) { _, newValue in
-                // Auto-show warning when accuracy drops below threshold
-                if newValue > 0 && newValue < 50 && !showWarning {
-                    showWarning = true
-                }
-            }
             .toolbar {
                 ToolbarItem(placement: .bottomBar) {
-                    HStack(spacing: 20) {
-                        // Map button
-                        Button {
-                            isMapPresented = true
-                        } label: {
-                            Image(systemName: "map")
-                                .foregroundStyle(.green)
-                        }
-                        .buttonStyle(.glassCircle)
-
-                        Spacer()
-
-                        // Warning button
-                        Button {
-                            showWarning = true
-                        } label: {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.yellow)
-                        }
-                        .buttonStyle(.glassCircle)
+                    // Map button
+                    Button {
+                        isMapPresented = true
+                    } label: {
+                        Image(systemName: "map")
+                            .foregroundStyle(.green)
+                            .buttonStyle(.glassCircle)
+                    }
+                }
+                ToolbarItem(placement: .bottomBar) {
+                    // Warning button
+                    Button {
+                        showWarning = true
+                    } label: {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.yellow)
+                            .buttonStyle(.glassCircle)
                     }
                 }
             }
@@ -128,8 +129,10 @@ struct WatchQiblaView: View {
                 .foregroundStyle(viewModel.isPointingToQibla ? .green : .secondary)
                 .offset(y: -size / 2 - 18)
         }
-        .rotationEffect(.degrees(viewModel.qiblaDirection - viewModel.heading))
-        .animation(.easeOut(duration: 0.3), value: viewModel.heading)
+        .rotationEffect(.degrees(viewModel.cumulativeRotation))
+        .animation(
+            .spring(response: 0.4, dampingFraction: 0.8), value: viewModel.cumulativeRotation
+        )
         .sensoryFeedback(.success, trigger: viewModel.isPointingToQibla)
     }
 }

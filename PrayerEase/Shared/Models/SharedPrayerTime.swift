@@ -20,6 +20,8 @@ struct SharedPrayerTime: Identifiable, Equatable, Codable, Hashable, Sendable {
         case "asr": return "sun.haze.fill"
         case "maghrib": return "sunset.fill"
         case "isha": return "moon.stars.fill"
+        case "duha": return "sun.max.fill"
+        case "tahajjud": return "moon.stars.fill"
         default: return "circle.fill"
         }
     }

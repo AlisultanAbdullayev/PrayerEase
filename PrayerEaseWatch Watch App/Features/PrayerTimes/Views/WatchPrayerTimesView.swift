@@ -13,12 +13,13 @@ struct WatchPrayerTimesView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(viewModel.locationName.isEmpty ? "Prayers" : viewModel.locationName)
+                    .foregroundStyle(.secondary)
                 // Countdown timer section
                 if let nextPrayer = viewModel.nextPrayer {
                     PrayerCountdownView(nextPrayer: nextPrayer)
-                        .padding(.horizontal, 4)
-                        .padding(.top, 4)
+                        .padding(.bottom)
                 }
 
                 // Prayer times list
@@ -31,7 +32,6 @@ struct WatchPrayerTimesView: View {
                             )
                         }
                     }
-                    .padding(.horizontal, 4)
                 }
 
                 // Optional prayers section
@@ -50,7 +50,6 @@ struct WatchPrayerTimesView: View {
                                 )
                             }
                         }
-                        .padding(.horizontal, 4)
                     }
                 }
 
@@ -69,13 +68,11 @@ struct WatchPrayerTimesView: View {
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
-                    .padding(.top, 20)
                 }
             }
-            .padding(.vertical, 4)
         }
-        .navigationTitle(viewModel.locationName.isEmpty ? "Prayers" : viewModel.locationName)
-        .navigationBarTitleDisplayMode(.inline)
+//        .navigationTitle()
+//        .navigationBarTitleDisplayMode(.inline)
 //        .toolbar {
 //            ToolbarItem(placement: .topBarTrailing) {
 //                Button {

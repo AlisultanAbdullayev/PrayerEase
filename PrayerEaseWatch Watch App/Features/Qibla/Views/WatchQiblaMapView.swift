@@ -47,7 +47,7 @@ struct WatchQiblaMapView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") {
+                    Button("", systemImage: "xmark") {
                         dismiss()
                     }
                 }
