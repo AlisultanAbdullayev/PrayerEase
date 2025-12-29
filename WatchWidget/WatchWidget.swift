@@ -170,6 +170,7 @@ struct WatchWidgetEntryView: View {
 
 struct CircularView: View {
     let entry: WatchWidgetEntry
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
 
     var progress: Double {
         guard let prev = entry.previousPrayerTime else { return 0.5 }
@@ -189,7 +190,11 @@ struct CircularView: View {
             if remaining >= 3600 {
                 Text("\(Int(remaining / 3600))h+")
             } else {
-                Text(entry.nextPrayerTime, style: .timer)
+                if isLuminanceReduced {
+                    Text(entry.nextPrayerTime, style: .relative)
+                } else {
+                    Text(entry.nextPrayerTime, style: .timer)
+                }
             }
         }
         .gaugeStyle(.accessoryCircular)
@@ -207,11 +212,11 @@ struct RectangularView: View {
             Text(entry.nextPrayerTime, style: .timer)
                 .monospacedDigit()
                 .bold()
-            HStack{
+            HStack {
                 Image(systemName: "location.fill")
                 Text(entry.locationName)
             }
-            .font(.subheadline)
+            .font(.footnote)
             .foregroundStyle(.secondary)
         }
     }
