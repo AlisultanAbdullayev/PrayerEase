@@ -113,10 +113,14 @@ struct WatchTimelineProvider: TimelineProvider {
         if let next = prayerTimes.first(where: { $0.time > date }) {
             return (next.name, next.time)
         }
-        if let first = prayerTimes.first,
-            let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: first.time)
-        {
-            return (first.name, tomorrow)
+        if let first = prayerTimes.first {
+            // Start with tomorrow
+            var nextTime = Calendar.current.date(byAdding: .day, value: 1, to: first.time)!
+            // Safety: Ensure it's in the future (handles stale data)
+            while nextTime <= date {
+                nextTime = Calendar.current.date(byAdding: .day, value: 1, to: nextTime)!
+            }
+            return (first.name, nextTime)
         }
         return ("Fajr", date.addingTimeInterval(3600))
     }
@@ -170,7 +174,6 @@ struct WatchWidgetEntryView: View {
 
 struct CircularView: View {
     let entry: WatchWidgetEntry
-    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
 
     var progress: Double {
         guard let prev = entry.previousPrayerTime else { return 0.5 }
@@ -190,11 +193,7 @@ struct CircularView: View {
             if remaining >= 3600 {
                 Text("\(Int(remaining / 3600))h+")
             } else {
-                if isLuminanceReduced {
-                    Text(entry.nextPrayerTime, style: .relative)
-                } else {
-                    Text(entry.nextPrayerTime, style: .timer)
-                }
+                Text("\(Int(remaining / 60))m")
             }
         }
         .gaugeStyle(.accessoryCircular)
@@ -232,12 +231,20 @@ struct InlineView: View {
 
 struct CornerView: View {
     let entry: WatchWidgetEntry
+
     var body: some View {
-        Text(entry.nextPrayerTime, style: .timer)
-            .fontWeight(.semibold)
-            .fontDesign(.rounded)
-            .monospacedDigit()
-            .widgetLabel { Text(entry.nextPrayerName) }
+        let remaining = entry.nextPrayerTime.timeIntervalSince(entry.date)
+
+        // Short text curves along bezel, like "54°" or "3h"
+        if remaining >= 3600 {
+            Text("\(Int(remaining / 3600))h+")
+                .widgetCurvesContent()
+                .widgetLabel { Text(entry.nextPrayerName) }
+        } else {
+            Text("\(Int(remaining / 60))m")
+                .widgetCurvesContent()
+                .widgetLabel { Text(entry.nextPrayerName) }
+        }
     }
 }
 

@@ -119,7 +119,18 @@ extension WatchQiblaViewModel: CLLocationManagerDelegate {
         Task { @MainActor in
             self.userLocation = location
             self.isLocationActive = true
-            self.qiblaDirection = QiblaService.calculateQiblaDirection(from: location)
+
+            let newQibla = QiblaService.calculateQiblaDirection(from: location)
+
+            // If Qibla direction changes (e.g. initial fix), adjust rotation
+            if !self.isFirstHeading {
+                let diff = newQibla - self.qiblaDirection
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                    self.cumulativeRotation += diff
+                }
+            }
+
+            self.qiblaDirection = newQibla
         }
     }
 
