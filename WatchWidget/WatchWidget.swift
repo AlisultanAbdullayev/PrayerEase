@@ -113,16 +113,26 @@ struct WatchTimelineProvider: TimelineProvider {
         if let next = prayerTimes.first(where: { $0.time > date }) {
             return (next.name, next.time)
         }
-        if let first = prayerTimes.first {
-            // Start with tomorrow
-            var nextTime = Calendar.current.date(byAdding: .day, value: 1, to: first.time)!
-            // Safety: Ensure it's in the future (handles stale data)
-            while nextTime <= date {
-                nextTime = Calendar.current.date(byAdding: .day, value: 1, to: nextTime)!
-            }
-            return (first.name, nextTime)
+
+        guard let first = prayerTimes.first else {
+            return ("Fajr", date.addingTimeInterval(3600))
         }
-        return ("Fajr", date.addingTimeInterval(3600))
+
+        // Direct calculation: compute days needed to project to future (KISS)
+        let nextTime = Self.projectToFuture(first.time, from: date)
+        return (first.name, nextTime)
+    }
+
+    /// Projects a past date to the future by adding minimum days needed
+    private static func projectToFuture(_ date: Date, from referenceDate: Date) -> Date {
+        guard date <= referenceDate else { return date }
+
+        let calendar = Calendar.current
+        let daysDifference = calendar.dateComponents([.day], from: date, to: referenceDate).day ?? 0
+        let daysToAdd = daysDifference + 1
+
+        return calendar.date(byAdding: .day, value: daysToAdd, to: date)
+            ?? date.addingTimeInterval(Double(daysToAdd) * 86400)
     }
 
     private func findCurrentPrayer(from date: Date, prayerTimes: [SharedPrayerTime]) -> (

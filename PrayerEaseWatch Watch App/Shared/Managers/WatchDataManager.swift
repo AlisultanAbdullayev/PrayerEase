@@ -158,20 +158,30 @@ final class WatchDataManager: ObservableObject {
             return next
         }
 
-        // All prayers passed today - return Fajr for tomorrow
+        // All prayers passed today - project Fajr to future
         guard let fajr = prayerTimes.first(where: { $0.name == "Fajr" }) ?? prayerTimes.first else {
             return nil
         }
 
-        // Project Fajr to the future (keep adding 1 day until it's in the future)
-        var nextFajrTime = fajr.time
-        while nextFajrTime <= now {
-            nextFajrTime =
-                Calendar.current.date(byAdding: .day, value: 1, to: nextFajrTime)
-                ?? nextFajrTime.addingTimeInterval(86400)
-        }
-
+        // Direct calculation: determine days offset to reach future (KISS principle)
+        let nextFajrTime = Self.projectToFuture(fajr.time, from: now)
         return SharedPrayerTime(name: fajr.name, time: nextFajrTime)
+    }
+
+    /// Projects a past date to the future by adding minimum days needed
+    /// - Parameters:
+    ///   - date: The original date (possibly in the past)
+    ///   - referenceDate: The reference date to compare against (typically now)
+    /// - Returns: The projected future date
+    private static func projectToFuture(_ date: Date, from referenceDate: Date) -> Date {
+        guard date <= referenceDate else { return date }
+
+        let calendar = Calendar.current
+        let daysDifference = calendar.dateComponents([.day], from: date, to: referenceDate).day ?? 0
+        let daysToAdd = daysDifference + 1
+
+        return calendar.date(byAdding: .day, value: daysToAdd, to: date)
+            ?? date.addingTimeInterval(Double(daysToAdd) * 86400)
     }
 
     /// Returns optional prayers based on enabled flags

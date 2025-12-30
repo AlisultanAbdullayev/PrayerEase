@@ -8,99 +8,104 @@
 import SwiftUI
 
 /// Countdown timer component showing time until next prayer
+/// Uses TimelineView for efficient, automatic updates (modern SwiftUI pattern)
 struct PrayerCountdownView: View {
     let nextPrayer: SharedPrayerTime?
     var onPrayerTimeReached: (() -> Void)?
 
-    @State private var timeRemaining: TimeInterval = 0
-    @State private var timer: Timer?
-
     var body: some View {
-        VStack(spacing: 4) {
-            // Next prayer label
-            if let prayer = nextPrayer {
-                HStack(spacing: 4) {
-                    Text("\(prayer.name) at:")
-                        .font(.caption)
-                        .foregroundStyle(.green)
-
-                    Text(prayer.timeString)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
-                }
-
-                // Countdown timer
-                Text(formattedCountdown)
-                    .font(.title)
-                    .bold()
-                    .fontDesign(.rounded)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-            } else {
-                Text("--:--:--")
-                    .font(.title)
-                    .foregroundStyle(.secondary)
-            }
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            CountdownContent(
+                nextPrayer: nextPrayer,
+                currentDate: context.date,
+                onPrayerTimeReached: onPrayerTimeReached
+            )
         }
         .padding()
         .frame(maxWidth: .infinity)
         .background(Color.accentColor.opacity(0.25), in: .rect(cornerRadius: 12))
         .glassCard()
-        .onAppear {
-            startTimer()
+    }
+}
+
+// MARK: - Private Subview (SRP - Single Responsibility)
+
+/// Extracted content view for countdown display
+private struct CountdownContent: View {
+    let nextPrayer: SharedPrayerTime?
+    let currentDate: Date
+    var onPrayerTimeReached: (() -> Void)?
+
+    var body: some View {
+        VStack(spacing: 4) {
+            if let prayer = nextPrayer {
+                headerView(for: prayer)
+                countdownText
+            } else {
+                placeholderText
+            }
         }
-        .onDisappear {
-            stopTimer()
+        .onChange(of: hasReachedPrayerTime) { _, reached in
+            if reached {
+                onPrayerTimeReached?()
+            }
         }
-        .onChange(of: nextPrayer?.time) { _, _ in
-            updateTimeRemaining()
-        }
+    }
+
+    // MARK: - Computed Properties
+
+    private var timeRemaining: TimeInterval {
+        guard let prayer = nextPrayer else { return 0 }
+        return max(0, prayer.time.timeIntervalSince(currentDate))
+    }
+
+    private var hasReachedPrayerTime: Bool {
+        guard let prayer = nextPrayer else { return false }
+        return currentDate >= prayer.time
     }
 
     private var formattedCountdown: String {
         guard timeRemaining > 0 else { return "00:00" }
 
-        let hours = Int(timeRemaining) / 3600
-        let minutes = (Int(timeRemaining) % 3600) / 60
-        let seconds = Int(timeRemaining) % 60
+        let totalSeconds = Int(timeRemaining)
+        let hours = totalSeconds / 3600
+        let minutes = (totalSeconds % 3600) / 60
+        let seconds = totalSeconds % 60
 
-        // Show MM:SS if less than 1 hour, otherwise H:MM:SS
-        if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
-        } else {
-            return String(format: "%02d:%02d", minutes, seconds)
+        // KISS: Simple conditional formatting
+        return hours > 0
+            ? String(format: "%d:%02d:%02d", hours, minutes, seconds)
+            : String(format: "%02d:%02d", minutes, seconds)
+    }
+
+    // MARK: - View Components (DRY - extracted for reuse)
+
+    @ViewBuilder
+    private func headerView(for prayer: SharedPrayerTime) -> some View {
+        HStack(spacing: 4) {
+            Text("\(prayer.name) at:")
+                .font(.caption)
+                .foregroundStyle(.green)
+
+            Text(prayer.timeString)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white)
         }
     }
 
-    private func startTimer() {
-        updateTimeRemaining()
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            updateTimeRemaining()
-        }
+    private var countdownText: some View {
+        Text(formattedCountdown)
+            .font(.title)
+            .bold()
+            .fontDesign(.rounded)
+            .monospacedDigit()
+            .contentTransition(.numericText())
     }
 
-    private func stopTimer() {
-        timer?.invalidate()
-        timer = nil
-    }
-
-    private func updateTimeRemaining() {
-        guard let prayer = nextPrayer else {
-            timeRemaining = 0
-            return
-        }
-
-        let remaining = prayer.time.timeIntervalSince(Date())
-
-        // If countdown reaches 0, notify parent to refresh
-        if remaining <= 0 && timeRemaining > 0 {
-            // Prayer time just reached - trigger callback
-            DispatchQueue.main.async {
-                onPrayerTimeReached?()
-            }
-        }
-
-        timeRemaining = max(0, remaining)
+    private var placeholderText: some View {
+        Text("--:--:--")
+            .font(.title)
+            .foregroundStyle(.secondary)
     }
 }
 

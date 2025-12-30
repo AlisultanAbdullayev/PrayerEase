@@ -16,20 +16,13 @@ struct OnboardingWelcomeView: View {
             Spacer()
 
             // App Icon or Logo Placeholder
-            Image("AppIcon")  // Assuming AppIcon is available in assets, or use a system placeholder
+            Image("PrayerEase")  // Assuming AppIcon is available in assets, or use a system placeholder
                 .resizable()
                 .scaledToFit()
                 .frame(width: 120, height: 120)
                 .cornerRadius(24)
                 .shadow(radius: 10)
                 // Fallback if AppIcon asset is not directly loadable by name in SwiftUI Image yet
-                .overlay {
-                    if UIImage(named: "AppIcon") == nil {
-                        Image(systemName: "sun.haze.fill")
-                            .font(.system(size: 80))
-                            .foregroundColor(.accentColor)
-                    }
-                }
 
             VStack(spacing: 10) {
                 Text("Welcome to PrayerEase")
