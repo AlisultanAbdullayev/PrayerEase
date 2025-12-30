@@ -10,6 +10,7 @@ import SwiftUI
 /// Countdown timer component showing time until next prayer
 struct PrayerCountdownView: View {
     let nextPrayer: SharedPrayerTime?
+    var onPrayerTimeReached: (() -> Void)?
 
     @State private var timeRemaining: TimeInterval = 0
     @State private var timer: Timer?
@@ -90,6 +91,15 @@ struct PrayerCountdownView: View {
         }
 
         let remaining = prayer.time.timeIntervalSince(Date())
+
+        // If countdown reaches 0, notify parent to refresh
+        if remaining <= 0 && timeRemaining > 0 {
+            // Prayer time just reached - trigger callback
+            DispatchQueue.main.async {
+                onPrayerTimeReached?()
+            }
+        }
+
         timeRemaining = max(0, remaining)
     }
 }

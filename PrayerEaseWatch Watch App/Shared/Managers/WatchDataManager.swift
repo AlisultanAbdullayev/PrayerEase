@@ -149,18 +149,29 @@ final class WatchDataManager: ObservableObject {
     }
 
     /// Returns the next upcoming prayer
+    /// Handles day rollover: if all prayers passed, returns Fajr projected to tomorrow
     var nextPrayer: SharedPrayerTime? {
         let now = Date()
 
         // Find first prayer after current time
-        for prayer in prayerTimes {
-            if prayer.time > now {
-                return prayer
-            }
+        if let next = prayerTimes.first(where: { $0.time > now }) {
+            return next
         }
 
-        // All prayers passed - return first prayer (Fajr for tomorrow)
-        return prayerTimes.first
+        // All prayers passed today - return Fajr for tomorrow
+        guard let fajr = prayerTimes.first(where: { $0.name == "Fajr" }) ?? prayerTimes.first else {
+            return nil
+        }
+
+        // Project Fajr to the future (keep adding 1 day until it's in the future)
+        var nextFajrTime = fajr.time
+        while nextFajrTime <= now {
+            nextFajrTime =
+                Calendar.current.date(byAdding: .day, value: 1, to: nextFajrTime)
+                ?? nextFajrTime.addingTimeInterval(86400)
+        }
+
+        return SharedPrayerTime(name: fajr.name, time: nextFajrTime)
     }
 
     /// Returns optional prayers based on enabled flags

@@ -18,8 +18,11 @@ struct WatchPrayerTimesView: View {
                     .foregroundStyle(.secondary)
                 // Countdown timer section
                 if let nextPrayer = viewModel.nextPrayer {
-                    PrayerCountdownView(nextPrayer: nextPrayer)
-                        .padding(.bottom)
+                    PrayerCountdownView(nextPrayer: nextPrayer) {
+                        // When countdown reaches 0, refresh to get next prayer
+                        viewModel.refresh()
+                    }
+                    .padding(.bottom)
                 }
 
                 // Prayer times list
@@ -71,19 +74,26 @@ struct WatchPrayerTimesView: View {
                 }
             }
         }
-//        .navigationTitle()
-//        .navigationBarTitleDisplayMode(.inline)
-//        .toolbar {
-//            ToolbarItem(placement: .topBarTrailing) {
-//                Button {
-//                    viewModel.refresh()
-//                    WKInterfaceDevice.current().play(.click)
-//                } label: {
-//                    Image(systemName: "arrow.clockwise")
-//                        .font(.caption)
-//                }
-//            }
-//        }
+        //        .navigationTitle()
+        //        .navigationBarTitleDisplayMode(.inline)
+        //        .toolbar {
+        //            ToolbarItem(placement: .topBarTrailing) {
+        //                Button {
+        //                    viewModel.refresh()
+        //                    WKInterfaceDevice.current().play(.click)
+        //                } label: {
+        //                    Image(systemName: "arrow.clockwise")
+        //                        .font(.caption)
+        //                }
+        //            }
+        //        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+            // Refresh when day changes
+            viewModel.refresh()
+        }
+        .onAppear {
+            viewModel.refresh()
+        }
     }
 }
 
