@@ -122,11 +122,13 @@ struct PrayerScheduleView: View {
                     prayer: prayer,
                     isActive: prayer.name == currentPrayerName
                 )
-
-                if index < prayers.count - 1 {
-                    Divider()
-                        .frame(width: 1, height: 30)
-                        .overlay(Color.secondary.opacity(0.2))
+                .overlay(alignment: .trailing) {
+                    // Add divider to the right of each cell except the last one
+                    if index < prayers.count - 1 {
+                        Rectangle()
+                            .fill(Color.secondary.opacity(0.2))
+                            .frame(width: 1, height: 30)
+                    }
                 }
             }
         }

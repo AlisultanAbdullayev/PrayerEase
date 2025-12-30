@@ -79,47 +79,51 @@ struct PrayerTimelineProvider: TimelineProvider {
     ) {
         let now = Date()
         var entries: [PrayerWidgetEntry] = []
-        let calendar = Calendar.current
 
-        // 1. Standard 15-min entries
-        for minuteOffset in stride(from: 0, to: 240, by: 15) {
-            guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
-            else { continue }
+        // Load initial data
+        let loadedPrayers = loadPrayerTimes(for: now)
+        let (_, nextTime) = findNextPrayer(from: now, prayerTimes: loadedPrayers)
+
+        // Determine refresh policy
+        // If next prayer is within 60 minutes, update every minute to show accurate countdown
+        let timeToNext = nextTime.timeIntervalSince(now)
+        let isClose = timeToNext > 0 && timeToNext <= 3600
+
+        // Generate entries
+        // If close: generate every minute for the next hour
+        // If not close: generate every 15 minutes
+
+        let interval: TimeInterval = isClose ? 60 : 15 * 60
+        let entryCount = isClose ? 60 : 16  // 1 hour worth or 4 hours worth
+
+        for i in 0..<entryCount {
+            let entryDate = now.addingTimeInterval(TimeInterval(i) * interval)
             entries.append(loadEntry(for: entryDate))
         }
 
-        // 2. Critical update entries (Format switching: 1h+ -> min, min -> timer)
-        let loadedPrayers = loadPrayerTimes(for: now)
-        // Candidates: Today's future prayers + Tomorrow's Fajr (extrapolated)
-        var candidates = loadedPrayers.filter { $0.time > now.addingTimeInterval(-3600) }  // Include if within 1h ago incase
-        if let first = loadedPrayers.first,
-            let tomorrowFajr = calendar.date(byAdding: .day, value: 1, to: first.time)
-        {
-            candidates.append(WidgetPrayerTime(name: first.name, time: tomorrowFajr))
+        // Add specific trigger for exact prayer time
+        if nextTime > now {
+            entries.append(loadEntry(for: nextTime))
+            // And 1 minute after to switch to "Now" or next state
+            entries.append(loadEntry(for: nextTime.addingTimeInterval(60)))
         }
 
-        let protectionWindow = now.addingTimeInterval(14400)  // 4 hours
+        // Sort and deduplicate
+        entries.sort { $0.date < $1.date }
 
-        for prayer in candidates {
-            // T-1h switch (force refresh to switch from "Xh+" to "59 min")
-            // Use 59m 55s (3595s) to be safe inside the < 3600 block
-            let tMinus1h = prayer.time.addingTimeInterval(-3595)
+        // Refresh policy:
+        // If close, refresh after the last minute entry (~1 hour)
+        // If far, refresh after 15 mins (standard) or when next prayer gets close (1h mark)
+        var refreshDate = now.addingTimeInterval(isClose ? 3600 : 15 * 60)
 
-            // T-1m switch (force refresh to switch from "X min" to Timer)
-            // Use 60s exactly or slightly less? View uses <= 60. So 60 is fine.
-            let tMinus1m = prayer.time.addingTimeInterval(-60)
-
-            for trigger in [tMinus1h, tMinus1m] {
-                if trigger > now && trigger < protectionWindow {
-                    entries.append(loadEntry(for: trigger))
-                }
+        // If we are far, but the 1 hour mark comes before the standard refresh, strictly refresh then
+        if !isClose {
+            let oneHourMark = nextTime.addingTimeInterval(-3600)
+            if oneHourMark > now && oneHourMark < refreshDate {
+                refreshDate = oneHourMark
             }
         }
 
-        // 3. Sort
-        entries.sort(by: { $0.date < $1.date })
-
-        let refreshDate = calendar.date(byAdding: .minute, value: 15, to: now) ?? now
         let timeline = Timeline(entries: entries, policy: .after(refreshDate))
         completion(timeline)
     }

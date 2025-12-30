@@ -64,15 +64,62 @@ struct WatchTimelineProvider: TimelineProvider {
         var entries: [WatchWidgetEntry] = []
         let calendar = Calendar.current
 
-        // Generate entries for next 4 hours
+        // Load initial data
+        let loadedPrayers = loadPrayerTimes(for: now)
+        let (_, nextTime) = findNextPrayer(from: now, prayerTimes: loadedPrayers)
+
+        // 1. Generate entries for next 4 hours at 15-min intervals
+        // This is safe baseline
         for minuteOffset in stride(from: 0, to: 240, by: 15) {
             guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
             else { continue }
             entries.append(loadEntry(for: entryDate))
         }
 
-        let refreshDate = calendar.date(byAdding: .minute, value: 15, to: now) ?? now
-        completion(Timeline(entries: entries, policy: .after(refreshDate)))
+        // 2. Add critical entries for UI format triggers
+        // WatchOS complications switch format at 1 hour remaining (60m).
+        // We need an entry exactly at that point to switch styling.
+        let oneHourRemaining = nextTime.addingTimeInterval(-3600)
+
+        if oneHourRemaining > now {
+            entries.append(loadEntry(for: oneHourRemaining))
+        }
+
+        // 3. Add entry for the actual prayer time (to switch to "Now" or next prayer)
+        if nextTime > now {
+            entries.append(loadEntry(for: nextTime))
+            // And 1 minute after/buffer
+            entries.append(loadEntry(for: nextTime.addingTimeInterval(60)))
+        }
+
+        // Sort unique
+        entries.sort { $0.date < $1.date }
+        let uniqueEntries = entries.reduce(into: [WatchWidgetEntry]()) { result, entry in
+            if let last = result.last, last.date == entry.date { return }
+            result.append(entry)
+        }
+
+        // Refresh policy
+        // If next prayer is > 1 hour away, refresh at 1 hour mark or standard 15 mins
+        // If next prayer is < 1 hour, standard 15 mins (system handles timer updates)
+
+        var refreshDate = calendar.date(byAdding: .minute, value: 15, to: now) ?? now
+
+        if oneHourRemaining > now && oneHourRemaining < refreshDate {
+            refreshDate = oneHourRemaining
+        }
+
+        completion(Timeline(entries: uniqueEntries, policy: .after(refreshDate)))
+    }
+
+    private func loadPrayerTimes(for date: Date) -> [SharedPrayerTime] {
+        guard let defaults = UserDefaults(suiteName: appGroupID),
+            let data = defaults.data(forKey: "widgetPrayerTimes"),
+            let decoded = try? JSONDecoder().decode([SharedPrayerTime].self, from: data)
+        else {
+            return []
+        }
+        return decoded
     }
 
     private func loadEntry(for date: Date) -> WatchWidgetEntry {
