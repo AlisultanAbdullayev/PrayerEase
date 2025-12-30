@@ -47,13 +47,13 @@ struct SettingsView: View {
                 }
             }
 
-            Section(header: Text("Debug")) {
-                Button(role: .destructive) {
-                    resetOnboarding()
-                } label: {
-                    Text("Reset Onboarding")
-                }
-            }
+//            Section(header: Text("Debug")) {
+//                Button(role: .destructive) {
+//                    resetOnboarding()
+//                } label: {
+//                    Text("Reset Onboarding")
+//                }
+//            }
 
             Section {
                 VStack {
