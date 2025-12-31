@@ -12,24 +12,25 @@ import WidgetKit
 
 /// Manages data synchronization between the main app and widgets
 @MainActor
-final class WidgetDataManager: ObservableObject, Sendable {
+@Observable
+final class WidgetDataManager {
     static let shared = WidgetDataManager()
 
     private let storage = PrayerDataStorage.shared
 
-    @Published var isLiveActivityEnabled: Bool {
+    var isLiveActivityEnabled: Bool {
         didSet {
             storage.setLiveActivityEnabled(isLiveActivityEnabled)
         }
     }
 
-    @Published var isTahajjudEnabled: Bool {
+    var isTahajjudEnabled: Bool {
         didSet {
             storage.setTahajjudEnabled(isTahajjudEnabled)
         }
     }
 
-    @Published var isDuhaEnabled: Bool {
+    var isDuhaEnabled: Bool {
         didSet {
             storage.setDuhaEnabled(isDuhaEnabled)
         }

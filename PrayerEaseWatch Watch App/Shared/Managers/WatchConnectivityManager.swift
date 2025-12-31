@@ -5,16 +5,16 @@
 //  Created by Antigravity on 12/24/25.
 //
 
-import Combine
 import Foundation
 import WatchConnectivity
 
 /// Manages communication between iOS app and watchOS app
 @MainActor
-final class WatchConnectivityManager: NSObject, ObservableObject {
+@Observable
+final class WatchConnectivityManager: NSObject {
     static let shared = WatchConnectivityManager()
 
-    @Published var isReachable = false
+    var isReachable = false
 
     private override init() {
         super.init()
@@ -25,21 +25,18 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         }
     }
 
-    /// Requests prayer data update from iOS app
     func requestPrayerDataUpdate() {
         guard WCSession.default.activationState == .activated else {
             print("DEBUG Watch: Session not activated")
             return
         }
 
-        // First check if we have cached application context
         let receivedContext = WCSession.default.receivedApplicationContext
         if !receivedContext.isEmpty {
             print("DEBUG Watch: Processing cached application context")
             processApplicationContext(receivedContext)
         }
 
-        // Then try to request fresh data if reachable
         if WCSession.default.isReachable {
             let message = ["action": "requestPrayerData"]
             WCSession.default.sendMessage(
@@ -55,14 +52,12 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         }
     }
 
-    /// Processes application context data from iOS
     private func processApplicationContext(_ context: [String: Any]) {
         guard let prayerDicts = context["prayerTimes"] as? [[String: Any]] else {
             print("DEBUG Watch: No prayer times in context")
             return
         }
 
-        // Convert dictionaries back to SharedPrayerTime
         var prayers: [SharedPrayerTime] = []
         for dict in prayerDicts {
             if let name = dict["name"] as? String,
@@ -81,7 +76,6 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         print("DEBUG Watch: Processed \(prayers.count) prayers from context")
         print("DEBUG Watch: Location: \(locationName), Date: \(islamicDate)")
 
-        // Update WatchDataManager
         Task { @MainActor in
             WatchDataManager.shared.updateFromContext(
                 prayerTimes: prayers,
@@ -109,7 +103,6 @@ extension WatchConnectivityManager: WCSessionDelegate {
             } else {
                 print("DEBUG Watch: Session activated with state: \(activationState.rawValue)")
                 if activationState == .activated {
-                    // Check for any cached context
                     self.requestPrayerDataUpdate()
                 }
             }

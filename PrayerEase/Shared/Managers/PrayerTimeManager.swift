@@ -8,33 +8,36 @@
 import Adhan
 import CoreLocation
 import Foundation
-import Combine
 
-final class PrayerTimeManager: ObservableObject {
+@MainActor
+@Observable
+final class PrayerTimeManager {
     static let shared = PrayerTimeManager()
 
     // MARK: - App Group Configuration
-    // Replace this with your actual App Group ID from Xcode capabilities
     static let appGroupId = "group.com.alijaver.PrayerEase"
 
     private var userDefaults: UserDefaults {
         UserDefaults(suiteName: Self.appGroupId) ?? .standard
     }
 
-    @Published var prayerTimes: PrayerTimes?
-    @Published var prayerTimesArr = [PrayerTimes]()
-    @Published var prayerTimeIndex: Int?
-    @Published var madhab: Madhab = .shafi {
+    var prayerTimes: PrayerTimes?
+    var prayerTimesArr = [PrayerTimes]()
+    var prayerTimeIndex: Int?
+
+    var madhab: Madhab = .shafi {
         didSet { userDefaults.set(madhab.rawValue, forKey: "madhab") }
     }
-    @Published var method: CalculationMethod = .turkey {
+
+    var method: CalculationMethod = .turkey {
         didSet { userDefaults.set(method.rawValue, forKey: "method") }
     }
 
-    @Published var isMethodManuallySet: Bool = false {
+    var isMethodManuallySet: Bool = false {
         didSet { userDefaults.set(isMethodManuallySet, forKey: "isMethodManuallySet") }
     }
-    @Published var dataId = UUID()
+
+    var dataId = UUID()
 
     private var coordinates: Coordinates?
 
@@ -82,19 +85,16 @@ final class PrayerTimeManager: ObservableObject {
         updateCurrentPrayerTime(for: date)
     }
 
-    // TODO: Nado reshit calendar
     func fetchMonthlyPrayerTimes(for date: Date = Date()) {
         guard let coordinates = self.coordinates else { return }
 
         let calendar = Calendar.current
 
-        // Get the start of the month
         guard
             let startOfMonth = calendar.date(
                 from: calendar.dateComponents([.year, .month], from: date))
         else { return }
 
-        // Get the range of days in the month
         guard let range = calendar.range(of: .day, in: .month, for: startOfMonth) else { return }
 
         prayerTimesArr.removeAll()
@@ -110,11 +110,8 @@ final class PrayerTimeManager: ObservableObject {
             }
         }
 
-        // Update the prayerTimeIndex to point to today's prayer times
         updateCurrentPrayerTime(for: date)
-
         dataId = UUID()
-        objectWillChange.send()
     }
 
     private func updateCurrentPrayerTime(for date: Date) {

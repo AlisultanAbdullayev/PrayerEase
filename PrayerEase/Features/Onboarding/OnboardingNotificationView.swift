@@ -8,9 +8,9 @@
 import SwiftUI
 
 struct OnboardingNotificationView: View {
-    @ObservedObject var notificationManager: NotificationManager
-    var onEnable: () -> Void
-    var onSkip: () -> Void
+    let notificationManager: NotificationManager
+    let onEnable: () -> Void
+    let onSkip: () -> Void
 
     var body: some View {
         OnboardingStepView(
@@ -23,7 +23,6 @@ struct OnboardingNotificationView: View {
             secondaryActionTitle: "Maybe Later",
             secondaryAction: onSkip,
             customContent: {
-                // Ensure Prayer is available or use strings if needed. Using Adhan.Prayer for safety.
                 ScrollView {
                     VStack(spacing: 8) {
                         ForEach(
@@ -35,8 +34,6 @@ struct OnboardingNotificationView: View {
                             }
                             .padding()
                             .glassEffect(.regular)
-                            // .sensoryFeedback(
-                            //     .selection, trigger: notificationManager.notificationSettings[key])
                         }
                     }
                 }

@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct SalahTimeRowView: View {
-    @StateObject private var notificationManager = NotificationManager.shared
+    @State private var notificationManager = NotificationManager.shared
+
     let imageName: String
     let salahTime: String
     let salahName: String

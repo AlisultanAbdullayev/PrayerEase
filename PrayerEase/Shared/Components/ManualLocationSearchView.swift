@@ -3,7 +3,7 @@ import MapKit
 import SwiftUI
 
 struct ManualLocationSearchView: View {
-    @EnvironmentObject var locationManager: LocationManager
+    @Environment(LocationManager.self) private var locationManager
     @Environment(\.dismiss) private var dismiss
 
     @State private var query = ""
@@ -62,7 +62,6 @@ struct ManualLocationSearchView: View {
     }
 
     private func selectLocation(_ item: MKMapItem) {
-        // 'location' is non-optional
         let location = item.location
 
         let name = item.name ?? "Manual Location"

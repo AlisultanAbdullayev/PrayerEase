@@ -10,10 +10,10 @@ import SwiftUI
 @main
 struct PrayerEaseApp: App {
 
-    @StateObject private var locationManager = LocationManager()
-    @StateObject private var prayerTimeManager = PrayerTimeManager.shared
-    @StateObject private var notificationManager = NotificationManager.shared
-    @StateObject private var connectivityManager = IOSConnectivityManager.shared
+    @State private var locationManager = LocationManager()
+    @State private var prayerTimeManager = PrayerTimeManager.shared
+    @State private var notificationManager = NotificationManager.shared
+    @State private var connectivityManager = IOSConnectivityManager.shared
 
     @AppStorage("hasCompletedOnboarding") var hasCompletedOnboarding: Bool = false
 
@@ -26,14 +26,15 @@ struct PrayerEaseApp: App {
                     OnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)
                 }
             }
-            .environmentObject(locationManager)
-            .environmentObject(notificationManager)
-            .environmentObject(prayerTimeManager)
+            .environment(locationManager)
+            .environment(notificationManager)
+            .environment(prayerTimeManager)
             .task(id: hasCompletedOnboarding) {
                 setupApp()
             }
         }
     }
+
     private func setupApp() {
         // App setup moved to respective flows (Onboarding/ContentView)
     }
@@ -43,9 +44,9 @@ struct PrayerEaseApp: App {
     struct SalahTimeApp_Previews: PreviewProvider {
         static var previews: some View {
             TabPageView()
-                .environmentObject(LocationManager())
-                .environmentObject(NotificationManager.shared)
-                .environmentObject(PrayerTimeManager.shared)
+                .environment(LocationManager())
+                .environment(NotificationManager.shared)
+                .environment(PrayerTimeManager.shared)
         }
     }
 #endif

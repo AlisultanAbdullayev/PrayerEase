@@ -10,26 +10,22 @@ import SwiftUI
 
 struct QiblaMapView: View {
     @Environment(\.dismiss) var dismiss
-    @EnvironmentObject var locationManager: LocationManager
+    @Environment(LocationManager.self) private var locationManager
 
     @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
     @State private var mapStyle: MapStyle = .standard
-    @State private var selectedMapStyle = 0  // 0: Standard, 1: Satellite (Hybrid)
+    @State private var selectedMapStyle = 0
 
-    // Kaaba Coordinates
     private let kaabaCoordinate = CLLocationCoordinate2D(latitude: 21.422487, longitude: 39.826206)
 
     var body: some View {
         NavigationStack {
             Map(position: $position) {
-                // User Location
                 UserAnnotation()
 
-                // Kaaba Marker
                 Marker("Kaaba", coordinate: kaabaCoordinate)
                     .tint(.black)
 
-                // Line connecting User to Kaaba
                 if let userLocation = locationManager.userLocation?.coordinate {
                     MapPolyline(
                         coordinates: geodesicCoordinates(from: userLocation, to: kaabaCoordinate)
@@ -83,5 +79,5 @@ struct QiblaMapView: View {
 
 #Preview {
     QiblaMapView()
-        .environmentObject(LocationManager())
+        .environment(LocationManager())
 }

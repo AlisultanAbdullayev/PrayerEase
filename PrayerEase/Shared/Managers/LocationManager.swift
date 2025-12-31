@@ -6,46 +6,50 @@
 //
 
 import Adhan
-import Combine
 import CoreLocation
 import MapKit
 import SwiftUI
 
 @MainActor
-final class LocationManager: ObservableObject {
-    // MARK: - Published Properties
-    @Published private(set) var locationName: String = "N/A" {
+@Observable
+final class LocationManager {
+    // MARK: - Properties
+    private(set) var locationName: String = "N/A" {
         didSet { saveLocationName() }
     }
-    @Published private(set) var userLocation: CLLocation? {
+
+    private(set) var userLocation: CLLocation? {
         didSet { saveUserLocation() }
     }
-    @Published private(set) var error: Error?
-    @Published private(set) var isLocationActive: Bool = false
-    @Published private(set) var userTimeZone: String? {
+
+    private(set) var error: Error?
+    private(set) var isLocationActive: Bool = false
+
+    private(set) var userTimeZone: String? {
         didSet { userDefaults?.set(userTimeZone, forKey: "userTimeZone") }
     }
-    @Published var isAutoLocationEnabled: Bool = true {
+
+    var isAutoLocationEnabled: Bool = true {
         didSet {
             userDefaults?.set(isAutoLocationEnabled, forKey: "isAutoLocationEnabled")
             if isAutoLocationEnabled {
-                // Passive start: only runs if already authorized.
-                // Explicit prompting must be triggered by UI interactions (Toggles/Buttons).
                 startLocationUpdates(authorizeIfNeeded: false)
             } else {
                 stopLocationUpdates()
             }
         }
     }
-    @Published var heading: Double = 0
-    @Published var headingAccuracy: Double = 0.0 {
+
+    var heading: Double = 0
+
+    var headingAccuracy: Double = 0.0 {
         didSet {
-            // Negative start = uncalibrated. > 45 = low accuracy/interference
             isInterferenceDetected = headingAccuracy < 0 || headingAccuracy > 45
         }
     }
-    @Published var isInterferenceDetected: Bool = false
-    @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
+
+    var isInterferenceDetected: Bool = false
+    var authorizationStatus: CLAuthorizationStatus = .notDetermined
 
     // MARK: - Private Properties
     private let locationManager = CLLocationManager()
@@ -67,7 +71,6 @@ final class LocationManager: ObservableObject {
         self.locationDelegate = adapter
         locationManager.delegate = adapter
 
-        // Check current status on generic init
         updateStatus()
     }
 
@@ -103,11 +106,8 @@ final class LocationManager: ObservableObject {
 
     func requestLocation() {
         print("DEBUG: requestLocation called")
-        // Just Request Auth
         locationManager.requestWhenInUseAuthorization()
 
-        // Then start monitoring immediately.
-        // liveUpdates() will suspend until authorized.
         if isAutoLocationEnabled {
             print("DEBUG: Auto enabled, checking if updates running")
             startLocationUpdates(authorizeIfNeeded: true)
@@ -115,12 +115,9 @@ final class LocationManager: ObservableObject {
     }
 
     private func startLocationUpdates(authorizeIfNeeded: Bool = false) {
-        // Prevent duplicate tasks
         print("DEBUG: startLocationUpdates called. Existing task: \(locationTask != nil)")
         guard locationTask == nil else { return }
 
-        // If we are not explicitly asking for authorization (e.g. startup auto-check),
-        // and status is undetermined, do NOT start (which would trigger implicit prompt).
         if locationManager.authorizationStatus == .notDetermined {
             if !authorizeIfNeeded {
                 print(
@@ -128,7 +125,6 @@ final class LocationManager: ObservableObject {
                 )
                 return
             } else {
-                // Explicitly request authorization if instructed
                 locationManager.requestWhenInUseAuthorization()
             }
         }
@@ -137,17 +133,15 @@ final class LocationManager: ObservableObject {
             guard let self = self else { return }
             do {
                 print("DEBUG: Waiting for liveUpdates...")
-                // This sequence waits for authorization implicitly
                 let updates = CLLocationUpdate.liveUpdates()
                 for try await update in updates {
                     print(
                         "DEBUG: Update received. Location: \(String(describing: update.location))")
                     if let location = update.location {
-                        // Efficiency optimized: Only process significant changes (> 5km)
                         if let lastLocation = self.userLocation,
                             location.distance(from: lastLocation) < 5000
                         {
-                            print("DEBUG: Location change insignificant (< 5km). Skipping update.")
+                            print("DEBUG: Location change insignificant (<5km). Skipping update.")
                             continue
                         }
 
@@ -187,13 +181,11 @@ final class LocationManager: ObservableObject {
     }
 
     func refreshLocation() async {
-        // If auto updates are enabled, ensure the continuous task is running.
         if isAutoLocationEnabled {
             if locationTask == nil {
                 startLocationUpdates(authorizeIfNeeded: true)
             }
         } else {
-            // If manual, fetch data once and stop.
             await startOneTimeUpdate()
         }
     }
@@ -208,7 +200,7 @@ final class LocationManager: ObservableObject {
                     self.userLocation = location
                     self.isLocationActive = true
                     await reverseGeocode(location: location)
-                    break  // Stop listening after one valid update
+                    break
                 }
             }
         } catch {
@@ -255,7 +247,6 @@ final class LocationManager: ObservableObject {
             do {
                 let mapItems = try await request.mapItems
                 if let mapItem = mapItems.first {
-                    // Use modern accessors if possible, forcing name for now
                     self.locationName =
                         mapItem.addressRepresentations?.cityWithContext ?? "Unknown location"
                     if let timeZone = mapItem.timeZone {

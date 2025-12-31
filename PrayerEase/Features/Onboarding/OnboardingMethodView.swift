@@ -9,10 +9,12 @@ import Adhan
 import SwiftUI
 
 struct OnboardingMethodView: View {
-    @ObservedObject var prayerTimeManager: PrayerTimeManager
-    var onContinue: () -> Void
+    let prayerTimeManager: PrayerTimeManager
+    let onContinue: () -> Void
 
     var body: some View {
+        @Bindable var manager = prayerTimeManager
+
         OnboardingStepView(
             systemImage: "globe.europe.africa.fill",
             title: "Calculation Method",
@@ -23,15 +25,13 @@ struct OnboardingMethodView: View {
             secondaryAction: nil,
             customContent: {
                 VStack(spacing: 20) {
-
-                    // Calculation Method Picker
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Calculation Method")
                             .font(.headline)
                             .foregroundColor(.primary)
 
                         Menu {
-                            Picker("Method", selection: $prayerTimeManager.method) {
+                            Picker("Method", selection: $manager.method) {
                                 ForEach(prayerTimeManager.methods, id: \.self) { method in
                                     Text(methodName(for: method))
                                         .tag(method)
@@ -51,14 +51,13 @@ struct OnboardingMethodView: View {
                         }
                     }
 
-                    // Madhab Picker
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Madhab")
                             .font(.headline)
                             .foregroundColor(.primary)
 
                         Menu {
-                            Picker("Madhab", selection: $prayerTimeManager.madhab) {
+                            Picker("Madhab", selection: $manager.madhab) {
                                 ForEach(prayerTimeManager.madhabs, id: \.self) { madhab in
                                     Text(madhab == .hanafi ? "Hanafi" : "Shafi, Maliki, Hanbali")
                                         .tag(madhab)

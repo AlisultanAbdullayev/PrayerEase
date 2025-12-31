@@ -9,7 +9,7 @@ import SwiftUI
 
 /// Prayer Times screen for watchOS
 struct WatchPrayerTimesView: View {
-    @StateObject private var viewModel = WatchPrayerTimesViewModel()
+    @Environment(WatchDataManager.self) private var dataManager
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -24,23 +24,23 @@ struct WatchPrayerTimesView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
-                viewModel.refresh()
+                dataManager.refresh()
             }
         }
     }
 
-    // MARK: - View Components (SRP - Single Responsibility)
+    // MARK: - View Components
 
     private var locationHeader: some View {
-        Text(viewModel.locationName.isEmpty ? "Prayers" : viewModel.locationName)
+        Text(dataManager.locationName.isEmpty ? "Prayers" : dataManager.locationName)
             .foregroundStyle(.secondary)
     }
 
     @ViewBuilder
     private var countdownSection: some View {
-        if let nextPrayer = viewModel.nextPrayer {
+        if let nextPrayer = dataManager.nextPrayer {
             PrayerCountdownView(nextPrayer: nextPrayer) {
-                viewModel.refresh()
+                dataManager.refresh()
             }
             .padding(.bottom)
         }
@@ -48,12 +48,12 @@ struct WatchPrayerTimesView: View {
 
     @ViewBuilder
     private var prayersList: some View {
-        if !viewModel.standardPrayers.isEmpty {
+        if !dataManager.prayerTimes.isEmpty {
             VStack(spacing: 2) {
-                ForEach(viewModel.standardPrayers) { prayer in
+                ForEach(dataManager.prayerTimes) { prayer in
                     PrayerRowView(
                         prayer: prayer,
-                        isCurrent: viewModel.isCurrent(prayer: prayer)
+                        isCurrent: dataManager.isCurrent(prayer: prayer)
                     )
                 }
             }
@@ -62,7 +62,7 @@ struct WatchPrayerTimesView: View {
 
     @ViewBuilder
     private var optionalPrayersSection: some View {
-        if !viewModel.optionalPrayers.isEmpty {
+        if !dataManager.optionalPrayers.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Optional")
                     .font(.caption2)
@@ -70,7 +70,7 @@ struct WatchPrayerTimesView: View {
                     .padding(.horizontal, 8)
 
                 VStack(spacing: 2) {
-                    ForEach(viewModel.optionalPrayers) { prayer in
+                    ForEach(dataManager.optionalPrayers) { prayer in
                         PrayerRowView(
                             prayer: prayer,
                             isCurrent: false
@@ -83,7 +83,7 @@ struct WatchPrayerTimesView: View {
 
     @ViewBuilder
     private var emptyStateView: some View {
-        if viewModel.standardPrayers.isEmpty {
+        if dataManager.prayerTimes.isEmpty {
             ContentUnavailableView(
                 "No Prayer Data",
                 systemImage: "clock.badge.exclamationmark",
@@ -95,4 +95,5 @@ struct WatchPrayerTimesView: View {
 
 #Preview {
     WatchPrayerTimesView()
+        .environment(WatchDataManager.shared)
 }

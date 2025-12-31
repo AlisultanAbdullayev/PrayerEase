@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct LocationNotFoundView: View {
-    @EnvironmentObject var locationManager: LocationManager
+    @Environment(LocationManager.self) private var locationManager
 
     var body: some View {
         VStack(spacing: 30) {
@@ -79,5 +79,5 @@ struct LocationNotFoundView: View {
 
 #Preview {
     LocationNotFoundView()
-        .environmentObject(LocationManager())
+        .environment(LocationManager())
 }

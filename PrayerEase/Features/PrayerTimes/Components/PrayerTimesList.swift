@@ -9,11 +9,12 @@ import Adhan
 import SwiftUI
 
 struct PrayerTimesList: View {
-    let prayers: PrayerTimes
-    @StateObject private var prayerTimeManager = PrayerTimeManager.shared
-    @EnvironmentObject private var locationManager: LocationManager
+    @Environment(LocationManager.self) private var locationManager
 
-    @StateObject private var widgetDataManager = WidgetDataManager.shared
+    @State private var prayerTimeManager = PrayerTimeManager.shared
+    @State private var widgetDataManager = WidgetDataManager.shared
+
+    let prayers: PrayerTimes
 
     // Custom Model for List
     struct PrayerItem: Identifiable, Equatable {
@@ -21,7 +22,7 @@ struct PrayerTimesList: View {
         let name: String
         let time: Date
         let icon: String
-        let isNative: Bool  // true if part of Adhan.Prayer
+        let isNative: Bool
         let nativePrayer: Prayer?
     }
 
@@ -111,36 +112,27 @@ struct PrayerTimesList: View {
     }
 
     private func isHighlighted(_ item: PrayerItem) -> Bool {
-        // Only mark native (standard) prayers
         guard item.isNative else { return false }
 
         let now = Date()
-        // Use standardPrayers directly (since standardPrayers are all native)
         let nativeItems = standardPrayers
 
-        // Find the currently active prayer
-        // 1. Before Fajr (Early Morning) -> Highlight Isha (Last native)
         if let first = nativeItems.first, now < first.time {
-            // Highlight the Last Native Item (Isha)
             if let last = nativeItems.last {
                 return item.name == last.name
             }
         }
 
-        // 2. Iterate to find which slot we are in
         for i in 0..<nativeItems.count {
             let current = nativeItems[i]
             let nextIndex = i + 1
 
-            // Check if we are in this item's slot
             if nextIndex < nativeItems.count {
                 let next = nativeItems[nextIndex]
                 if now >= current.time && now < next.time {
                     return item.name == current.name
                 }
             } else {
-                // Last item (Isha). Since we handled "Before Fajr" above,
-                // if we are here and now >= current.time, it must be the last item active.
                 if now >= current.time {
                     return item.name == current.name
                 }
@@ -161,16 +153,15 @@ struct PrayerTimesList: View {
     let date = Date()
     let calendar = Calendar.current
     let dateComponents = calendar.dateComponents([.year, .month, .day], from: date)
-    let coordinates = Coordinates(latitude: 21.422487, longitude: 39.826206)  // Mecca
+    let coordinates = Coordinates(latitude: 21.422487, longitude: 39.826206)
     let params = CalculationMethod.moonsightingCommittee.params
 
-    guard
-        let prayerTimes = PrayerTimes(
-            coordinates: coordinates, date: dateComponents, calculationParameters: params)
-    else {
-        return Text("Unable to calculate prayer times")
+    if let prayerTimes = PrayerTimes(
+        coordinates: coordinates, date: dateComponents, calculationParameters: params)
+    {
+        PrayerTimesList(prayers: prayerTimes)
+            .environment(LocationManager())
+    } else {
+        Text("Unable to calculate prayer times")
     }
-
-    return PrayerTimesList(prayers: prayerTimes)
-        .environmentObject(LocationManager())
 }

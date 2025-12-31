@@ -9,11 +9,14 @@ import CoreLocation
 import SwiftUI
 
 struct OnboardingLocationView: View {
-    @ObservedObject var locationManager: LocationManager
-    var onContinue: () -> Void
+    let locationManager: LocationManager
+    let onContinue: () -> Void
+
     @State private var isShowingManualSearch = false
 
     var body: some View {
+        @Bindable var manager = locationManager
+
         OnboardingStepView(
             systemImage: locationManager.userLocation != nil
                 ? "location.fill" : "location.circle.fill",
@@ -48,7 +51,7 @@ struct OnboardingLocationView: View {
                 if locationManager.userLocation != nil {
                     Toggle(
                         "Enable Auto Location Detection",
-                        isOn: $locationManager.isAutoLocationEnabled
+                        isOn: $manager.isAutoLocationEnabled
                     )
                     .padding()
                     .glassEffect(.regular)

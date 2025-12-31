@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct EventsView: View {
-    @EnvironmentObject private var prayerTimesManager: PrayerTimeManager
-    @EnvironmentObject private var locationManager: LocationManager
+    @Environment(PrayerTimeManager.self) private var prayerTimesManager
+    @Environment(LocationManager.self) private var locationManager
 
     @State private var selectedView: CalendarTab = .prayers
     @State private var currentDate = Date()
@@ -50,7 +50,6 @@ struct EventsView: View {
             .onChange(of: prayerTimesManager.method) { _, _ in
                 updateMonthlyPrayerTimes()
             }
-            // Update when month changes
             .onChange(of: currentDate) { _, _ in
                 updateMonthlyPrayerTimes()
             }
@@ -135,7 +134,6 @@ struct EventsView: View {
     }
 
     private func scrollToCurrentDay(proxy: ScrollViewProxy) {
-        // Find index of today or displayed month's day
         let calendar = Calendar.current
         let targetComponents = calendar.dateComponents([.year, .month, .day], from: Date())
 
@@ -143,7 +141,6 @@ struct EventsView: View {
             $0.date.year == targetComponents.year && $0.date.month == targetComponents.month
                 && $0.date.day == targetComponents.day
         }) {
-            // Scroll to today if present
             withAnimation {
                 proxy.scrollTo(index, anchor: .center)
             }
@@ -157,8 +154,6 @@ struct EventsView: View {
     }
 
     private func isToday(index: Int) -> Bool {
-        // Need to check if the day in the list matches real today
-        // prayerTimesArr[index].date gives DateComponents
         let todayComponents = Calendar.current.dateComponents([.year, .month, .day], from: Date())
         let itemComponents = prayerTimesManager.prayerTimesArr[index].date
         return todayComponents.year == itemComponents.year
@@ -169,5 +164,5 @@ struct EventsView: View {
 
 #Preview {
     EventsView()
-        .environmentObject(LocationManager())
+        .environment(LocationManager())
 }

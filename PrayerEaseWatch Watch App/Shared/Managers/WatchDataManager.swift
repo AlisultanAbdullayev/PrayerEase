@@ -5,13 +5,13 @@
 //  Created by Antigravity on 12/23/25.
 //
 
-import Combine
 import Foundation
 import WidgetKit
 
 /// Manages prayer data synchronization between iOS app and watchOS app via App Group
 @MainActor
-final class WatchDataManager: ObservableObject {
+@Observable
+final class WatchDataManager {
     static let shared = WatchDataManager()
 
     private let appGroupId = "group.com.alijaver.PrayerEase"
@@ -20,13 +20,13 @@ final class WatchDataManager: ObservableObject {
         UserDefaults(suiteName: appGroupId)
     }
 
-    // MARK: - Published Properties
+    // MARK: - Properties
 
-    @Published var prayerTimes: [SharedPrayerTime] = []
-    @Published var locationName: String = ""
-    @Published var islamicDate: String = ""
-    @Published var isDuhaEnabled: Bool = false
-    @Published var isTahajjudEnabled: Bool = false
+    var prayerTimes: [SharedPrayerTime] = []
+    var locationName: String = ""
+    var islamicDate: String = ""
+    var isDuhaEnabled: Bool = false
+    var isTahajjudEnabled: Bool = false
 
     // MARK: - Initialization
 
@@ -36,14 +36,12 @@ final class WatchDataManager: ObservableObject {
 
     // MARK: - Data Loading
 
-    /// Loads prayer data from App Group storage
     func loadPrayerData() {
         guard let defaults = userDefaults else {
             print("DEBUG Watch: Failed to access App Group UserDefaults")
             return
         }
 
-        // Load prayer times
         if let data = defaults.data(forKey: "widgetPrayerTimes"),
             let decoded = try? JSONDecoder().decode([SharedPrayerTime].self, from: data)
         {
@@ -53,11 +51,9 @@ final class WatchDataManager: ObservableObject {
             print("DEBUG Watch: No prayer times data found in App Group")
         }
 
-        // Load location and date
         self.locationName = defaults.string(forKey: "locationName") ?? "Loading..."
         self.islamicDate = defaults.string(forKey: "islamicDate") ?? ""
 
-        // Load optional prayer settings
         self.isDuhaEnabled = defaults.bool(forKey: "isDuhaEnabled")
         self.isTahajjudEnabled = defaults.bool(forKey: "isTahajjudEnabled")
 
@@ -65,12 +61,10 @@ final class WatchDataManager: ObservableObject {
         print("DEBUG Watch: Duha: \(isDuhaEnabled), Tahajjud: \(isTahajjudEnabled)")
     }
 
-    /// Refreshes prayer data (call when returning from background or on manual refresh)
     func refresh() {
         loadPrayerData()
     }
 
-    /// Updates data from WatchConnectivity application context
     func updateFromContext(
         prayerTimes: [SharedPrayerTime],
         locationName: String,
@@ -84,95 +78,72 @@ final class WatchDataManager: ObservableObject {
         self.isDuhaEnabled = isDuhaEnabled
         self.isTahajjudEnabled = isTahajjudEnabled
 
-        // Persist to UserDefaults for widget access
         persistDataForWidget()
 
         print(
             "DEBUG Watch: Updated from context - \(prayerTimes.count) prayers for \(locationName)")
     }
 
-    /// Persists data to UserDefaults for widget extension access
-    /// Persists data to UserDefaults for widget extension access
     private func persistDataForWidget() {
-        // Use App Group UserDefaults so widget extension can access data
         guard let defaults = UserDefaults(suiteName: appGroupId) else {
             print("DEBUG Watch: Failed to access App Group for widget persistence")
             return
         }
 
-        // Encode and save prayer times (use same keys as iOS app/widget for consistency)
         if let encoded = try? JSONEncoder().encode(prayerTimes) {
             defaults.set(encoded, forKey: "widgetPrayerTimes")
         }
 
-        // Save other data
         defaults.set(locationName, forKey: "locationName")
         defaults.set(islamicDate, forKey: "islamicDate")
         defaults.set(isDuhaEnabled, forKey: "isDuhaEnabled")
         defaults.set(isTahajjudEnabled, forKey: "isTahajjudEnabled")
 
-        // Reload widget timelines
         reloadWidgetTimelines()
 
         print("DEBUG Watch: Persisted data for widget to App Group")
     }
 
-    /// Reloads all widget timelines
     private func reloadWidgetTimelines() {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
-    /// Returns the current prayer based on current time
     var currentPrayer: SharedPrayerTime? {
         let now = Date()
 
-        // Find which prayer slot we're in
         for i in 0..<prayerTimes.count {
             let current = prayerTimes[i]
 
-            // Check if we're in this prayer's time slot
             if i < prayerTimes.count - 1 {
                 let next = prayerTimes[i + 1]
                 if now >= current.time && now < next.time {
                     return current
                 }
             } else {
-                // Last prayer (Isha) - active until next Fajr
                 if now >= current.time {
                     return current
                 }
             }
         }
 
-        // Before Fajr - return last prayer (Isha from previous day)
         return prayerTimes.last
     }
 
-    /// Returns the next upcoming prayer
-    /// Handles day rollover: if all prayers passed, returns Fajr projected to tomorrow
     var nextPrayer: SharedPrayerTime? {
         let now = Date()
 
-        // Find first prayer after current time
         if let next = prayerTimes.first(where: { $0.time > now }) {
             return next
         }
 
-        // All prayers passed today - project Fajr to future
         guard let fajr = prayerTimes.first(where: { $0.name == "Fajr" }) ?? prayerTimes.first else {
             return nil
         }
 
-        // Direct calculation: determine days offset to reach future (KISS principle)
         let nextFajrTime = Self.projectToFuture(fajr.time, from: now)
         return SharedPrayerTime(name: fajr.name, time: nextFajrTime)
     }
 
-    /// Projects a past date to the future by adding minimum days needed
-    /// - Parameters:
-    ///   - date: The original date (possibly in the past)
-    ///   - referenceDate: The reference date to compare against (typically now)
-    /// - Returns: The projected future date
     private static func projectToFuture(_ date: Date, from referenceDate: Date) -> Date {
         guard date <= referenceDate else { return date }
 
@@ -184,26 +155,21 @@ final class WatchDataManager: ObservableObject {
             ?? date.addingTimeInterval(Double(daysToAdd) * 86400)
     }
 
-    /// Returns optional prayers based on enabled flags
     var optionalPrayers: [SharedPrayerTime] {
         var prayers: [SharedPrayerTime] = []
 
-        // Only show if standard prayers are loaded
         guard !prayerTimes.isEmpty else { return [] }
 
-        // Duha: 45 minutes after Sunrise
         if isDuhaEnabled, let sunrise = prayerTimes.first(where: { $0.name == "Sunrise" }) {
             let duhaTime = sunrise.time.addingTimeInterval(45 * 60)
             prayers.append(SharedPrayerTime(name: "Duha", time: duhaTime))
         }
 
-        // Tahajjud: Last third of the night (before Fajr)
         if isTahajjudEnabled,
             let fajr = prayerTimes.first(where: { $0.name == "Fajr" }),
             let maghrib = prayerTimes.first(where: { $0.name == "Maghrib" })
         {
 
-            // Calculate tomorrow's Fajr for night duration
             let fajrTomorrow = fajr.time.addingTimeInterval(86400)
             let nightDuration = fajrTomorrow.timeIntervalSince(maghrib.time)
             let lastThird = nightDuration / 3
@@ -215,7 +181,6 @@ final class WatchDataManager: ObservableObject {
         return prayers.sorted { $0.time < $1.time }
     }
 
-    /// Checks if a given prayer is the current prayer
     func isCurrent(prayer: SharedPrayerTime) -> Bool {
         return currentPrayer?.name == prayer.name
     }

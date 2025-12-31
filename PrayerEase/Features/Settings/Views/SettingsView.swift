@@ -10,11 +10,9 @@ import Adhan
 import SwiftUI
 
 struct SettingsView: View {
-
-    @EnvironmentObject private var prayerTimeManager: PrayerTimeManager
-    @EnvironmentObject private var notificationManager: NotificationManager
-    @EnvironmentObject private var locationManager: LocationManager
-    @StateObject private var widgetDataManager = WidgetDataManager.shared
+    @Environment(PrayerTimeManager.self) private var prayerTimeManager
+    @Environment(NotificationManager.self) private var notificationManager
+    @Environment(LocationManager.self) private var locationManager
 
     var body: some View {
         Form {
@@ -47,14 +45,6 @@ struct SettingsView: View {
                 }
             }
 
-//            Section(header: Text("Debug")) {
-//                Button(role: .destructive) {
-//                    resetOnboarding()
-//                } label: {
-//                    Text("Reset Onboarding")
-//                }
-//            }
-
             Section {
                 VStack {
                     Text("Make 🤲 for us")
@@ -69,26 +59,19 @@ struct SettingsView: View {
         }
         .navigationTitle("Settings")
     }
-
-    private func resetOnboarding() {
-        if let bundleID = Bundle.main.bundleIdentifier {
-            UserDefaults.standard.removePersistentDomain(forName: bundleID)
-        }
-        UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
-    }
 }
 
-// MARK: - Subviews
+// MARK: - Location Settings
 
 struct LocationSettingsView: View {
-    @EnvironmentObject var locationManager: LocationManager
+    @Environment(LocationManager.self) private var locationManager
 
     var body: some View {
+        @Bindable var manager = locationManager
+
         Form {
             Section(header: Text("Location Services")) {
-                Toggle(isOn: $locationManager.isAutoLocationEnabled) {
+                Toggle(isOn: $manager.isAutoLocationEnabled) {
                     VStack(alignment: .leading) {
                         Text("Auto Location Detection")
                         Text(
@@ -122,13 +105,16 @@ struct LocationSettingsView: View {
     }
 }
 
+// MARK: - Notification Settings
+
 struct NotificationSettingsView: View {
-    @EnvironmentObject var notificationManager: NotificationManager
-    @EnvironmentObject var prayerTimeManager: PrayerTimeManager
-    @EnvironmentObject var locationManager: LocationManager
-    @StateObject private var widgetDataManager = WidgetDataManager.shared
+    @Environment(NotificationManager.self) private var notificationManager
+    @Environment(PrayerTimeManager.self) private var prayerTimeManager
+    @Environment(LocationManager.self) private var locationManager
+
+    @State private var widgetDataManager = WidgetDataManager.shared
     @State private var isNotifyBeforeExpanded = false
-    @State private var isNotifyExactExpanded = false  // Collapsed by default
+    @State private var isNotifyExactExpanded = false
 
     var body: some View {
         Form {
@@ -144,8 +130,10 @@ struct NotificationSettingsView: View {
     }
 
     private var liveActivitySection: some View {
-        Section {
-            Toggle(isOn: $widgetDataManager.isLiveActivityEnabled) {
+        @Bindable var manager = widgetDataManager
+
+        return Section {
+            Toggle(isOn: $manager.isLiveActivityEnabled) {
                 HStack {
                     Image(systemName: "clock.badge")
                         .foregroundStyle(.accent)
@@ -175,11 +163,11 @@ struct NotificationSettingsView: View {
     }
 
     private var exactAlertsSection: some View {
-        Section(header: Text("Prayer Alerts")) {
+        @Bindable var manager = widgetDataManager
+
+        return Section(header: Text("Prayer Alerts")) {
             DisclosureGroup(isExpanded: $isNotifyExactExpanded) {
-                // Standard Prayers
                 ForEach(notificationManager.notificationSettings.keys.sorted(), id: \.self) { key in
-                    // Ensure we don't duplicate optional prayers if they somehow get into this dict later
                     if key != "Tahajjud" && key != "Duha" {
                         Toggle(isOn: bindingForNotification(key: key, isBefore: false)) {
                             Text(key).tag(key)
@@ -187,17 +175,16 @@ struct NotificationSettingsView: View {
                     }
                 }
 
-                // Optional Prayers
                 Toggle(
                     isOn: bindingForOptionalPrayerNotification(
-                        key: "Duha", isEnabledBinding: $widgetDataManager.isDuhaEnabled)
+                        key: "Duha", isEnabledBinding: $manager.isDuhaEnabled)
                 ) {
                     Text("Duha")
                 }
 
                 Toggle(
                     isOn: bindingForOptionalPrayerNotification(
-                        key: "Tahajjud", isEnabledBinding: $widgetDataManager.isTahajjudEnabled)
+                        key: "Tahajjud", isEnabledBinding: $manager.isTahajjudEnabled)
                 ) {
                     Text("Tahajjud")
                 }
@@ -240,7 +227,9 @@ struct NotificationSettingsView: View {
     }
 
     private var preAlertsSection: some View {
-        Section(header: Text("Pre-Prayer Alerts")) {
+        @Bindable var manager = notificationManager
+
+        return Section(header: Text("Pre-Prayer Alerts")) {
             DisclosureGroup(isExpanded: $isNotifyBeforeExpanded) {
                 ForEach(notificationManager.notificationSettingsBefore.keys.sorted(), id: \.self) {
                     key in
@@ -254,7 +243,7 @@ struct NotificationSettingsView: View {
             }
 
             SettingsRowWithSelection(text: Text("Minutes before"), systemImage: "hourglass") {
-                Picker("", selection: $notificationManager.beforeMinutes) {
+                Picker("", selection: $manager.beforeMinutes) {
                     ForEach(notificationManager.minuteOptions, id: \.self) { minute in
                         Text(minute == 60 ? "1 hour" : "\(minute) minutes").tag(minute)
                     }
@@ -268,7 +257,8 @@ struct NotificationSettingsView: View {
         }
     }
 
-    // Binding for standard prayers
+    // MARK: - Helpers
+
     private func bindingForNotification(key: String, isBefore: Bool) -> Binding<Bool> {
         Binding(
             get: {
@@ -286,23 +276,18 @@ struct NotificationSettingsView: View {
         )
     }
 
-    // Binding for optional prayers with auto-enable logic
     private func bindingForOptionalPrayerNotification(key: String, isEnabledBinding: Binding<Bool>)
         -> Binding<Bool>
     {
         Binding(
             get: {
-                // If the feature is enabled, we assume notification is enabled (as per earlier simplified logic),
-                // OR we check the actual notification dict if I added support there.
                 return self.notificationManager.notificationSettings[key]
                     ?? isEnabledBinding.wrappedValue
             },
             set: { newValue in
-                // Update notification setting
                 self.notificationManager.updateNotificationSettings(
                     for: key, sendNotification: newValue, isBefore: false)
 
-                // Auto-enable feature if notification turned ON
                 if newValue {
                     isEnabledBinding.wrappedValue = true
                 }
@@ -331,9 +316,12 @@ struct NotificationSettingsView: View {
     }
 }
 
+// MARK: - Prayer Settings
+
 struct PrayerSettingsView: View {
-    @EnvironmentObject var prayerTimeManager: PrayerTimeManager
-    @StateObject private var widgetDataManager = WidgetDataManager.shared
+    @Environment(PrayerTimeManager.self) private var prayerTimeManager
+
+    @State private var widgetDataManager = WidgetDataManager.shared
 
     var body: some View {
         Form {
@@ -344,8 +332,10 @@ struct PrayerSettingsView: View {
     }
 
     private var optionalPrayersSection: some View {
-        Section(header: Text("Optional Prayers")) {
-            Toggle(isOn: $widgetDataManager.isTahajjudEnabled) {
+        @Bindable var manager = widgetDataManager
+
+        return Section(header: Text("Optional Prayers")) {
+            Toggle(isOn: $manager.isTahajjudEnabled) {
                 HStack {
                     Image(systemName: "moon.stars")
                         .foregroundStyle(.purple)
@@ -358,7 +348,7 @@ struct PrayerSettingsView: View {
                 }
             }
 
-            Toggle(isOn: $widgetDataManager.isDuhaEnabled) {
+            Toggle(isOn: $manager.isDuhaEnabled) {
                 HStack {
                     Image(systemName: "sun.max")
                         .foregroundStyle(.orange)
@@ -374,9 +364,11 @@ struct PrayerSettingsView: View {
     }
 
     private var calculationSection: some View {
-        Section(header: Text("Calculation Method")) {
+        @Bindable var manager = prayerTimeManager
+
+        return Section(header: Text("Calculation Method")) {
             SettingsRowWithSelection(text: Text("Madhab"), systemImage: "doc.plaintext") {
-                Picker("", selection: $prayerTimeManager.madhab) {
+                Picker("", selection: $manager.madhab) {
                     ForEach(prayerTimeManager.madhabs, id: \.self) { madhab in
                         Text(madhab == .hanafi ? "Hanafi" : "Default (Shafi, Maliki, Hanbali)")
                             .tag(madhab)
@@ -385,7 +377,7 @@ struct PrayerSettingsView: View {
             }
 
             SettingsRowWithSelection(text: Text("Institution"), systemImage: "book") {
-                Picker("", selection: $prayerTimeManager.method) {
+                Picker("", selection: $manager.method) {
                     ForEach(prayerTimeManager.methods, id: \.self) { method in
                         Text(methodName(for: method)).tag(method)
                     }
@@ -417,8 +409,8 @@ struct PrayerSettingsView: View {
 #Preview {
     NavigationStack {
         SettingsView()
-            .environmentObject(PrayerTimeManager.shared)
-            .environmentObject(NotificationManager.shared)
-            .environmentObject(LocationManager())
+            .environment(PrayerTimeManager.shared)
+            .environment(NotificationManager.shared)
+            .environment(LocationManager())
     }
 }

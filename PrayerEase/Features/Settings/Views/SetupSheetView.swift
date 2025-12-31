@@ -10,9 +10,9 @@ import SwiftUI
 
 struct SetupSheetView: View {
     @Environment(\.dismiss) private var dismiss
-    @ObservedObject var prayerTimeManager: PrayerTimeManager
 
-    // Local state to hold selection before saving
+    let prayerTimeManager: PrayerTimeManager
+
     @State private var selectedMadhab: Madhab = .shafi
     @State private var selectedMethod: CalculationMethod = .turkey
 
@@ -57,7 +57,6 @@ struct SetupSheetView: View {
                 }
             }
             .onAppear {
-                // Initialize with current manager values
                 selectedMadhab = prayerTimeManager.madhab
                 selectedMethod = prayerTimeManager.method
             }

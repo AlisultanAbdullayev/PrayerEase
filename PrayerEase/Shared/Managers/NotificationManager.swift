@@ -5,19 +5,18 @@
 //  Created by Alisultan Abdullah on 10/30/24.
 //
 //  NOTE: This file should ONLY be included in the main app target, NOT in widget extensions.
-//  In Xcode, uncheck the widget extension target in this file's Target Membership.
 //
 
 import Adhan
 import BackgroundTasks
-import Combine
 import CoreLocation
 import Foundation
 import MapKit
 import UserNotifications
 
 @MainActor
-final class NotificationManager: ObservableObject {
+@Observable
+final class NotificationManager {
     static let shared = NotificationManager()
 
     private let prayerTimeManager = PrayerTimeManager.shared
@@ -26,19 +25,21 @@ final class NotificationManager: ObservableObject {
 
     let minuteOptions: [Int] = [10, 15, 20, 25, 30, 45, 60]
 
-    @Published var notificationSettings: [String: Bool] {
+    var notificationSettings: [String: Bool] {
         didSet {
             userDefaults.set(notificationSettings, forKey: "notifications")
             syncNotifications()
         }
     }
-    @Published var notificationSettingsBefore: [String: Bool] {
+
+    var notificationSettingsBefore: [String: Bool] {
         didSet {
             userDefaults.set(notificationSettingsBefore, forKey: "notificationsBefore")
             syncNotifications()
         }
     }
-    @Published var beforeMinutes: Int = 25 {
+
+    var beforeMinutes: Int = 25 {
         didSet {
             userDefaults.set(beforeMinutes, forKey: "beforeMinutes")
             syncNotifications()
@@ -73,7 +74,6 @@ final class NotificationManager: ObservableObject {
         self.currentLocation = location
         prayerTimeManager.updateLocation(location)
 
-        // Only sync if location changed significantly (> 2km) or never scheduled
         if let lastLocation = lastScheduledLocation {
             let distance = location.distance(from: lastLocation)
             if distance > 2000 {
@@ -114,7 +114,7 @@ final class NotificationManager: ObservableObject {
     private func scheduleBackgroundRefresh() {
         let request = BGAppRefreshTaskRequest(
             identifier: "com.alijaver.SalahTimes.refreshNotifications")
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 12 * 3600)  // Refresh twice a day roughly
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 12 * 3600)
 
         do {
             try BGTaskScheduler.shared.submit(request)
@@ -124,7 +124,7 @@ final class NotificationManager: ObservableObject {
     }
 
     private func handleAppRefresh(task: BGAppRefreshTask) async {
-        scheduleBackgroundRefresh()  // Schedule next one
+        scheduleBackgroundRefresh()
 
         task.expirationHandler = {
             task.setTaskCompleted(success: false)
@@ -134,23 +134,13 @@ final class NotificationManager: ObservableObject {
         task.setTaskCompleted(success: true)
     }
 
-    /// The Single Source of Truth for scheduling.
-    /// Wipes all pending requests and reschedules everything for the next 3 days.
     func syncNotifications() {
         guard currentLocation != nil else {
             print("Location not available. Cannot schedule notifications.")
             return
         }
 
-        // 1. Cancel ALL pending triggers to strictly enforce our limit and state.
         notificationCenter.removeAllPendingNotificationRequests()
-
-        // 2. Schedule for a rolling 3-day window only.
-        //    (Today + Tomorrow + DayAfter) = 3 days max.
-        //    Max Local Notifications = 64.
-        //    Our Max usage: 3 days * 6 prayers * 2 types (exact+early) = 36 notifications.
-        //    (Often less because User rarely enables EVERYTHING).
-        //    We are well within the 64 safe zone.
 
         let calendar = Calendar.current
         let today = Date()
@@ -162,14 +152,12 @@ final class NotificationManager: ObservableObject {
 
             scheduleDailyNotifications(for: prayerTimes)
 
-            // After scheduling for today, update widget shared data
-            // Adding helper call here as per instructions
             if dayOffset == 0 {
-                updateWidgetSharedData(prayerTimes: prayerTimes)  // <-- New helper call
+                updateWidgetSharedData(prayerTimes: prayerTimes)
             }
         }
 
-        scheduleBackgroundRefresh()  // Always ensure BG task is kept alive
+        scheduleBackgroundRefresh()
         self.lastScheduledLocation = currentLocation
         print("syncNotifications complete: Rolling 3-day schedule updated.")
     }
@@ -186,15 +174,12 @@ final class NotificationManager: ObservableObject {
 
         let storage = PrayerDataStorage.shared
 
-        // Add Duha if enabled
         if storage.isDuhaEnabled() {
             let duhaTime = prayerTimes.sunrise.addingTimeInterval(45 * 60)
             prayerTimesToNotify.append(("Duha", duhaTime))
         }
 
-        // Add Tahajjud if enabled (Next Day Pre-Fajr)
         if storage.isTahajjudEnabled() {
-            // Calculate: Fajr (Tomorrow) - (FajrTomorrow - MaghribToday) / 3
             let fajrTomorrow = prayerTimes.fajr.addingTimeInterval(86400)
             let nightDuration = fajrTomorrow.timeIntervalSince(prayerTimes.maghrib)
             let lastThird = nightDuration / 3
@@ -203,49 +188,33 @@ final class NotificationManager: ObservableObject {
             prayerTimesToNotify.append(("Tahajjud", tahajjudTime))
         }
 
-        // Qiraa / Forbidden Times (as per user request)
-        // 1. 45 min after Sunrise (Ends)
         if notificationSettings["QiraaAfterSunrise"] == true {
             prayerTimesToNotify.append(
                 ("Qiraa Ends (Sunrise)", prayerTimes.sunrise.addingTimeInterval(45 * 60)))
         }
 
-        // 2. 45 min before Dhuhr (Starts)
         if notificationSettings["QiraaBeforeDhuhr"] == true {
             prayerTimesToNotify.append(
                 ("Qiraa Starts (Dhuhr)", prayerTimes.dhuhr.addingTimeInterval(-45 * 60)))
         }
 
-        // 3. 45 min before Maghrib (Starts)
         if notificationSettings["QiraaBeforeMaghrib"] == true {
             prayerTimesToNotify.append(
                 ("Qiraa Starts (Maghrib)", prayerTimes.maghrib.addingTimeInterval(-45 * 60)))
         }
 
         for (prayerName, prayerTime) in prayerTimesToNotify {
-            // Determine if we should notify
-            // ... (keep existing check logic)
-            // Note: Since we check settings explicitly above for Qiraat, we can force true here or rely on key check
-            // BUT strict key check fails because keys are "QiraaAfterSunrise" vs Name "Qiraa Ends (Sunrise)".
-
-            // Refactored approach:
-            // The loop checks 'shouldNotify'.
-
             var shouldNotify = notificationSettings[prayerName] == true
 
-            // Exceptions for optional/custom named prayers
             if prayerName == "Tahajjud" || prayerName == "Duha" || prayerName.starts(with: "Qiraa")
             {
                 shouldNotify = true
             }
 
-            // 1. Exact time notification
             if shouldNotify {
                 scheduleNotification(for: prayerTime, with: prayerName, type: .exact)
             }
 
-            // 2. Early reminder
-            // Early reminders are NOT enabled for optional prayers (Tahajjud, Duha, Qiraa) by default to avoid spam.
             if notificationSettingsBefore[prayerName] == true {
                 scheduleNotification(
                     for: prayerTime, with: prayerName, type: .early(minutes: beforeMinutes))
@@ -261,9 +230,8 @@ final class NotificationManager: ObservableObject {
     private func scheduleNotification(
         for prayerTime: Date, with prayerName: String, type: NotificationType
     ) {
-        guard let validDate = prayerTime.addingTimeInterval(0) as Date? else { return }  // Safe check
+        guard let validDate = prayerTime.addingTimeInterval(0) as Date? else { return }
 
-        // Don't schedule past events for Today.
         if validDate < Date() && isExact(type) { return }
 
         let content = UNMutableNotificationContent()
@@ -288,9 +256,8 @@ final class NotificationManager: ObservableObject {
             identifierSuffix = "exact"
 
         case .early(let minutes):
-            // Calculate early time
             triggerDate = validDate.addingTimeInterval(TimeInterval(-minutes * 60))
-            if triggerDate < Date() { return }  // Don't schedule if reminder time already passed
+            if triggerDate < Date() { return }
 
             content.title = "Approaching Prayer"
             content.body = "\(minutes) minutes left until \(prayerName)"
@@ -301,8 +268,6 @@ final class NotificationManager: ObservableObject {
             [.year, .month, .day, .hour, .minute, .second], from: triggerDate)
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
 
-        // Unique ID per prayer per day per type.
-        // e.g. "Fajr-2023-10-25-exact"
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         let dateString = dateFormatter.string(from: validDate)
@@ -332,8 +297,8 @@ final class NotificationManager: ObservableObject {
         } else {
             notificationSettings[prayerName] = sendNotification
         }
-        // didSet will call syncNotifications() automatically
     }
+
     func disableAllNotifications() {
         for key in notificationSettings.keys {
             notificationSettings[key] = false
@@ -345,20 +310,11 @@ final class NotificationManager: ObservableObject {
 
     // MARK: - Widget Shared Data Helper
 
-    /// Writes next prayer info, all prayer times, location name, and Islamic date to shared UserDefaults for Widget usage.
-    /// Keys:
-    /// - widget_nextPrayer: String (name of next prayer)
-    /// - widget_nextPrayerTime: String (ISO8601 date string)
-    /// - widget_prayerTimes: [String: String] dictionary with prayer names and ISO8601 date strings
-    /// - widget_locationName: String (current location name or empty)
-    /// - widget_islamicDate: String (formatted Islamic date)
     private func updateWidgetSharedData(prayerTimes: PrayerTimes) {
-        // Retrieve location name from shared defaults (best effort)
         let locationName =
             UserDefaults(suiteName: "group.com.alijaver.PrayerEase")?.string(forKey: "locationName")
             ?? ""
 
-        // Calculate Islamic date
         let islamicCalendar = Calendar(identifier: .islamicUmmAlQura)
         let islamicDateFormatter = DateFormatter()
         islamicDateFormatter.calendar = islamicCalendar
@@ -366,7 +322,6 @@ final class NotificationManager: ObservableObject {
         islamicDateFormatter.timeStyle = .none
         let islamicDateString = islamicDateFormatter.string(from: Date())
 
-        // Delegate to WidgetDataManager to ensure consistent format
         WidgetDataManager.shared.updateWidgetData(
             prayerTimes: prayerTimes,
             locationName: locationName,

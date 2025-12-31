@@ -9,9 +9,11 @@ import Adhan
 import SwiftUI
 
 struct PrayerTimesFormView: View {
-    @ObservedObject var viewModel: PrayerTimesViewModel
-    @EnvironmentObject var prayerTimeManager: PrayerTimeManager
-    @EnvironmentObject var locationManager: LocationManager
+    @Environment(PrayerTimeManager.self) private var prayerTimeManager
+    @Environment(LocationManager.self) private var locationManager
+
+    let currentDate: Date
+    let hijriCalendar: Calendar
 
     var body: some View {
         Form {
@@ -28,12 +30,12 @@ struct PrayerTimesFormView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(viewModel.getFormattedHijriDate())
+                    Text(formattedHijriDate)
                         .font(.footnote)
                         .fontWeight(.bold)
                         .foregroundStyle(.accent)
 
-                    Text(viewModel.currentDate, style: .date)
+                    Text(currentDate, style: .date)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -42,20 +44,15 @@ struct PrayerTimesFormView: View {
         }
     }
 
+    private var formattedHijriDate: String {
+        let formatter = DateFormatter()
+        formatter.calendar = hijriCalendar
+        formatter.dateFormat = "d MMMM yyyy"
+        return formatter.string(from: currentDate)
+    }
+
     private var progressView: some View {
-        Group {
-            if !viewModel.isLoadFailed {
-                ProgressView("Try to load the data...")
-                    .frame(maxWidth: .infinity)
-                    .task {
-                        try? await Task.sleep(nanoseconds: 5_000_000_000)
-                        viewModel.isLoadFailed = true
-                    }
-            } else {
-                Text("Data can not be loaded!")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
-        }
+        ProgressView("Loading prayer times...")
+            .frame(maxWidth: .infinity)
     }
 }
