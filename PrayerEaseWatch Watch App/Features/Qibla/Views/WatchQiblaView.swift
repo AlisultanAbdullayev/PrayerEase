@@ -9,7 +9,7 @@ import SwiftUI
 
 /// Qibla direction screen for watchOS
 struct WatchQiblaView: View {
-    @StateObject private var viewModel = WatchQiblaViewModel()
+    @State private var viewModel = WatchQiblaViewModel()
     @State private var isMapPresented = false
     @State private var showWarning = false
     @State private var hasShownWarning = false
@@ -20,7 +20,6 @@ struct WatchQiblaView: View {
                 VStack(spacing: 8) {
                     Spacer()
 
-                    // Compass view
                     compassView(size: min(geometry.size.width, geometry.size.height) * 0.7)
 
                     Spacer()
@@ -30,14 +29,14 @@ struct WatchQiblaView: View {
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 viewModel.startUpdating()
-                // Show warning once if accuracy is low when view appears
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    if viewModel.accuracyPercentage > 0 && viewModel.accuracyPercentage < 75
-                        && !hasShownWarning
-                    {
-                        showWarning = true
-                        hasShownWarning = true
-                    }
+            }
+            .task {
+                try? await Task.sleep(for: .seconds(2))
+                if viewModel.accuracyPercentage > 0 && viewModel.accuracyPercentage < 75
+                    && !hasShownWarning
+                {
+                    showWarning = true
+                    hasShownWarning = true
                 }
             }
             .onDisappear {
@@ -45,7 +44,6 @@ struct WatchQiblaView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .bottomBar) {
-                    // Map button
                     Button {
                         isMapPresented = true
                     } label: {
@@ -55,7 +53,6 @@ struct WatchQiblaView: View {
                     }
                 }
                 ToolbarItem(placement: .bottomBar) {
-                    // Warning button
                     Button {
                         showWarning = true
                     } label: {
@@ -76,7 +73,6 @@ struct WatchQiblaView: View {
                 )
             }
         } else {
-            // Location disabled state
             VStack(spacing: 12) {
                 Image(systemName: "location.slash")
                     .font(.system(size: 40))
@@ -100,12 +96,10 @@ struct WatchQiblaView: View {
 
     private func compassView(size: CGFloat) -> some View {
         ZStack {
-            // Outer ring
             Circle()
                 .stroke(Color.secondary.opacity(0.3), lineWidth: 3)
                 .frame(width: size, height: size)
 
-            // Tick marks
             ForEach(0..<72) { tick in
                 Rectangle()
                     .fill(Color.secondary.opacity(0.6))
@@ -114,7 +108,6 @@ struct WatchQiblaView: View {
                     .rotationEffect(.degrees(Double(tick) * 5))
             }
 
-            // Qibla arrow
             Image(systemName: "arrow.up")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
@@ -123,7 +116,6 @@ struct WatchQiblaView: View {
                 .shadow(
                     color: viewModel.isPointingToQibla ? .green.opacity(0.5) : .clear, radius: 8)
 
-            // Qibla label
             Text("QIBLA")
                 .font(.caption2.weight(.bold))
                 .foregroundStyle(viewModel.isPointingToQibla ? .green : .secondary)

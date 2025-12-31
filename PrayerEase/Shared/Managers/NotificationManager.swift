@@ -102,7 +102,7 @@ final class NotificationManager {
 
     private func registerBackgroundTask() {
         _ = BGTaskScheduler.shared.register(
-            forTaskWithIdentifier: AppConstants.backgroundTaskId, using: nil
+            forTaskWithIdentifier: AppConfig.backgroundTaskId, using: nil
         ) { [weak self] task in
             guard let appRefreshTask = task as? BGAppRefreshTask else { return }
             Task { @MainActor [weak self] in
@@ -113,7 +113,7 @@ final class NotificationManager {
 
     private func scheduleBackgroundRefresh() {
         let request = BGAppRefreshTaskRequest(
-            identifier: AppConstants.backgroundTaskId)
+            identifier: AppConfig.backgroundTaskId)
         request.earliestBeginDate = Date(timeIntervalSinceNow: 12 * 3600)
 
         do {
@@ -312,8 +312,8 @@ final class NotificationManager {
 
     private func updateWidgetSharedData(prayerTimes: PrayerTimes) {
         let locationName =
-            UserDefaults(suiteName: AppConstants.appGroupId)?.string(
-                forKey: AppConstants.Keys.locationName)
+            UserDefaults(suiteName: AppConfig.appGroupId)?.string(
+                forKey: StorageKeys.locationName)
             ?? ""
 
         let islamicCalendar = Calendar(identifier: .islamicUmmAlQura)

@@ -9,7 +9,9 @@ import Foundation
 import WatchConnectivity
 
 /// Manages communication with watchOS app from iOS
-final class IOSConnectivityManager: NSObject, ObservableObject {
+@MainActor
+@Observable
+final class IOSConnectivityManager: NSObject {
     static let shared = IOSConnectivityManager()
 
     private override init() {
@@ -53,14 +55,13 @@ final class IOSConnectivityManager: NSObject, ObservableObject {
 
     /// Convenience method to send current prayer data
     func sendCurrentPrayerData() {
-        guard let defaults = UserDefaults(suiteName: "group.com.alijaver.PrayerEase") else {
+        guard let defaults = UserDefaults(suiteName: AppConfig.appGroupId) else {
             return
         }
 
-        // Convert SharedPrayerTime to dictionary for transfer
         var prayerDicts: [[String: Any]] = []
 
-        if let data = defaults.data(forKey: "widgetPrayerTimes"),
+        if let data = defaults.data(forKey: StorageKeys.widgetPrayerTimes),
             let times = try? JSONDecoder().decode([SharedPrayerTime].self, from: data)
         {
             prayerDicts = times.map { prayer in
@@ -71,10 +72,10 @@ final class IOSConnectivityManager: NSObject, ObservableObject {
             }
         }
 
-        let locationName = defaults.string(forKey: "locationName") ?? ""
-        let islamicDate = defaults.string(forKey: "islamicDate") ?? ""
-        let isDuhaEnabled = defaults.bool(forKey: "isDuhaEnabled")
-        let isTahajjudEnabled = defaults.bool(forKey: "isTahajjudEnabled")
+        let locationName = defaults.string(forKey: StorageKeys.locationName) ?? ""
+        let islamicDate = defaults.string(forKey: StorageKeys.islamicDate) ?? ""
+        let isDuhaEnabled = defaults.bool(forKey: StorageKeys.isDuhaEnabled)
+        let isTahajjudEnabled = defaults.bool(forKey: StorageKeys.isTahajjudEnabled)
 
         sendPrayerDataToWatch(
             prayerTimes: prayerDicts,
@@ -90,16 +91,16 @@ final class IOSConnectivityManager: NSObject, ObservableObject {
 
 extension IOSConnectivityManager: WCSessionDelegate {
 
-    func sessionDidBecomeInactive(_ session: WCSession) {
+    nonisolated func sessionDidBecomeInactive(_ session: WCSession) {
         print("DEBUG iOS: Session became inactive")
     }
 
-    func sessionDidDeactivate(_ session: WCSession) {
+    nonisolated func sessionDidDeactivate(_ session: WCSession) {
         print("DEBUG iOS: Session deactivated")
         session.activate()
     }
 
-    func session(
+    nonisolated func session(
         _ session: WCSession,
         activationDidCompleteWith activationState: WCSessionActivationState,
         error: Error?
@@ -108,24 +109,22 @@ extension IOSConnectivityManager: WCSessionDelegate {
             print("DEBUG iOS: Session activation failed: \(error.localizedDescription)")
         } else {
             print("DEBUG iOS: Session activated: \(activationState.rawValue)")
-            // Send initial data when session activates
             if activationState == .activated {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     self.sendCurrentPrayerData()
                 }
             }
         }
     }
 
-    func session(
+    nonisolated func session(
         _ session: WCSession, didReceiveMessage message: [String: Any],
         replyHandler: @escaping ([String: Any]) -> Void
     ) {
         print("DEBUG iOS: Received message from watch: \(message)")
 
         if message["action"] as? String == "requestPrayerData" {
-            // Watch is requesting prayer data
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 self.sendCurrentPrayerData()
             }
             replyHandler(["status": "success"])

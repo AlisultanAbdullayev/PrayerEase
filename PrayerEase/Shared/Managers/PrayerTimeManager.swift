@@ -15,7 +15,7 @@ final class PrayerTimeManager {
     static let shared = PrayerTimeManager()
 
     // MARK: - App Group Configuration
-    static let appGroupId = AppConstants.appGroupId
+    static let appGroupId = AppConfig.appGroupId
 
     private var userDefaults: UserDefaults {
         UserDefaults(suiteName: Self.appGroupId) ?? .standard
@@ -125,6 +125,6 @@ final class PrayerTimeManager {
     }
 
     func formattedPrayerTime(_ prayerTime: Date?) -> String {
-        DateFormatters.formatTime(prayerTime)
+        SharedFormatters.formatTime(prayerTime)
     }
 }

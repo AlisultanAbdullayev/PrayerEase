@@ -53,7 +53,7 @@ final class LocationManager {
 
     // MARK: - Private Properties
     private let locationManager = CLLocationManager()
-    private let userDefaults = UserDefaults(suiteName: AppConstants.appGroupId)
+    private let userDefaults = UserDefaults(suiteName: AppConfig.appGroupId)
     private var locationTask: Task<Void, Never>?
     private var locationDelegate: LocationDelegate?
 

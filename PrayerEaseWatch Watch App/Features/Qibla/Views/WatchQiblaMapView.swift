@@ -11,26 +11,23 @@ import SwiftUI
 /// Map view showing Qibla direction and polyline to Kaaba
 struct WatchQiblaMapView: View {
     @Environment(\.dismiss) private var dismiss
-    @ObservedObject var viewModel: WatchQiblaViewModel
+
+    let viewModel: WatchQiblaViewModel
 
     @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
-    @State private var selectedMapStyle = 0  // 0: Standard, 1: Satellite
+    @State private var selectedMapStyle = 0
     @State private var showMapStylePicker = false
 
-    // Kaaba coordinates
     private let kaabaCoordinate = CLLocationCoordinate2D(latitude: 21.422487, longitude: 39.826206)
 
     var body: some View {
         NavigationStack {
             Map(position: $position) {
-                // User location
                 UserAnnotation()
 
-                // Kaaba marker
                 Marker("Kaaba", coordinate: kaabaCoordinate)
                     .tint(.black)
 
-                // Line connecting user to Kaaba
                 if let userLocation = viewModel.userLocation?.coordinate {
                     MapPolyline(
                         coordinates: geodesicCoordinates(from: userLocation, to: kaabaCoordinate)
@@ -110,7 +107,6 @@ struct WatchQiblaMapView: View {
 
     // MARK: - Helpers
 
-    /// Generates geodesic coordinates for polyline
     private func geodesicCoordinates(
         from start: CLLocationCoordinate2D,
         to end: CLLocationCoordinate2D

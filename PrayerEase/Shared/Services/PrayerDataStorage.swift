@@ -11,7 +11,7 @@ import Foundation
 struct PrayerDataStorage {
     static let shared = PrayerDataStorage()
 
-    private let appGroupId = AppConstants.appGroupId
+    private let appGroupId = AppConfig.appGroupId
     private var userDefaults: UserDefaults? {
         UserDefaults(suiteName: appGroupId)
     }

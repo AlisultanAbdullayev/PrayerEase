@@ -9,12 +9,11 @@ import SwiftUI
 
 /// Tasbih counter screen for watchOS (watch-only feature)
 struct WatchTasbihView: View {
-    @StateObject private var viewModel = TasbihViewModel()
+    @State private var viewModel = TasbihViewModel()
     @State private var showSettings = false
 
     var body: some View {
         VStack(spacing: 0) {
-            // Main tappable area with gauge
             Button {
                 viewModel.increment()
             } label: {
@@ -45,7 +44,7 @@ struct WatchTasbihView: View {
 
 /// Settings sheet for Tasbih
 struct TasbihSettingsView: View {
-    @ObservedObject var viewModel: TasbihViewModel
+    let viewModel: TasbihViewModel
     @Environment(\.dismiss) private var dismiss
 
     @State private var targetText: String = ""
@@ -58,18 +57,15 @@ struct TasbihSettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                // Target section with TextField
                 Section("Target Count") {
                     TextField("Enter target", text: $targetText)
                         .onChange(of: targetText) { _, newValue in
-                            // Update target when text changes
                             if let target = Int(newValue), target > 0 {
                                 viewModel.setTarget(target)
                             }
                         }
                 }
 
-                // Reset section
                 Section {
                     Button(role: .destructive) {
                         viewModel.resetCurrent()

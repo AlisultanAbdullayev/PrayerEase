@@ -7,28 +7,29 @@
 
 import Foundation
 import SwiftUI
-import Combine
+import WatchKit
 
 /// View model for Tasbih counter screen (watch-only feature)
 @MainActor
-final class TasbihViewModel: ObservableObject {
+@Observable
+final class TasbihViewModel {
 
-    // MARK: - Published Properties
+    // MARK: - Properties
 
-    @Published var currentCount: Int {
+    var currentCount: Int {
         didSet {
             saveState()
             checkTargetReached()
         }
     }
 
-    @Published var targetCount: Int {
+    var targetCount: Int {
         didSet {
             saveState()
         }
     }
 
-    @Published var totalCount: Int {
+    var totalCount: Int {
         didSet {
             saveState()
         }
@@ -48,7 +49,6 @@ final class TasbihViewModel: ObservableObject {
         self.targetCount = userDefaults.integer(forKey: targetCountKey)
         self.totalCount = userDefaults.integer(forKey: totalCountKey)
 
-        // Set default target if not set
         if targetCount == 0 {
             targetCount = 33
         }
@@ -60,16 +60,12 @@ final class TasbihViewModel: ObservableObject {
     func increment() {
         currentCount += 1
         totalCount += 1
-
-        // Haptic feedback
         WKInterfaceDevice.current().play(.click)
     }
 
     /// Resets the current session count
     func resetCurrent() {
         currentCount = 0
-
-        // Haptic feedback
         WKInterfaceDevice.current().play(.stop)
     }
 
@@ -77,8 +73,6 @@ final class TasbihViewModel: ObservableObject {
     func resetTotal() {
         totalCount = 0
         currentCount = 0
-
-        // Haptic feedback
         WKInterfaceDevice.current().play(.stop)
     }
 
@@ -97,12 +91,11 @@ final class TasbihViewModel: ObservableObject {
 
     private func checkTargetReached() {
         if currentCount >= targetCount && currentCount > 0 {
-            // Target reached - auto reset current count
             WKInterfaceDevice.current().play(.success)
 
-            // Reset with slight delay for better UX
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.currentCount = 0
+            Task {
+                try? await Task.sleep(for: .milliseconds(500))
+                self.currentCount = 0
             }
         }
     }

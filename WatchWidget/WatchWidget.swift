@@ -9,17 +9,7 @@ import Foundation
 import SwiftUI
 import WidgetKit
 
-// MARK: - Shared Model (matches iOS app encoding)
-
-struct SharedPrayerTime: Identifiable, Equatable, Codable, Hashable, Sendable {
-    var id: String { name }
-    let name: String
-    let time: Date
-
-    var shortName: String {
-        String(name.prefix(3)).uppercased()
-    }
-}
+// NOTE: SharedPrayerTime is now defined in SharedTypes.swift (shared across all targets)
 
 // MARK: - Entry
 
@@ -47,7 +37,7 @@ struct WatchWidgetEntry: TimelineEntry {
 
 struct WatchTimelineProvider: TimelineProvider {
     // Shared App Group container
-    private let appGroupID = "group.com.alijaver.PrayerEase"
+    private let appGroupID = AppConfig.appGroupId
 
     func placeholder(in context: Context) -> WatchWidgetEntry {
         .placeholder
