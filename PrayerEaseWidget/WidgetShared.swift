@@ -112,8 +112,20 @@ struct UnifiedHeaderView: View {
 
 /// A unified schedule row showing all prayers
 struct PrayerScheduleView: View {
+    @Environment(\.widgetRenderingMode) private var widgetRenderingMode
+
     let prayers: [SharedPrayerTime]
     let currentPrayerName: String
+
+    /// Container background adapted for rendering mode
+    private var containerBackground: Color {
+        switch widgetRenderingMode {
+        case .accented, .vibrant:
+            return .clear
+        default:
+            return Color.secondary.opacity(0.05)
+        }
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -122,39 +134,63 @@ struct PrayerScheduleView: View {
                     prayer: prayer,
                     isActive: prayer.name == currentPrayerName
                 )
-                .overlay(alignment: .trailing) {
-                    // Add divider to the right of each cell except the last one
-                    if index < prayers.count - 1 {
-                        Rectangle()
-                            .fill(Color.secondary.opacity(0.2))
-                            .frame(width: 1, height: 30)
-                    }
+
+                if index < prayers.count - 1 {
+                    Divider()
+                        .frame(width: 1, height: 30)
+                        .overlay(Color.secondary.opacity(0.2))
                 }
             }
         }
-        .background(Color.secondary.opacity(0.05), in: .rect)
+        .background(containerBackground, in: .rect)
     }
 }
 
 /// Individual cell for the prayer schedule
 struct PrayerGridCell: View {
+
+    @Environment(\.widgetRenderingMode) private var widgetRenderingMode
+
     let prayer: SharedPrayerTime
     let isActive: Bool
 
+    // MARK: - Computed Background Colors
+
+    /// Base background for active/inactive states
+    private var baseBackground: Color {
+        isActive ? accentGreen : .gray.opacity(0.15)
+    }
+
+    /// Final background adjusted for widget rendering mode
+    private var adaptiveBackground: Color {
+        switch widgetRenderingMode {
+        case .accented:
+            // Soften background when tinted/accented
+            return baseBackground.opacity(isActive ? 0.3 : 0.1)
+        case .vibrant:
+            // Let system handle it (Lock Screen blur)
+            return .clear
+        default:
+            // Full color mode (Home Screen, StandBy)
+            return baseBackground
+        }
+    }
+
     var body: some View {
         VStack {
-            Text(prayer.shortName)
+            Text(prayer.name)
 
             Text(prayer.hourMinuteString)
 
             Text(prayer.amPmString)
                 .textCase(.uppercase)
         }
+        .widgetAccentable()
         .foregroundStyle(isActive ? .white : .secondary)
         .fontWeight(isActive ? .bold : .regular)
         .font(.caption)
         .frame(maxWidth: .infinity)
         .padding(.vertical, 4)
-        .background(isActive ? accentGreen : .gray.opacity(0.1), in: .rect)
+        .background(adaptiveBackground, in: .rect)
     }
 }

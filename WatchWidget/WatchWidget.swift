@@ -64,55 +64,45 @@ struct WatchTimelineProvider: TimelineProvider {
         var entries: [WatchWidgetEntry] = []
         let calendar = Calendar.current
 
-        // Load initial data
-        let loadedPrayers = loadPrayerTimes(for: now)
-        let (_, nextTime) = findNextPrayer(from: now, prayerTimes: loadedPrayers)
+        // Load prayer times once for efficiency
+        let prayerTimes = loadPrayerTimes()
 
-        // 1. Generate entries for next 4 hours at 15-min intervals
-        // This is safe baseline
-        for minuteOffset in stride(from: 0, to: 240, by: 15) {
+        // 1. Generate minute-by-minute entries for the next hour (for countdown accuracy)
+        //    Then every 5 minutes for the next 3 hours (balance between accuracy and battery)
+        for minuteOffset in 0..<60 {
             guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
             else { continue }
-            entries.append(loadEntry(for: entryDate))
+            entries.append(loadEntry(for: entryDate, cachedPrayers: prayerTimes))
         }
 
-        // 2. Add critical entries for UI format triggers
-        // WatchOS complications switch format at 1 hour remaining (60m).
-        // We need an entry exactly at that point to switch styling.
-        let oneHourRemaining = nextTime.addingTimeInterval(-3600)
-
-        if oneHourRemaining > now {
-            entries.append(loadEntry(for: oneHourRemaining))
+        // 2. Every 5 minutes for hours 2-4
+        for minuteOffset in stride(from: 60, to: 240, by: 5) {
+            guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
+            else { continue }
+            entries.append(loadEntry(for: entryDate, cachedPrayers: prayerTimes))
         }
 
-        // 3. Add entry for the actual prayer time (to switch to "Now" or next prayer)
-        if nextTime > now {
-            entries.append(loadEntry(for: nextTime))
-            // And 1 minute after/buffer
-            entries.append(loadEntry(for: nextTime.addingTimeInterval(60)))
+        // 3. Critical prayer-time entries (ensure update at exact prayer times)
+        let protectionWindow = now.addingTimeInterval(14400)  // 4 hours
+        for prayer in prayerTimes where prayer.time > now && prayer.time < protectionWindow {
+            // Entry AT prayer time
+            entries.append(loadEntry(for: prayer.time, cachedPrayers: prayerTimes))
+
+            // Entry 1 second after (to show next prayer immediately)
+            if let afterPrayer = calendar.date(byAdding: .second, value: 1, to: prayer.time) {
+                entries.append(loadEntry(for: afterPrayer, cachedPrayers: prayerTimes))
+            }
         }
 
-        // Sort unique
+        // 4. Sort and deduplicate by date
         entries.sort { $0.date < $1.date }
-        let uniqueEntries = entries.reduce(into: [WatchWidgetEntry]()) { result, entry in
-            if let last = result.last, last.date == entry.date { return }
-            result.append(entry)
-        }
 
-        // Refresh policy
-        // If next prayer is > 1 hour away, refresh at 1 hour mark or standard 15 mins
-        // If next prayer is < 1 hour, standard 15 mins (system handles timer updates)
-
-        var refreshDate = calendar.date(byAdding: .minute, value: 15, to: now) ?? now
-
-        if oneHourRemaining > now && oneHourRemaining < refreshDate {
-            refreshDate = oneHourRemaining
-        }
-
-        completion(Timeline(entries: uniqueEntries, policy: .after(refreshDate)))
+        // Request refresh in 5 minutes (watch OS will batch updates)
+        let refreshDate = calendar.date(byAdding: .minute, value: 5, to: now) ?? now
+        completion(Timeline(entries: entries, policy: .after(refreshDate)))
     }
-
-    private func loadPrayerTimes(for date: Date) -> [SharedPrayerTime] {
+    /// Loads prayer times from App Group storage
+    private func loadPrayerTimes() -> [SharedPrayerTime] {
         guard let defaults = UserDefaults(suiteName: appGroupID),
             let data = defaults.data(forKey: "widgetPrayerTimes"),
             let decoded = try? JSONDecoder().decode([SharedPrayerTime].self, from: data)
@@ -122,17 +112,14 @@ struct WatchTimelineProvider: TimelineProvider {
         return decoded
     }
 
-    private func loadEntry(for date: Date) -> WatchWidgetEntry {
-        // STRICT: Only use App Group. Watch App writes here.
+    /// Loads entry for a specific date, optionally using cached prayer times for efficiency
+    private func loadEntry(for date: Date, cachedPrayers: [SharedPrayerTime]? = nil)
+        -> WatchWidgetEntry
+    {
+        let prayerTimes = cachedPrayers ?? loadPrayerTimes()
+
         guard let defaults = UserDefaults(suiteName: appGroupID) else {
             return .placeholder
-        }
-
-        var prayerTimes: [SharedPrayerTime] = []
-        if let data = defaults.data(forKey: "widgetPrayerTimes"),
-            let decoded = try? JSONDecoder().decode([SharedPrayerTime].self, from: data)
-        {
-            prayerTimes = decoded
         }
 
         let locationName = defaults.string(forKey: "locationName") ?? "PrayerEase"
