@@ -268,7 +268,9 @@ struct AccessoryCornerView: View {
 
     var body: some View {
         Text(entry.nextPrayerTime, style: .timer)
-            .font(.system(size: 16, weight: .semibold, design: .rounded))
+            // .font(.system(size: 16, weight: .semibold, design: .rounded))
+            .fontWeight(.semibold)
+            .fontDesign(.rounded)
             .monospacedDigit()
             .widgetLabel {
                 Text(entry.nextPrayerName)

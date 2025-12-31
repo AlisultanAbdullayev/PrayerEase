@@ -11,6 +11,22 @@ import WidgetKit
 
 // NOTE: SharedPrayerTime is now defined in SharedTypes.swift (shared across all targets)
 
+// MARK: - Countdown Formatting Helper
+
+/// Formats countdown for watch complications:
+/// - 1+ hours: "1h+", "2h+", etc.
+/// - 1-59 minutes: "50+m", "30+m", etc.
+/// - Less than 1 minute: "<1m"
+private func formatCountdown(_ remaining: TimeInterval) -> String {
+    if remaining >= 3600 {
+        return "\(Int(remaining / 3600))h+"
+    } else if remaining >= 60 {
+        return "\(Int(remaining / 60))m+"
+    } else {
+        return "<1m"
+    }
+}
+
 // MARK: - Entry
 
 struct WatchWidgetEntry: TimelineEntry {
@@ -223,12 +239,7 @@ struct CircularView: View {
             Text(String(entry.nextPrayerName.prefix(3)).uppercased())
                 .fontWeight(.bold)
         } currentValueLabel: {
-            let remaining = entry.nextPrayerTime.timeIntervalSince(entry.date)
-            if remaining >= 3600 {
-                Text("\(Int(remaining / 3600))h+")
-            } else {
-                Text("\(Int(remaining / 60))m")
-            }
+            Text(formatCountdown(entry.nextPrayerTime.timeIntervalSince(entry.date)))
         }
         .gaugeStyle(.accessoryCircular)
     }
@@ -267,18 +278,9 @@ struct CornerView: View {
     let entry: WatchWidgetEntry
 
     var body: some View {
-        let remaining = entry.nextPrayerTime.timeIntervalSince(entry.date)
-
-        // Short text curves along bezel, like "54°" or "3h"
-        if remaining >= 3600 {
-            Text("\(Int(remaining / 3600))h+")
-                .widgetCurvesContent()
-                .widgetLabel { Text(entry.nextPrayerName) }
-        } else {
-            Text("\(Int(remaining / 60))m")
-                .widgetCurvesContent()
-                .widgetLabel { Text(entry.nextPrayerName) }
-        }
+        Text(formatCountdown(entry.nextPrayerTime.timeIntervalSince(entry.date)))
+            .widgetCurvesContent()
+            .widgetLabel { Text(entry.nextPrayerName) }
     }
 }
 
