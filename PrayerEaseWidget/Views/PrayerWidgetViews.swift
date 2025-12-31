@@ -50,7 +50,7 @@ struct SmallWidgetView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(entry.nextPrayerName)
-                .foregroundStyle(accentGreen)
+                .foregroundStyle(.accent)
                 .fontWeight(.semibold)
 
             Text("at \(entry.nextPrayerTime, format: .dateTime.hour().minute())")
@@ -84,7 +84,7 @@ struct MediumWidgetView: View {
     let entry: PrayerWidgetEntry
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack {
             // Header
             UnifiedHeaderView(
                 prayerName: entry.nextPrayerName,
@@ -93,7 +93,7 @@ struct MediumWidgetView: View {
                 hijriDate: entry.islamicDate,
                 countdownDate: entry.nextPrayerTime
             )
-            .padding([.top, .horizontal])
+            .padding()
 
             Spacer()
 
@@ -102,6 +102,7 @@ struct MediumWidgetView: View {
                 prayers: entry.prayerTimes,
                 currentPrayerName: entry.currentPrayerName
             )
+            .padding(.bottom, 8)
         }
     }
 }
@@ -122,30 +123,50 @@ struct LargeWidgetView: View {
                 countdownDate: entry.nextPrayerTime
             )
 
-            Divider()
             Spacer()
 
             // List view for large widget
-            VStack {
-                ForEach(entry.prayerTimes) { prayer in
-                    HStack {
-                        Text(prayer.name)
-                        Spacer()
-                        Text(prayer.time, format: .dateTime.hour().minute())
-                    }
-                    .foregroundStyle(prayer.name == entry.currentPrayerName ? .primary : .secondary)
-                    .fontWeight(prayer.name == entry.currentPrayerName ? .bold : .regular)
-                    .foregroundStyle(
-                        prayer.name == entry.currentPrayerName ? accentGreen : .primary)
-                    if prayer.id != entry.prayerTimes.last?.id {
-                        Divider()
-                    }
-                }
-            }
-            .font(.subheadline)
+            prayerListContent
         }
         .padding()
-        .padding(.vertical, 16)
+    }
+
+    // MARK: - Extracted Subviews (fixes type-checker timeout)
+
+    private var prayerListContent: some View {
+        VStack {
+            ForEach(entry.prayerTimes) { prayer in
+                LargePrayerRow(
+                    prayer: prayer,
+                    isActive: prayer.name == entry.currentPrayerName,
+                    isLast: prayer.id == entry.prayerTimes.last?.id
+                )
+            }
+        }
+        .font(.callout)
+    }
+}
+
+/// Extracted row for Large Widget (resolves type-checker complexity)
+private struct LargePrayerRow: View {
+    let prayer: SharedPrayerTime
+    let isActive: Bool
+    let isLast: Bool
+
+    var body: some View {
+        VStack(spacing: 4) {
+            HStack {
+                Text(prayer.name)
+                Spacer()
+                Text(prayer.time, format: .dateTime.hour().minute())
+            }
+            .foregroundStyle(isActive ? Color.accent : .secondary)
+            .fontWeight(isActive ? .bold : .regular)
+
+            if !isLast {
+                Divider()
+            }
+        }
     }
 }
 

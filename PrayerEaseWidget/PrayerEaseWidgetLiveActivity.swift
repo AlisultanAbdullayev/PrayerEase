@@ -44,7 +44,7 @@ struct PrayerEaseWidgetLiveActivity: Widget {
             .widgetURL(
                 URL(string: "prayerease://prayer/\(context.state.nextPrayerName.lowercased())")
             )
-            .keylineTint(accentGreen)
+            .keylineTint(.accent)
         }
     }
 }

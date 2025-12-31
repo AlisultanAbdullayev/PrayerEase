@@ -119,11 +119,29 @@
 		D6B37C8F2EFB53E400A2A1D7 /* Exceptions for "PrayerEase" folder in "PrayerEaseWatch Watch App" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Assets.xcassets,
+				PrayerEase.icon,
 				Shared/Models/SharedPrayerTime.swift,
 				Shared/Services/PrayerDataStorage.swift,
 				Shared/Services/QiblaService.swift,
 			);
 			target = D66C4BD32EF93EA200F59A64 /* PrayerEaseWatch Watch App */;
+		};
+		D6F621712F04DC2D00E244F4 /* Exceptions for "PrayerEase" folder in "PrayerEaseWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Assets.xcassets,
+				PrayerEase.icon,
+			);
+			target = D690B4832EF8703800312C04 /* PrayerEaseWidgetExtension */;
+		};
+		D6F621722F04DC2D00E244F4 /* Exceptions for "PrayerEase" folder in "WatchWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Assets.xcassets,
+				PrayerEase.icon,
+			);
+			target = D634CF0D2EFC73F00045E951 /* WatchWidgetExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -132,7 +150,9 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				D690B3BA2EF672C400312C04 /* Exceptions for "PrayerEase" folder in "PrayerEase" target */,
+				D6F621712F04DC2D00E244F4 /* Exceptions for "PrayerEase" folder in "PrayerEaseWidgetExtension" target */,
 				D6B37C8F2EFB53E400A2A1D7 /* Exceptions for "PrayerEase" folder in "PrayerEaseWatch Watch App" target */,
+				D6F621722F04DC2D00E244F4 /* Exceptions for "PrayerEase" folder in "WatchWidgetExtension" target */,
 			);
 			path = PrayerEase;
 			sourceTree = "<group>";

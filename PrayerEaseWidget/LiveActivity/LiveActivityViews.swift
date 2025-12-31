@@ -50,7 +50,7 @@ struct ExpandedLeadingView: View {
         HStack(alignment: .lastTextBaseline, spacing: 4) {
             Text(state.nextPrayerName + ":")
                 .font(.subheadline)
-                .foregroundStyle(accentGreen)
+                .foregroundStyle(.accent)
 
             Text("\(state.nextPrayerTime, format: .dateTime.hour().minute())")
                 .font(.subheadline)
@@ -128,7 +128,7 @@ struct ExpandedBottomView: View {
                     .foregroundStyle(.secondary)
             }
             .gaugeStyle(.linearCapacity)
-            .tint(accentGreen)
+            .tint(.accent)
             .padding(.bottom, 6)
         }
     }
@@ -142,7 +142,7 @@ struct CompactLeadingView: View {
     var body: some View {
         HStack(spacing: 2) {
             Image(systemName: "pray.circle.fill")
-                .foregroundStyle(accentGreen)
+                .foregroundStyle(.accent)
             Text(state.nextPrayerName)
                 .font(.caption)
                 .bold()
@@ -163,18 +163,18 @@ struct CompactTrailingView: View {
                 let hours = Int(interval / 3600)
                 Text("\(hours)h")
                     .font(.footnote.weight(.bold))
-                    .foregroundStyle(accentGreen)
+                    .foregroundStyle(.accent)
             } else if interval >= 60 {
                 let minutes = Int(interval / 60)
                 Text("\(minutes)m")
                     .font(.footnote.weight(.bold))
-                    .foregroundStyle(accentGreen)
+                    .foregroundStyle(.accent)
             } else {
                 Text(state.nextPrayerTime, style: .timer)
                     .monospacedDigit()
                     .font(.footnote)
                     .bold()
-                    .foregroundStyle(accentGreen)
+                    .foregroundStyle(.accent)
                     .frame(maxWidth: 40)
             }
         }
@@ -194,16 +194,16 @@ struct MinimalView: View {
                 let hours = Int(interval / 3600)
                 Text("\(hours)h")
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(accentGreen)
+                    .foregroundStyle(.accent)
             } else if interval >= 60 {
                 let minutes = Int(interval / 60)
                 Text("\(minutes)m")
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(accentGreen)
+                    .foregroundStyle(.accent)
             } else {
                 Text(state.nextPrayerTime, style: .timer)
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(accentGreen)
+                    .foregroundStyle(.accent)
                     .monospacedDigit()
             }
         }
