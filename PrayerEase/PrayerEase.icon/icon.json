@@ -1,30 +1,48 @@
 {
-  "fill" : {
-    "automatic-gradient" : "display-p3:0.96783,0.91159,0.76497,1.00000"
-  },
+  "fill" : "automatic",
   "groups" : [
     {
       "layers" : [
         {
-          "blend-mode" : "normal",
-          "fill" : "automatic",
-          "glass-specializations" : [
+          "blend-mode-specializations" : [
             {
-              "value" : true
+              "value" : "normal"
             },
             {
               "appearance" : "dark",
-              "value" : true
+              "value" : "normal"
             }
           ],
-          "hidden" : false,
-          "image-name" : "Gemini_Generated_Image_gypokpgypokpgypo.png",
-          "name" : "Gemini_Generated_Image_gypokpgypokpgypo",
+          "fill" : {
+            "linear-gradient" : [
+              "display-p3:0.16584,0.77975,0.12592,1.00000",
+              "display-p3:0.15706,0.49059,0.05503,1.00000"
+            ],
+            "orientation" : {
+              "start" : {
+                "x" : 0.5,
+                "y" : 0
+              },
+              "stop" : {
+                "x" : 0.5,
+                "y" : 0.7
+              }
+            }
+          },
+          "glass" : true,
+          "image-name" : "Gemini_Generated_Image_jihsd6jihsd6jihs-2.png",
+          "name" : "Gemini_Generated_Image_jihsd6jihsd6jihs-2",
+          "opacity-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : 1
+            }
+          ],
           "position" : {
-            "scale" : 0.7,
+            "scale" : 0.35,
             "translation-in-points" : [
-              -8.248233397993772,
-              35.29924433092583
+              0,
+              0
             ]
           }
         }
