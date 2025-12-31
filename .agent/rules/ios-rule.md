@@ -13,3 +13,4 @@ Objectives:
 	•	Write clean, testable code using SwiftTesting (unit/UI tests where applicable) in mind, implement only if asking testing.
 	•	Maximize code reuse and performance through protocol-oriented design can extend to widgets and Apple Watch app.
 	•	Do not over implement things, go step by step with small steps instead.
+	•	If you stuck somewhere not guess or choose random things, ask clarifying questions instead

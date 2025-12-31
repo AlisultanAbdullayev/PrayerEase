@@ -121,9 +121,11 @@
 			membershipExceptions = (
 				Assets.xcassets,
 				PrayerEase.icon,
+				Shared/Constants/AppConstants.swift,
 				Shared/Models/SharedPrayerTime.swift,
 				Shared/Services/PrayerDataStorage.swift,
 				Shared/Services/QiblaService.swift,
+				Shared/Utilities/DateFormatters.swift,
 			);
 			target = D66C4BD32EF93EA200F59A64 /* PrayerEaseWatch Watch App */;
 		};
@@ -132,6 +134,8 @@
 			membershipExceptions = (
 				Assets.xcassets,
 				PrayerEase.icon,
+				Shared/Constants/AppConstants.swift,
+				Shared/Utilities/DateFormatters.swift,
 			);
 			target = D690B4832EF8703800312C04 /* PrayerEaseWidgetExtension */;
 		};
@@ -140,6 +144,8 @@
 			membershipExceptions = (
 				Assets.xcassets,
 				PrayerEase.icon,
+				Shared/Constants/AppConstants.swift,
+				Shared/Utilities/DateFormatters.swift,
 			);
 			target = D634CF0D2EFC73F00045E951 /* WatchWidgetExtension */;
 		};

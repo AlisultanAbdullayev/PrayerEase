@@ -15,7 +15,7 @@ final class PrayerTimeManager {
     static let shared = PrayerTimeManager()
 
     // MARK: - App Group Configuration
-    static let appGroupId = "group.com.alijaver.PrayerEase"
+    static let appGroupId = AppConstants.appGroupId
 
     private var userDefaults: UserDefaults {
         UserDefaults(suiteName: Self.appGroupId) ?? .standard
@@ -125,10 +125,6 @@ final class PrayerTimeManager {
     }
 
     func formattedPrayerTime(_ prayerTime: Date?) -> String {
-        guard let prayerTime = prayerTime else { return "N/A" }
-        let formatter = DateFormatter()
-        formatter.timeZone = .current
-        formatter.timeStyle = .short
-        return formatter.string(from: prayerTime)
+        DateFormatters.formatTime(prayerTime)
     }
 }
