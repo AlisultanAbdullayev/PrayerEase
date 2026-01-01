@@ -9,11 +9,23 @@ import Adhan
 import CoreLocation
 import MapKit
 import SwiftUI
+import UserNotifications
+import WidgetKit
+
+// MARK: - Location Change Threshold
+
+private let significantDistanceThreshold: CLLocationDistance = 35000  // 35 km
+
+#if DEBUG
+    private let disableNotificationThrottle = true  // Set to false to test throttling
+#else
+    private let disableNotificationThrottle = false
+#endif
 
 @MainActor
 @Observable
 final class LocationManager {
-    // MARK: - Properties
+    // MARK: - Confirmed Location (used by widgets/complications)
     private(set) var locationName: String = "N/A" {
         didSet { saveLocationName() }
     }
@@ -29,6 +41,17 @@ final class LocationManager {
         didSet { userDefaults?.set(userTimeZone, forKey: "userTimeZone") }
     }
 
+    // MARK: - Pending Location (awaiting user consent)
+    var pendingLocation: CLLocation?
+    var pendingLocationName: String = ""
+    var hasPendingLocationChange: Bool = false
+    var isShowingLocationPrompt: Bool = false
+    private var pendingNotificationSent: Bool = false  // Prevent duplicate notifications
+
+    // App state tracking (set from scenePhase in PrayerEaseApp)
+    var isAppActive: Bool = true
+
+    // MARK: - Settings
     var isAutoLocationEnabled: Bool = true {
         didSet {
             userDefaults?.set(isAutoLocationEnabled, forKey: "isAutoLocationEnabled")
@@ -36,6 +59,8 @@ final class LocationManager {
                 startLocationUpdates(authorizeIfNeeded: false)
             } else {
                 stopLocationUpdates()
+                // Clear any pending location when turning off auto-location
+                clearPendingLocation()
             }
         }
     }
@@ -56,11 +81,13 @@ final class LocationManager {
     private let userDefaults = UserDefaults(suiteName: AppConfig.appGroupId)
     private var locationTask: Task<Void, Never>?
     private var locationDelegate: LocationDelegate?
+    private var lastNotificationSentAt: Date?
 
     // MARK: - Lifecycle
     init() {
         setupLocationManager()
         loadSavedData()
+        setupNotificationCategory()
     }
 
     private func setupLocationManager() {
@@ -87,6 +114,28 @@ final class LocationManager {
         } else {
             self.isAutoLocationEnabled = true
         }
+    }
+
+    // MARK: - Notification Setup
+    private func setupNotificationCategory() {
+        let updateAction = UNNotificationAction(
+            identifier: "UPDATE_LOCATION",
+            title: "Update",
+            options: .foreground
+        )
+        let keepAction = UNNotificationAction(
+            identifier: "KEEP_LOCATION",
+            title: "Keep Current",
+            options: .destructive
+        )
+
+        let category = UNNotificationCategory(
+            identifier: "LOCATION_CHANGE",
+            actions: [updateAction, keepAction],
+            intentIdentifiers: []
+        )
+
+        UNUserNotificationCenter.current().setNotificationCategories([category])
     }
 
     // MARK: - Public Methods
@@ -138,17 +187,7 @@ final class LocationManager {
                     print(
                         "DEBUG: Update received. Location: \(String(describing: update.location))")
                     if let location = update.location {
-                        if let lastLocation = self.userLocation,
-                            location.distance(from: lastLocation) < 5000
-                        {
-                            print("DEBUG: Location change insignificant (<5km). Skipping update.")
-                            continue
-                        }
-
-                        self.userLocation = location
-                        self.isLocationActive = true
-                        print("DEBUG: Location active, reverse geocoding...")
-                        await reverseGeocode(location: location)
+                        await self.handleLocationUpdate(location)
                     } else {
                         print("DEBUG: Update received but location is nil.")
                     }
@@ -157,6 +196,135 @@ final class LocationManager {
                 print("DEBUG: Location updates error: \(error)")
             }
         }
+    }
+
+    /// Handles new location - stores as pending if significant change detected
+    private func handleLocationUpdate(_ newLocation: CLLocation) async {
+        // First time: set location directly (no pending state)
+        guard let currentLocation = self.userLocation else {
+            self.userLocation = newLocation
+            self.isLocationActive = true
+            await reverseGeocode(location: newLocation)
+            return
+        }
+
+        // Check if location changed significantly (5km threshold)
+        let distance = newLocation.distance(from: currentLocation)
+        guard distance >= significantDistanceThreshold else {
+            print("DEBUG: Location change insignificant (\(Int(distance))m < 5km). Skipping.")
+            return
+        }
+
+        print("DEBUG: Significant location change detected: \(Int(distance))m")
+
+        // Store as PENDING location (do NOT update confirmed location)
+        self.pendingLocation = newLocation
+        self.hasPendingLocationChange = true
+
+        // Reverse geocode the pending location
+        if let request = MKReverseGeocodingRequest(location: newLocation) {
+            do {
+                let mapItems = try await request.mapItems
+                if let mapItem = mapItems.first {
+                    self.pendingLocationName =
+                        mapItem.addressRepresentations?.cityWithContext ?? "New Location"
+                }
+            } catch {
+                self.pendingLocationName = "New Location"
+            }
+        }
+
+        // Only prompt once per location change (alert or notification)
+        guard !pendingNotificationSent else {
+            print("DEBUG: User already prompted for this location change")
+            return
+        }
+        pendingNotificationSent = true
+
+        // If app is in foreground, show alert directly; otherwise send notification
+        if isAppActive {
+            isShowingLocationPrompt = true
+        } else {
+            await sendLocationChangeNotification()
+        }
+    }
+
+    /// Sends local notification asking user to confirm location change
+    private func sendLocationChangeNotification() async {
+        // Throttle: max 1 notification per hour (disabled in DEBUG)
+        if !disableNotificationThrottle,
+            let lastSent = lastNotificationSentAt,
+            Date().timeIntervalSince(lastSent) < 3600
+        {
+            print("DEBUG: Notification throttled (sent within last hour)")
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = "Location Changed"
+        content.body =
+            "Your location has changed to \(pendingLocationName). Would you like to update your prayer times?"
+        content.sound = .default
+        content.categoryIdentifier = "LOCATION_CHANGE"
+
+        let request = UNNotificationRequest(
+            identifier: "location-change-\(UUID().uuidString)",
+            content: content,
+            trigger: nil
+        )
+
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            lastNotificationSentAt = Date()
+            print("DEBUG: Location change notification sent")
+        } catch {
+            print("DEBUG: Failed to send notification: \(error)")
+        }
+    }
+
+    // MARK: - User Consent Actions
+
+    /// Called when user accepts the location update
+    func confirmPendingLocation() async {
+        guard let pending = pendingLocation else { return }
+
+        // Save as confirmed location
+        self.userLocation = pending
+        self.locationName = pendingLocationName
+        self.isLocationActive = true
+
+        // Geocode for timezone
+        await reverseGeocode(location: pending)
+
+        // Clear pending state
+        clearPendingLocation()
+
+        // Refresh widgets
+        WidgetCenter.shared.reloadAllTimelines()
+
+        // Notify watch
+        IOSConnectivityManager.shared.sendCurrentPrayerData()
+
+        print("DEBUG: Location confirmed and widgets refreshed")
+    }
+
+    /// Called when user declines the location update
+    func declinePendingLocation() {
+        print("DEBUG: User declined location update, keeping: \(locationName)")
+        // Clear pending but KEEP pendingNotificationSent=true so we don't re-notify
+        pendingLocation = nil
+        pendingLocationName = ""
+        hasPendingLocationChange = false
+        isShowingLocationPrompt = false
+        // NOTE: pendingNotificationSent stays TRUE until a genuinely new location change
+    }
+
+    private func clearPendingLocation() {
+        pendingLocation = nil
+        pendingLocationName = ""
+        hasPendingLocationChange = false
+        isShowingLocationPrompt = false
+        pendingNotificationSent = false  // Reset so next location change can trigger notification
     }
 
     private func stopLocationUpdates() {
@@ -224,6 +392,10 @@ final class LocationManager {
         self.locationName = name
         self.userTimeZone = timeZone?.identifier ?? TimeZone.current.identifier
         self.isLocationActive = true
+
+        // Refresh widgets when manual location is set
+        WidgetCenter.shared.reloadAllTimelines()
+        IOSConnectivityManager.shared.sendCurrentPrayerData()
     }
 
     func searchLocation(startingWith query: String) async -> [MKMapItem] {

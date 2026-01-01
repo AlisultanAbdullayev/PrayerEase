@@ -50,6 +50,10 @@ struct UnifiedHeaderView: View {
 
             // Location
             VStack(alignment: .trailing, spacing: 8) {
+                Image("PrayerEase")
+                    .resizable()
+                    .frame(width: 24, height: 24)
+
                 Text(hijriDate)
                     .font(.footnote)
                     .foregroundStyle(.secondary)

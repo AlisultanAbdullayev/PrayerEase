@@ -10,6 +10,8 @@ import SwiftUI
 @main
 struct PrayerEaseApp: App {
 
+    @Environment(\.scenePhase) private var scenePhase
+
     @State private var locationManager = LocationManager()
     @State private var prayerTimeManager = PrayerTimeManager.shared
     @State private var notificationManager = NotificationManager.shared
@@ -31,6 +33,32 @@ struct PrayerEaseApp: App {
             .environment(prayerTimeManager)
             .task(id: hasCompletedOnboarding) {
                 setupApp()
+            }
+            // Sync app state and check for pending location change
+            .onChange(of: scenePhase) { _, newPhase in
+                locationManager.isAppActive = (newPhase == .active)
+                if newPhase == .active && locationManager.hasPendingLocationChange {
+                    locationManager.isShowingLocationPrompt = true
+                }
+            }
+            // Location consent alert
+            .alert(
+                "Update Location?",
+                isPresented: $locationManager.isShowingLocationPrompt
+            ) {
+                Button("Update") {
+                    Task {
+                        await locationManager.confirmPendingLocation()
+                        prayerTimeManager.fetchPrayerTimes(for: Date())
+                    }
+                }
+                Button("Keep Current", role: .cancel) {
+                    locationManager.declinePendingLocation()
+                }
+            } message: {
+                Text(
+                    "Your location has changed to \(locationManager.pendingLocationName). Update prayer times?"
+                )
             }
         }
     }

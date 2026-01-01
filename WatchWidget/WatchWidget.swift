@@ -73,19 +73,24 @@ struct WatchTimelineProvider: TimelineProvider {
         // Load prayer times once for efficiency
         let prayerTimes = loadPrayerTimes()
 
-        // 1. Generate minute-by-minute entries for the next hour (for countdown accuracy)
-        //    Then every 5 minutes for the next 3 hours (balance between accuracy and battery)
-        for minuteOffset in 0..<60 {
-            guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
-            else { continue }
-            entries.append(loadEntry(for: entryDate, cachedPrayers: prayerTimes))
-        }
+        // Find next prayer to determine update frequency
+        let nextPrayer = prayerTimes.first { $0.time > now }
+        let timeUntilNextPrayer = nextPrayer?.time.timeIntervalSince(now) ?? 3600
 
-        // 2. Every 5 minutes for hours 2-4
-        for minuteOffset in stride(from: 60, to: 240, by: 5) {
-            guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
-            else { continue }
-            entries.append(loadEntry(for: entryDate, cachedPrayers: prayerTimes))
+        if timeUntilNextPrayer < 3600 {
+            // Less than 1 hour remaining: minute-by-minute updates
+            for minuteOffset in 0..<60 {
+                guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
+                else { continue }
+                entries.append(loadEntry(for: entryDate, cachedPrayers: prayerTimes))
+            }
+        } else {
+            // More than 1 hour remaining: every 15 minutes (watchOS default)
+            for minuteOffset in stride(from: 0, to: 240, by: 15) {
+                guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
+                else { continue }
+                entries.append(loadEntry(for: entryDate, cachedPrayers: prayerTimes))
+            }
         }
 
         // 3. Critical prayer-time entries (ensure update at exact prayer times)
