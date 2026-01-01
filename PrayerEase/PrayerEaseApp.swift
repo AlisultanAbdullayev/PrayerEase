@@ -46,7 +46,7 @@ struct PrayerEaseApp: App {
                 "Update Location?",
                 isPresented: $locationManager.isShowingLocationPrompt
             ) {
-                Button("Update") {
+                Button("Update", role: .confirm) {
                     Task {
                         await locationManager.confirmPendingLocation()
                         prayerTimeManager.fetchPrayerTimes(for: Date())

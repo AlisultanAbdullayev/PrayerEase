@@ -49,9 +49,15 @@ struct SmallWidgetView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(entry.nextPrayerName)
-                .foregroundStyle(.accent)
-                .fontWeight(.semibold)
+            HStack {
+                Text(entry.nextPrayerName)
+                    .foregroundStyle(.accent)
+                    .fontWeight(.semibold)
+Spacer()
+                Image("PrayerEase")
+                    .resizable()
+                    .frame(width: 24, height: 24)
+            }
 
             Text("at \(entry.nextPrayerTime, format: .dateTime.hour().minute())")
                 .foregroundStyle(.secondary)
@@ -286,7 +292,7 @@ struct LocationLabel: View {
     var body: some View {
         HStack(spacing: 3) {
             Image(systemName: "location.fill")
-                .font(.caption2)
+                .font(.footnote)
 
             ViewThatFits(in: .horizontal) {
                 Text(name)
@@ -300,6 +306,7 @@ struct LocationLabel: View {
                     .minimumScaleFactor(0.8)
             }
         }
+        .fontWeight(.semibold)
         .foregroundStyle(.secondary)
     }
 }

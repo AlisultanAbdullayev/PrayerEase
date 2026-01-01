@@ -27,6 +27,7 @@ struct EventsView: View {
                         Text(tab.rawValue).tag(tab)
                     }
                 }
+                .colorMultiply(.accentColor)
                 .pickerStyle(.segmented)
                 .padding()
 

@@ -71,7 +71,12 @@ struct PrayerTimelineProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (PrayerWidgetEntry) -> Void) {
-        completion(loadEntry(for: Date()))
+        // Return placeholder immediately for widget gallery (faster preview)
+        if context.isPreview {
+            completion(.placeholder)
+        } else {
+            completion(loadEntry(for: Date()))
+        }
     }
 
     func getTimeline(
