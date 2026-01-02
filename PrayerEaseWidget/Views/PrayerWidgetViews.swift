@@ -53,10 +53,11 @@ struct SmallWidgetView: View {
                 Text(entry.nextPrayerName)
                     .foregroundStyle(.accent)
                     .fontWeight(.semibold)
-Spacer()
-                Image("PrayerEase")
+                Spacer()
+                Image("PrayerEase")  // Lightweight fallback for safety
                     .resizable()
-                    .frame(width: 24, height: 24)
+                    .scaledToFit()
+                    .frame(width: 20, height: 20)
             }
 
             Text("at \(entry.nextPrayerTime, format: .dateTime.hour().minute())")

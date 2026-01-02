@@ -49,15 +49,16 @@ struct UnifiedHeaderView: View {
             Spacer()
 
             // Location
-                VStack(alignment: .trailing, spacing: 4) {
-                    Image("PrayerEase")
-                        .resizable()
-                        .frame(width: 24, height: 24)
-                    Text(hijriDate)
-                    LocationLabel(name: locationName)
-                }
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            VStack(alignment: .trailing, spacing: 4) {
+                Image("PrayerEase")  // Lightweight fallback
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 20, height: 20)
+                Text(hijriDate)
+                LocationLabel(name: locationName)
+            }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
 
         }
     }

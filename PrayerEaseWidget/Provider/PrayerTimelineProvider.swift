@@ -69,7 +69,8 @@ struct PrayerTimelineProvider: TimelineProvider {
     private let storage = SharedPrayerDataStorage.shared
 
     func placeholder(in context: Context) -> PrayerWidgetEntry {
-        .placeholder
+        // Use cached real data for placeholder if available (better perceived loading)
+        loadEntry(for: Date())
     }
 
     func getSnapshot(in context: Context, completion: @escaping (PrayerWidgetEntry) -> Void) {
@@ -93,13 +94,18 @@ struct PrayerTimelineProvider: TimelineProvider {
         let locationName = storage.loadLocationName()
         let islamicDate = storage.loadIslamicDate()
 
-        // Find next prayer to optimize entry generation
-        let nextPrayerTime = loadedPrayers.first(where: { $0.time > now })?.time
-        let timeToNextPrayer = nextPrayerTime.map { $0.timeIntervalSince(now) } ?? Double.infinity
+        // CRITICAL: Always add an immediate entry for NOW first
+        // This ensures the widget shows content immediately and doesn't get stuck in placeholder
+        let immediateEntry = createEntry(
+            for: now,
+            prayerTimes: loadedPrayers,
+            locationName: locationName,
+            islamicDate: islamicDate
+        )
+        entries.append(immediateEntry)
 
-        // Simplified entry generation - fewer entries, SwiftUI timer handles real-time updates
         // Standard 15-min entries (battery efficient, timer handles countdown)
-        for minuteOffset in stride(from: 0, to: 240, by: 15) {
+        for minuteOffset in stride(from: 15, to: 240, by: 15) {
             guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
             else { continue }
             entries.append(
