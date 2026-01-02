@@ -28,28 +28,30 @@ struct PrayerWidgetEntry: TimelineEntry {
         let calendar = Calendar.current
         let prayerTimes = [
             WidgetPrayerTime(
-                name: "Fajr", time: calendar.date(bySettingHour: 6, minute: 3, second: 0, of: now)!),
+                name: PrayerNames.fajr,
+                time: calendar.date(bySettingHour: 6, minute: 3, second: 0, of: now)!),
             WidgetPrayerTime(
-                name: "Sunrise",
+                name: PrayerNames.sunrise,
                 time: calendar.date(bySettingHour: 7, minute: 13, second: 0, of: now)!),
             WidgetPrayerTime(
-                name: "Dhuhr",
+                name: PrayerNames.dhuhr,
                 time: calendar.date(bySettingHour: 12, minute: 21, second: 0, of: now)!),
             WidgetPrayerTime(
-                name: "Asr", time: calendar.date(bySettingHour: 15, minute: 10, second: 0, of: now)!
+                name: PrayerNames.asr,
+                time: calendar.date(bySettingHour: 15, minute: 10, second: 0, of: now)!
             ),
             WidgetPrayerTime(
-                name: "Maghrib",
+                name: PrayerNames.maghrib,
                 time: calendar.date(bySettingHour: 17, minute: 28, second: 0, of: now)!),
             WidgetPrayerTime(
-                name: "Isha",
+                name: PrayerNames.isha,
                 time: calendar.date(bySettingHour: 18, minute: 39, second: 0, of: now)!),
         ]
         return PrayerWidgetEntry(
             date: now,
-            nextPrayerName: "Isha",
+            nextPrayerName: PrayerNames.isha,
             nextPrayerTime: prayerTimes[5].time,
-            currentPrayerName: "Maghrib",
+            currentPrayerName: PrayerNames.maghrib,
             currentPrayerTime: prayerTimes[4].time,
             locationName: "Richmond",
             prayerTimes: prayerTimes,
@@ -64,7 +66,7 @@ struct PrayerWidgetEntry: TimelineEntry {
 struct PrayerTimelineProvider: TimelineProvider {
 
     // Use Shared Data Storage
-    private let storage = PrayerDataStorage.shared
+    private let storage = SharedPrayerDataStorage.shared
 
     func placeholder(in context: Context) -> PrayerWidgetEntry {
         .placeholder
@@ -94,7 +96,7 @@ struct PrayerTimelineProvider: TimelineProvider {
         let timeToNextPrayer = nextPrayerTime.map { $0.timeIntervalSince(now) } ?? Double.infinity
 
         // 1. Generate entries based on proximity to next prayer
-        if timeToNextPrayer <= 3600 {
+        if timeToNextPrayer <= TimeIntervals.oneHour {
             // Less than 1 hour: minute-by-minute for accurate countdown
             for minuteOffset in 0..<60 {
                 guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
@@ -117,7 +119,7 @@ struct PrayerTimelineProvider: TimelineProvider {
         }
 
         // 2. Critical prayer-time entries (ensure immediate update at prayer times)
-        let protectionWindow = now.addingTimeInterval(14400)  // 4 hours
+        let protectionWindow = now.addingTimeInterval(TimeIntervals.fourHours)
 
         // Add tomorrow's Fajr candidate
         var candidates = loadedPrayers.filter { $0.time > now }
@@ -129,10 +131,10 @@ struct PrayerTimelineProvider: TimelineProvider {
 
         for prayer in candidates where prayer.time < protectionWindow {
             // T-1h: Switch from "Xh+" to "59 min"
-            let tMinus1h = prayer.time.addingTimeInterval(-3595)
+            let tMinus1h = prayer.time.addingTimeInterval(-TimeIntervals.oneHourMinus5Seconds)
 
             // T-1m: Switch from "X min" to Timer
-            let tMinus1m = prayer.time.addingTimeInterval(-60)
+            let tMinus1m = prayer.time.addingTimeInterval(-TimeIntervals.oneMinute)
 
             // Exact prayer time: Show next prayer immediately
             let atPrayer = prayer.time
@@ -151,7 +153,7 @@ struct PrayerTimelineProvider: TimelineProvider {
         entries.sort { $0.date < $1.date }
 
         // Request refresh sooner when close to prayer time
-        let refreshInterval = timeToNextPrayer <= 3600 ? 5 : 15
+        let refreshInterval = timeToNextPrayer <= TimeIntervals.oneHour ? 5 : 15
         let refreshDate = calendar.date(byAdding: .minute, value: refreshInterval, to: now) ?? now
         let timeline = Timeline(entries: entries, policy: .after(refreshDate))
         completion(timeline)
@@ -215,7 +217,7 @@ struct PrayerTimelineProvider: TimelineProvider {
             }
         }
         // Fallback for edge cases
-        return sorted.first?.time.addingTimeInterval(-3600)
+        return sorted.first?.time.addingTimeInterval(-TimeIntervals.oneHour)
     }
 
     private func findNextPrayer(from date: Date, prayerTimes: [WidgetPrayerTime]) -> (
@@ -231,7 +233,7 @@ struct PrayerTimelineProvider: TimelineProvider {
             return (first.name, tomorrow)
         }
 
-        return ("Fajr", date)
+        return (PrayerNames.fajr, date)
     }
 
     private func findCurrentPrayer(from date: Date, prayerTimes: [WidgetPrayerTime]) -> (
@@ -241,35 +243,36 @@ struct PrayerTimelineProvider: TimelineProvider {
             return (current.name, current.time)
         }
 
-        if let isha = prayerTimes.last(where: { $0.name == "Isha" }),
+        if let isha = prayerTimes.last(where: { $0.name == PrayerNames.isha }),
             let prevIsha = Calendar.current.date(byAdding: .day, value: -1, to: isha.time)
         {
-            return ("Isha", prevIsha)
+            return (PrayerNames.isha, prevIsha)
         }
 
-        return ("Isha", date)
+        return (PrayerNames.isha, date)
     }
 
     private static func mockPrayerTimes(for date: Date) -> [WidgetPrayerTime] {
         let calendar = Calendar.current
         return [
             WidgetPrayerTime(
-                name: "Fajr", time: calendar.date(bySettingHour: 6, minute: 3, second: 0, of: date)!
+                name: PrayerNames.fajr,
+                time: calendar.date(bySettingHour: 6, minute: 3, second: 0, of: date)!
             ),
             WidgetPrayerTime(
-                name: "Sunrise",
+                name: PrayerNames.sunrise,
                 time: calendar.date(bySettingHour: 7, minute: 13, second: 0, of: date)!),
             WidgetPrayerTime(
-                name: "Dhuhr",
+                name: PrayerNames.dhuhr,
                 time: calendar.date(bySettingHour: 12, minute: 21, second: 0, of: date)!),
             WidgetPrayerTime(
-                name: "Asr",
+                name: PrayerNames.asr,
                 time: calendar.date(bySettingHour: 15, minute: 10, second: 0, of: date)!),
             WidgetPrayerTime(
-                name: "Maghrib",
+                name: PrayerNames.maghrib,
                 time: calendar.date(bySettingHour: 17, minute: 28, second: 0, of: date)!),
             WidgetPrayerTime(
-                name: "Isha",
+                name: PrayerNames.isha,
                 time: calendar.date(bySettingHour: 18, minute: 39, second: 0, of: date)!),
         ]
     }

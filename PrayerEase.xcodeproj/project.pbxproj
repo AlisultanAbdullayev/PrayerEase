@@ -85,7 +85,6 @@
 /* Begin PBXFileReference section */
 		C17B30292CD299F100BFE815 /* PrayerEase.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PrayerEase.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D634CF0E2EFC73F00045E951 /* WatchWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WatchWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		D634CF242EFC74C00045E951 /* WatchWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WatchWidgetExtension.entitlements; sourceTree = "<group>"; };
 		D66C4BD42EF93EA200F59A64 /* PrayerEaseWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "PrayerEaseWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D690B4842EF8703800312C04 /* PrayerEaseWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PrayerEaseWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D690B4862EF8703800312C04 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
@@ -121,7 +120,6 @@
 			membershipExceptions = (
 				Assets.xcassets,
 				PrayerEase.icon,
-				Shared/Services/PrayerDataStorage.swift,
 				Shared/Services/QiblaService.swift,
 				Shared/SharedPrayerDataStorage.swift,
 				Shared/SharedTypes.swift,
@@ -230,7 +228,6 @@
 		C17B30202CD299F100BFE815 = {
 			isa = PBXGroup;
 			children = (
-				D634CF242EFC74C00045E951 /* WatchWidgetExtension.entitlements */,
 				C17B302B2CD299F100BFE815 /* PrayerEase */,
 				D690B48A2EF8703800312C04 /* PrayerEaseWidget */,
 				D66C4BD52EF93EA200F59A64 /* PrayerEaseWatch Watch App */,

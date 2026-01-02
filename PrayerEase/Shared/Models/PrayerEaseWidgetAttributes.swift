@@ -1,6 +1,6 @@
 //
 //  PrayerEaseWidgetAttributes.swift
-//  PrayerEase
+//  PrayerEaseWidget
 //
 //  Created by Alisultan Abdullah on 12/21/25.
 //

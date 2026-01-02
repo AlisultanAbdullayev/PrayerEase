@@ -184,13 +184,9 @@ final class LocationManager {
                 print("DEBUG: Waiting for liveUpdates...")
                 let updates = CLLocationUpdate.liveUpdates()
                 for try await update in updates {
-                    print(
-                        "DEBUG: Update received. Location: \(String(describing: update.location))")
-                    if let location = update.location {
-                        await self.handleLocationUpdate(location)
-                    } else {
-                        print("DEBUG: Update received but location is nil.")
-                    }
+                    // Skip nil locations (normal during startup)
+                    guard let location = update.location else { continue }
+                    await self.handleLocationUpdate(location)
                 }
             } catch {
                 print("DEBUG: Location updates error: \(error)")

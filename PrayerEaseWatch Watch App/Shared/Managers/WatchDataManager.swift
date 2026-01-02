@@ -14,10 +14,8 @@ import WidgetKit
 final class WatchDataManager {
     static let shared = WatchDataManager()
 
-    private let appGroupId = "group.com.alijaver.PrayerEase"
-
     private var userDefaults: UserDefaults? {
-        UserDefaults(suiteName: appGroupId)
+        UserDefaults(suiteName: AppConfig.appGroupId)
     }
 
     // MARK: - Properties
@@ -42,7 +40,7 @@ final class WatchDataManager {
             return
         }
 
-        if let data = defaults.data(forKey: "widgetPrayerTimes"),
+        if let data = defaults.data(forKey: StorageKeys.widgetPrayerTimes),
             let decoded = try? JSONDecoder().decode([SharedPrayerTime].self, from: data)
         {
             self.prayerTimes = decoded
@@ -51,11 +49,12 @@ final class WatchDataManager {
             print("DEBUG Watch: No prayer times data found in App Group")
         }
 
-        self.locationName = defaults.string(forKey: "locationName") ?? "Loading..."
-        self.islamicDate = defaults.string(forKey: "islamicDate") ?? ""
+        self.locationName =
+            defaults.string(forKey: StorageKeys.locationName) ?? DefaultValues.loadingPlaceholder
+        self.islamicDate = defaults.string(forKey: StorageKeys.islamicDate) ?? ""
 
-        self.isDuhaEnabled = defaults.bool(forKey: "isDuhaEnabled")
-        self.isTahajjudEnabled = defaults.bool(forKey: "isTahajjudEnabled")
+        self.isDuhaEnabled = defaults.bool(forKey: StorageKeys.isDuhaEnabled)
+        self.isTahajjudEnabled = defaults.bool(forKey: StorageKeys.isTahajjudEnabled)
 
         print("DEBUG Watch: Location: \(locationName), Islamic Date: \(islamicDate)")
         print("DEBUG Watch: Duha: \(isDuhaEnabled), Tahajjud: \(isTahajjudEnabled)")
@@ -85,19 +84,19 @@ final class WatchDataManager {
     }
 
     private func persistDataForWidget() {
-        guard let defaults = UserDefaults(suiteName: appGroupId) else {
+        guard let defaults = UserDefaults(suiteName: AppConfig.appGroupId) else {
             print("DEBUG Watch: Failed to access App Group for widget persistence")
             return
         }
 
         if let encoded = try? JSONEncoder().encode(prayerTimes) {
-            defaults.set(encoded, forKey: "widgetPrayerTimes")
+            defaults.set(encoded, forKey: StorageKeys.widgetPrayerTimes)
         }
 
-        defaults.set(locationName, forKey: "locationName")
-        defaults.set(islamicDate, forKey: "islamicDate")
-        defaults.set(isDuhaEnabled, forKey: "isDuhaEnabled")
-        defaults.set(isTahajjudEnabled, forKey: "isTahajjudEnabled")
+        defaults.set(locationName, forKey: StorageKeys.locationName)
+        defaults.set(islamicDate, forKey: StorageKeys.islamicDate)
+        defaults.set(isDuhaEnabled, forKey: StorageKeys.isDuhaEnabled)
+        defaults.set(isTahajjudEnabled, forKey: StorageKeys.isTahajjudEnabled)
 
         reloadWidgetTimelines()
 
@@ -109,24 +108,7 @@ final class WatchDataManager {
     }
 
     var currentPrayer: SharedPrayerTime? {
-        let now = Date()
-
-        for i in 0..<prayerTimes.count {
-            let current = prayerTimes[i]
-
-            if i < prayerTimes.count - 1 {
-                let next = prayerTimes[i + 1]
-                if now >= current.time && now < next.time {
-                    return current
-                }
-            } else {
-                if now >= current.time {
-                    return current
-                }
-            }
-        }
-
-        return prayerTimes.last
+        PrayerTimeCalculator.currentPrayer(from: prayerTimes)
     }
 
     var nextPrayer: SharedPrayerTime? {
@@ -136,46 +118,39 @@ final class WatchDataManager {
             return next
         }
 
-        guard let fajr = prayerTimes.first(where: { $0.name == "Fajr" }) ?? prayerTimes.first else {
+        guard
+            let fajr = prayerTimes.first(where: { $0.name == PrayerNames.fajr })
+                ?? prayerTimes.first
+        else {
             return nil
         }
 
-        let nextFajrTime = Self.projectToFuture(fajr.time, from: now)
+        let nextFajrTime = PrayerTimeCalculator.projectToFuture(fajr.time, from: now)
         return SharedPrayerTime(name: fajr.name, time: nextFajrTime)
     }
 
-    private static func projectToFuture(_ date: Date, from referenceDate: Date) -> Date {
-        guard date <= referenceDate else { return date }
-
-        let calendar = Calendar.current
-        let daysDifference = calendar.dateComponents([.day], from: date, to: referenceDate).day ?? 0
-        let daysToAdd = daysDifference + 1
-
-        return calendar.date(byAdding: .day, value: daysToAdd, to: date)
-            ?? date.addingTimeInterval(Double(daysToAdd) * 86400)
-    }
+    // NOTE: projectToFuture moved to PrayerTimeCalculator for reuse across targets
 
     var optionalPrayers: [SharedPrayerTime] {
         var prayers: [SharedPrayerTime] = []
 
         guard !prayerTimes.isEmpty else { return [] }
 
-        if isDuhaEnabled, let sunrise = prayerTimes.first(where: { $0.name == "Sunrise" }) {
-            let duhaTime = sunrise.time.addingTimeInterval(45 * 60)
-            prayers.append(SharedPrayerTime(name: "Duha", time: duhaTime))
+        if isDuhaEnabled, let sunrise = prayerTimes.first(where: { $0.name == PrayerNames.sunrise })
+        {
+            let duhaTime = PrayerTimeCalculator.duhaTime(from: sunrise.time)
+            prayers.append(SharedPrayerTime(name: PrayerNames.duha, time: duhaTime))
         }
 
         if isTahajjudEnabled,
-            let fajr = prayerTimes.first(where: { $0.name == "Fajr" }),
-            let maghrib = prayerTimes.first(where: { $0.name == "Maghrib" })
+            let fajr = prayerTimes.first(where: { $0.name == PrayerNames.fajr }),
+            let maghrib = prayerTimes.first(where: { $0.name == PrayerNames.maghrib })
         {
+            let fajrTomorrow = fajr.time.addingTimeInterval(TimeIntervals.oneDay)
+            let tahajjudTime = PrayerTimeCalculator.tahajjudTime(
+                maghrib: maghrib.time, fajrTomorrow: fajrTomorrow)
 
-            let fajrTomorrow = fajr.time.addingTimeInterval(86400)
-            let nightDuration = fajrTomorrow.timeIntervalSince(maghrib.time)
-            let lastThird = nightDuration / 3
-            let tahajjudTime = fajrTomorrow.addingTimeInterval(-lastThird)
-
-            prayers.append(SharedPrayerTime(name: "Tahajjud", time: tahajjudTime))
+            prayers.append(SharedPrayerTime(name: PrayerNames.tahajjud, time: tahajjudTime))
         }
 
         return prayers.sorted { $0.time < $1.time }

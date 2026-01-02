@@ -72,6 +72,19 @@ struct SharedPrayerDataStorage {
         saveIslamicDate(islamicDate)
     }
 
+    /// Overload for WidgetDataManager compatibility
+    func saveWidgetData(
+        prayerTimes: [SharedPrayerTime],
+        locationName: String,
+        islamicDate: String,
+        nextPrayer: SharedPrayerTime
+    ) {
+        savePrayerTimes(prayerTimes)
+        saveLocationName(locationName)
+        saveIslamicDate(islamicDate)
+        // nextPrayer info is derived from prayerTimes, no need to store separately
+    }
+
     func setDuhaEnabled(_ enabled: Bool) {
         userDefaults?.set(enabled, forKey: StorageKeys.isDuhaEnabled)
     }

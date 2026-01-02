@@ -17,11 +17,11 @@ struct LockScreenLiveActivityView: View {
     var currentPrayerName: String {
         let prayers = context.state.allPrayerTimes
         guard let index = prayers.firstIndex(where: { $0.name == context.state.nextPrayerName })
-        else { return "Fajr" }
+        else { return PrayerNames.fajr }
         if index > 0 {
             return prayers[index - 1].name
         } else {
-            return "Isha"
+            return PrayerNames.isha
         }
     }
 
@@ -159,13 +159,13 @@ struct CompactTrailingView: View {
         let interval = state.nextPrayerTime.timeIntervalSince(now)
 
         Group {
-            if interval >= 3600 {
-                let hours = Int(interval / 3600)
+            if interval >= TimeIntervals.oneHour {
+                let hours = Int(interval / TimeIntervals.oneHour)
                 Text("\(hours)h")
                     .font(.footnote.weight(.bold))
                     .foregroundStyle(.accent)
-            } else if interval >= 60 {
-                let minutes = Int(interval / 60)
+            } else if interval >= TimeIntervals.oneMinute {
+                let minutes = Int(interval / TimeIntervals.oneMinute)
                 Text("\(minutes)m")
                     .font(.footnote.weight(.bold))
                     .foregroundStyle(.accent)
@@ -190,13 +190,13 @@ struct MinimalView: View {
         let interval = state.nextPrayerTime.timeIntervalSince(now)
 
         ZStack {
-            if interval >= 3600 {
-                let hours = Int(interval / 3600)
+            if interval >= TimeIntervals.oneHour {
+                let hours = Int(interval / TimeIntervals.oneHour)
                 Text("\(hours)h")
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(.accent)
-            } else if interval >= 60 {
-                let minutes = Int(interval / 60)
+            } else if interval >= TimeIntervals.oneMinute {
+                let minutes = Int(interval / TimeIntervals.oneMinute)
                 Text("\(minutes)m")
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(.accent)

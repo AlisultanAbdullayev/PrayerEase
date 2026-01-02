@@ -65,9 +65,35 @@ enum PrayerNames {
 /// Common time intervals in seconds
 enum TimeIntervals {
     static let oneMinute: TimeInterval = 60
+    static let fiveMinutes: TimeInterval = 300
+    static let fifteenMinutes: TimeInterval = 900
     static let oneHour: TimeInterval = 3600
+    static let fourHours: TimeInterval = 14400
+    static let twelveHours: TimeInterval = 43200
     static let oneDay: TimeInterval = 86400
     static let duhaOffsetFromSunrise: TimeInterval = 45 * 60
+
+    /// One hour minus 5 seconds (for timeline entry before prayer)
+    static let oneHourMinus5Seconds: TimeInterval = 3595
+}
+
+// MARK: - UI Constants
+
+/// UI-related constants
+enum UIConstants {
+    /// Default progress value when previous prayer time is unavailable
+    static let defaultProgressFallback: Double = 0.5
+}
+
+// MARK: - Default Values
+
+/// Default values and placeholders
+enum DefaultValues {
+    static let loadingPlaceholder = "Loading..."
+    static let unknownLocation = "N/A"
+    static let defaultBeforeMinutes = 25
+    /// Distance in meters before triggering location-based updates
+    static let locationChangeThreshold: Double = 2000
 }
 
 // MARK: - Shared Prayer Time Model
@@ -161,5 +187,119 @@ enum SharedFormatters {
 
     static func formatHijri(_ date: Date) -> String {
         hijri.string(from: date)
+    }
+}
+
+// MARK: - Prayer Time Calculator
+
+/// Prayer time calculation service for reuse across all targets
+/// Includes optional prayer calculations, progress tracking, and countdown formatting
+enum PrayerTimeCalculator {
+
+    // MARK: - Optional Prayer Calculations
+
+    /// Calculate Duha time (45 min after sunrise)
+    static func duhaTime(from sunrise: Date) -> Date {
+        sunrise.addingTimeInterval(TimeIntervals.duhaOffsetFromSunrise)
+    }
+
+    /// Calculate Tahajjud time (last third of night between Maghrib and Fajr)
+    static func tahajjudTime(maghrib: Date, fajrTomorrow: Date) -> Date {
+        let nightDuration = fajrTomorrow.timeIntervalSince(maghrib)
+        let lastThird = nightDuration / 3
+        return fajrTomorrow.addingTimeInterval(-lastThird)
+    }
+
+    // MARK: - Progress Calculations
+
+    /// Calculate progress between two prayer times
+    static func progress(
+        from previousTime: Date?,
+        to nextTime: Date,
+        at currentDate: Date = Date()
+    ) -> Double {
+        guard let prevTime = previousTime else {
+            return UIConstants.defaultProgressFallback
+        }
+        let totalInterval = nextTime.timeIntervalSince(prevTime)
+        let elapsed = currentDate.timeIntervalSince(prevTime)
+        guard totalInterval > 0 else { return 0 }
+        return min(max(elapsed / totalInterval, 0), 1)
+    }
+
+    // MARK: - Prayer Lookup
+
+    /// Determine the current active prayer from a list
+    static func currentPrayer(
+        from prayers: [SharedPrayerTime],
+        at date: Date = Date()
+    ) -> SharedPrayerTime? {
+        for i in 0..<prayers.count {
+            let current = prayers[i]
+            if i < prayers.count - 1 {
+                let next = prayers[i + 1]
+                if date >= current.time && date < next.time {
+                    return current
+                }
+            } else {
+                if date >= current.time {
+                    return current
+                }
+            }
+        }
+        return prayers.last
+    }
+
+    /// Find next prayer from a list
+    static func nextPrayer(
+        from prayers: [SharedPrayerTime],
+        at date: Date = Date()
+    ) -> SharedPrayerTime? {
+        prayers.first { $0.time > date }
+    }
+
+    /// Find previous prayer time from a list
+    static func previousPrayerTime(
+        from prayers: [SharedPrayerTime],
+        at date: Date = Date()
+    ) -> Date? {
+        let sorted = prayers.sorted { $0.time < $1.time }
+        if let nextIndex = sorted.firstIndex(where: { $0.time > date }) {
+            if nextIndex > 0 {
+                return sorted[nextIndex - 1].time
+            } else {
+                if let isha = sorted.last {
+                    return Calendar.current.date(byAdding: .day, value: -1, to: isha.time)
+                }
+            }
+        }
+        return sorted.last?.time
+    }
+
+    // MARK: - Date Projection
+
+    /// Project a past prayer time to future by adding minimum days needed
+    static func projectToFuture(_ date: Date, from referenceDate: Date) -> Date {
+        guard date <= referenceDate else { return date }
+
+        let calendar = Calendar.current
+        let daysDifference = calendar.dateComponents([.day], from: date, to: referenceDate).day ?? 0
+        let daysToAdd = daysDifference + 1
+
+        return calendar.date(byAdding: .day, value: daysToAdd, to: date)
+            ?? date.addingTimeInterval(Double(daysToAdd) * TimeIntervals.oneDay)
+    }
+
+    // MARK: - Countdown Formatting
+
+    /// Format countdown for compact display (watch complications)
+    static func formatCompactCountdown(_ remaining: TimeInterval) -> String {
+        if remaining >= TimeIntervals.oneHour {
+            return "\(Int(remaining / TimeIntervals.oneHour))h+"
+        } else if remaining >= TimeIntervals.oneMinute {
+            return "\(Int(remaining / TimeIntervals.oneMinute))m+"
+        } else {
+            return "<1m"
+        }
     }
 }

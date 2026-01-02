@@ -68,8 +68,8 @@ private struct CountdownContent: View {
         guard timeRemaining > 0 else { return "00:00" }
 
         let totalSeconds = Int(timeRemaining)
-        let hours = totalSeconds / 3600
-        let minutes = (totalSeconds % 3600) / 60
+        let hours = Int(totalSeconds / Int(TimeIntervals.oneHour))
+        let minutes = (totalSeconds % Int(TimeIntervals.oneHour)) / 60
         let seconds = totalSeconds % 60
 
         // KISS: Simple conditional formatting
@@ -112,8 +112,9 @@ private struct CountdownContent: View {
 #Preview {
     PrayerCountdownView(
         nextPrayer: SharedPrayerTime(
-            name: "Fajr",
-            time: Date().addingTimeInterval(3600 * 6 + 60 * 22 + 40)
+            name: PrayerNames.fajr,
+            time: Date().addingTimeInterval(
+                TimeIntervals.oneHour * 6 + TimeIntervals.oneMinute * 22 + 40)
         )
     )
 }

@@ -16,7 +16,7 @@ import WidgetKit
 final class WidgetDataManager {
     static let shared = WidgetDataManager()
 
-    private let storage = PrayerDataStorage.shared
+    private let storage = SharedPrayerDataStorage.shared
 
     var isLiveActivityEnabled: Bool {
         didSet {
@@ -41,9 +41,9 @@ final class WidgetDataManager {
     }
 
     private init() {
-        self.isLiveActivityEnabled = PrayerDataStorage.shared.isLiveActivityEnabled()
-        self.isTahajjudEnabled = PrayerDataStorage.shared.isTahajjudEnabled()
-        self.isDuhaEnabled = PrayerDataStorage.shared.isDuhaEnabled()
+        self.isLiveActivityEnabled = SharedPrayerDataStorage.shared.isLiveActivityEnabled()
+        self.isTahajjudEnabled = SharedPrayerDataStorage.shared.isTahajjudEnabled()
+        self.isDuhaEnabled = SharedPrayerDataStorage.shared.isDuhaEnabled()
 
         // Resume monitoring existing activity if present
         if let existingActivity = Activity<PrayerEaseWidgetAttributes>.activities.first {

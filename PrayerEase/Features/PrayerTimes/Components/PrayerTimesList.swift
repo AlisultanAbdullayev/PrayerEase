@@ -65,21 +65,23 @@ struct PrayerTimesList: View {
     private var standardPrayers: [PrayerItem] {
         [
             PrayerItem(
-                name: "Fajr", time: prayers.fajr, icon: "sunrise", isNative: true,
+                name: PrayerNames.fajr, time: prayers.fajr, icon: "sunrise", isNative: true,
                 nativePrayer: .fajr),
             PrayerItem(
-                name: "Sunrise", time: prayers.sunrise, icon: "sun.and.horizon", isNative: true,
+                name: PrayerNames.sunrise, time: prayers.sunrise, icon: "sun.and.horizon",
+                isNative: true,
                 nativePrayer: .sunrise),
             PrayerItem(
-                name: "Dhuhr", time: prayers.dhuhr, icon: "sun.max", isNative: true,
+                name: PrayerNames.dhuhr, time: prayers.dhuhr, icon: "sun.max", isNative: true,
                 nativePrayer: .dhuhr),
             PrayerItem(
-                name: "Asr", time: prayers.asr, icon: "sunset", isNative: true, nativePrayer: .asr),
+                name: PrayerNames.asr, time: prayers.asr, icon: "sunset", isNative: true,
+                nativePrayer: .asr),
             PrayerItem(
-                name: "Maghrib", time: prayers.maghrib, icon: "moon", isNative: true,
+                name: PrayerNames.maghrib, time: prayers.maghrib, icon: "moon", isNative: true,
                 nativePrayer: .maghrib),
             PrayerItem(
-                name: "Isha", time: prayers.isha, icon: "moon.stars", isNative: true,
+                name: PrayerNames.isha, time: prayers.isha, icon: "moon.stars", isNative: true,
                 nativePrayer: .isha),
         ]
     }
@@ -88,23 +90,24 @@ struct PrayerTimesList: View {
         var items: [PrayerItem] = []
 
         if widgetDataManager.isDuhaEnabled {
-            let duhaTime = prayers.sunrise.addingTimeInterval(45 * 60)
+            let duhaTime = PrayerTimeCalculator.duhaTime(from: prayers.sunrise)
             items.append(
                 PrayerItem(
-                    name: "Duha", time: duhaTime, icon: "sun.max.fill", isNative: false,
+                    name: PrayerNames.duha, time: duhaTime, icon: "sun.max.fill", isNative: false,
                     nativePrayer: nil))
         }
 
         if widgetDataManager.isTahajjudEnabled {
-            let fajrTomorrow = prayers.fajr.addingTimeInterval(86400)
-            let maghribToday = prayers.maghrib
-            let nightDuration = fajrTomorrow.timeIntervalSince(maghribToday)
-            let lastThird = nightDuration / 3
-            let tahajjudTime = fajrTomorrow.addingTimeInterval(-lastThird)
+            let fajrTomorrow = prayers.fajr.addingTimeInterval(TimeIntervals.oneDay)
+            let tahajjudTime = PrayerTimeCalculator.tahajjudTime(
+                maghrib: prayers.maghrib,
+                fajrTomorrow: fajrTomorrow
+            )
 
             items.append(
                 PrayerItem(
-                    name: "Tahajjud", time: tahajjudTime, icon: "moon.stars.fill", isNative: false,
+                    name: PrayerNames.tahajjud, time: tahajjudTime, icon: "moon.stars.fill",
+                    isNative: false,
                     nativePrayer: nil))
         }
 
@@ -143,9 +146,7 @@ struct PrayerTimesList: View {
     }
 
     private func formattedTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
+        SharedFormatters.time.string(from: date)
     }
 }
 

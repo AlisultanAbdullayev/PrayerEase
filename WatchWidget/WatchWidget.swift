@@ -13,18 +13,9 @@ import WidgetKit
 
 // MARK: - Countdown Formatting Helper
 
-/// Formats countdown for watch complications:
-/// - 1+ hours: "1h+", "2h+", etc.
-/// - 1-59 minutes: "50+m", "30+m", etc.
-/// - Less than 1 minute: "<1m"
+/// Uses PrayerTimeCalculator for consistent formatting across targets
 private func formatCountdown(_ remaining: TimeInterval) -> String {
-    if remaining >= 3600 {
-        return "\(Int(remaining / 3600))h+"
-    } else if remaining >= 60 {
-        return "\(Int(remaining / 60))m+"
-    } else {
-        return "<1m"
-    }
+    PrayerTimeCalculator.formatCompactCountdown(remaining)
 }
 
 // MARK: - Entry
@@ -40,11 +31,11 @@ struct WatchWidgetEntry: TimelineEntry {
     static var placeholder: WatchWidgetEntry {
         WatchWidgetEntry(
             date: Date(),
-            nextPrayerName: "Fajr",
-            nextPrayerTime: Date().addingTimeInterval(3600),
-            currentPrayerName: "Isha",
-            locationName: "Loading...",
-            previousPrayerTime: Date().addingTimeInterval(-3600)
+            nextPrayerName: PrayerNames.fajr,
+            nextPrayerTime: Date().addingTimeInterval(TimeIntervals.oneHour),
+            currentPrayerName: PrayerNames.isha,
+            locationName: DefaultValues.loadingPlaceholder,
+            previousPrayerTime: Date().addingTimeInterval(-TimeIntervals.oneHour)
         )
     }
 }
@@ -74,27 +65,19 @@ struct WatchTimelineProvider: TimelineProvider {
         let prayerTimes = loadPrayerTimes()
 
         // Find next prayer to determine update frequency
-        let nextPrayer = prayerTimes.first { $0.time > now }
-        let timeUntilNextPrayer = nextPrayer?.time.timeIntervalSince(now) ?? 3600
+//        let nextPrayer = prayerTimes.first { $0.time > now }
+//        let timeUntilNextPrayer = nextPrayer?.time.timeIntervalSince(now) ?? TimeIntervals.oneHour
 
-        if timeUntilNextPrayer < 3600 {
-            // Less than 1 hour remaining: minute-by-minute updates
-            for minuteOffset in 0..<60 {
-                guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
-                else { continue }
-                entries.append(loadEntry(for: entryDate, cachedPrayers: prayerTimes))
-            }
-        } else {
-            // More than 1 hour remaining: every 15 minutes (watchOS default)
-            for minuteOffset in stride(from: 0, to: 240, by: 15) {
-                guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
-                else { continue }
-                entries.append(loadEntry(for: entryDate, cachedPrayers: prayerTimes))
-            }
+        // Standard 15-minute entries for battery efficiency
+        // SwiftUI .timer style handles real-time countdown automatically
+        for minuteOffset in stride(from: 0, to: 240, by: 15) {
+            guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
+            else { continue }
+            entries.append(loadEntry(for: entryDate, cachedPrayers: prayerTimes))
         }
 
         // 3. Critical prayer-time entries (ensure update at exact prayer times)
-        let protectionWindow = now.addingTimeInterval(14400)  // 4 hours
+        let protectionWindow = now.addingTimeInterval(TimeIntervals.fourHours)
         for prayer in prayerTimes where prayer.time > now && prayer.time < protectionWindow {
             // Entry AT prayer time
             entries.append(loadEntry(for: prayer.time, cachedPrayers: prayerTimes))
@@ -115,7 +98,7 @@ struct WatchTimelineProvider: TimelineProvider {
     /// Loads prayer times from App Group storage
     private func loadPrayerTimes() -> [SharedPrayerTime] {
         guard let defaults = UserDefaults(suiteName: appGroupID),
-            let data = defaults.data(forKey: "widgetPrayerTimes"),
+            let data = defaults.data(forKey: StorageKeys.widgetPrayerTimes),
             let decoded = try? JSONDecoder().decode([SharedPrayerTime].self, from: data)
         else {
             return []
@@ -133,7 +116,7 @@ struct WatchTimelineProvider: TimelineProvider {
             return .placeholder
         }
 
-        let locationName = defaults.string(forKey: "locationName") ?? "PrayerEase"
+        let locationName = defaults.string(forKey: StorageKeys.locationName) ?? "PrayerEase"
 
         guard !prayerTimes.isEmpty else {
             return .placeholder
@@ -160,25 +143,15 @@ struct WatchTimelineProvider: TimelineProvider {
         }
 
         guard let first = prayerTimes.first else {
-            return ("Fajr", date.addingTimeInterval(3600))
+            return (PrayerNames.fajr, date.addingTimeInterval(TimeIntervals.oneHour))
         }
 
-        // Direct calculation: compute days needed to project to future (KISS)
-        let nextTime = Self.projectToFuture(first.time, from: date)
+        // Use shared calculator for date projection
+        let nextTime = PrayerTimeCalculator.projectToFuture(first.time, from: date)
         return (first.name, nextTime)
     }
 
-    /// Projects a past date to the future by adding minimum days needed
-    private static func projectToFuture(_ date: Date, from referenceDate: Date) -> Date {
-        guard date <= referenceDate else { return date }
-
-        let calendar = Calendar.current
-        let daysDifference = calendar.dateComponents([.day], from: date, to: referenceDate).day ?? 0
-        let daysToAdd = daysDifference + 1
-
-        return calendar.date(byAdding: .day, value: daysToAdd, to: date)
-            ?? date.addingTimeInterval(Double(daysToAdd) * 86400)
-    }
+    // NOTE: projectToFuture moved to PrayerTimeCalculator for reuse across targets
 
     private func findCurrentPrayer(from date: Date, prayerTimes: [SharedPrayerTime]) -> (
         String, Date
@@ -186,7 +159,7 @@ struct WatchTimelineProvider: TimelineProvider {
         if let current = prayerTimes.last(where: { $0.time <= date }) {
             return (current.name, current.time)
         }
-        return ("Isha", date)
+        return (PrayerNames.isha, date)
     }
 
     private func findPreviousPrayerTime(from date: Date, prayerTimes: [SharedPrayerTime]) -> Date? {
@@ -229,13 +202,14 @@ struct WatchWidgetEntryView: View {
 
 struct CircularView: View {
     let entry: WatchWidgetEntry
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
 
     var progress: Double {
-        guard let prev = entry.previousPrayerTime else { return 0.5 }
-        let total = entry.nextPrayerTime.timeIntervalSince(prev)
-        let elapsed = entry.date.timeIntervalSince(prev)
-        guard total > 0 else { return 0 }
-        return min(max(elapsed / total, 0), 1)
+        PrayerTimeCalculator.progress(
+            from: entry.previousPrayerTime,
+            to: entry.nextPrayerTime,
+            at: entry.date
+        )
     }
 
     var body: some View {
@@ -244,7 +218,13 @@ struct CircularView: View {
             Text(String(entry.nextPrayerName.prefix(3)).uppercased())
                 .fontWeight(.bold)
         } currentValueLabel: {
-            Text(formatCountdown(entry.nextPrayerTime.timeIntervalSince(entry.date)))
+            // Use timer for normal mode, compact format when luminance is reduced
+            if isLuminanceReduced {
+                Text(formatCountdown(entry.nextPrayerTime.timeIntervalSince(entry.date)))
+            } else {
+                Text(entry.nextPrayerTime, style: .timer)
+                    .monospacedDigit()
+            }
         }
         .gaugeStyle(.accessoryCircular)
     }
@@ -281,11 +261,20 @@ struct InlineView: View {
 
 struct CornerView: View {
     let entry: WatchWidgetEntry
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
 
     var body: some View {
-        Text(formatCountdown(entry.nextPrayerTime.timeIntervalSince(entry.date)))
-            .widgetCurvesContent()
-            .widgetLabel { Text(entry.nextPrayerName) }
+        Group {
+            // Use timer for normal mode, compact format when luminance is reduced
+            if isLuminanceReduced {
+                Text(formatCountdown(entry.nextPrayerTime.timeIntervalSince(entry.date)))
+            } else {
+                Text(entry.nextPrayerTime, style: .timer)
+                    .monospacedDigit()
+            }
+        }
+        .widgetCurvesContent()
+        .widgetLabel { Text(entry.nextPrayerName) }
     }
 }
 

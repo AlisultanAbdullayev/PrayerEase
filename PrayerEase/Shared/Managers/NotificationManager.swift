@@ -27,21 +27,21 @@ final class NotificationManager {
 
     var notificationSettings: [String: Bool] {
         didSet {
-            userDefaults.set(notificationSettings, forKey: "notifications")
+            userDefaults.set(notificationSettings, forKey: StorageKeys.notifications)
             syncNotifications()
         }
     }
 
     var notificationSettingsBefore: [String: Bool] {
         didSet {
-            userDefaults.set(notificationSettingsBefore, forKey: "notificationsBefore")
+            userDefaults.set(notificationSettingsBefore, forKey: StorageKeys.notificationsBefore)
             syncNotifications()
         }
     }
 
-    var beforeMinutes: Int = 25 {
+    var beforeMinutes: Int = DefaultValues.defaultBeforeMinutes {
         didSet {
-            userDefaults.set(beforeMinutes, forKey: "beforeMinutes")
+            userDefaults.set(beforeMinutes, forKey: StorageKeys.beforeMinutes)
             syncNotifications()
         }
     }
@@ -51,20 +51,20 @@ final class NotificationManager {
 
     private init() {
         self.notificationSettings =
-            userDefaults.dictionary(forKey: "notifications") as? [String: Bool] ?? [
-                "Fajr": true, "Sunrise": false, "Dhuhr": true,
-                "Asr": true, "Maghrib": true, "Isha": true,
+            userDefaults.dictionary(forKey: StorageKeys.notifications) as? [String: Bool] ?? [
+                PrayerNames.fajr: true, PrayerNames.sunrise: false, PrayerNames.dhuhr: true,
+                PrayerNames.asr: true, PrayerNames.maghrib: true, PrayerNames.isha: true,
             ]
         self.notificationSettingsBefore =
-            userDefaults.dictionary(forKey: "notificationsBefore") as? [String: Bool] ?? [
-                "Fajr": false, "Sunrise": false, "Dhuhr": false,
-                "Asr": false, "Maghrib": false, "Isha": false,
+            userDefaults.dictionary(forKey: StorageKeys.notificationsBefore) as? [String: Bool] ?? [
+                PrayerNames.fajr: false, PrayerNames.sunrise: false, PrayerNames.dhuhr: false,
+                PrayerNames.asr: false, PrayerNames.maghrib: false, PrayerNames.isha: false,
             ]
-        let savedMinutes = userDefaults.integer(forKey: "beforeMinutes")
+        let savedMinutes = userDefaults.integer(forKey: StorageKeys.beforeMinutes)
         if minuteOptions.contains(savedMinutes) {
             self.beforeMinutes = savedMinutes
         } else {
-            self.beforeMinutes = 25
+            self.beforeMinutes = DefaultValues.defaultBeforeMinutes
         }
 
         registerBackgroundTask()
@@ -76,7 +76,7 @@ final class NotificationManager {
 
         if let lastLocation = lastScheduledLocation {
             let distance = location.distance(from: lastLocation)
-            if distance > 2000 {
+            if distance > DefaultValues.locationChangeThreshold {
                 syncNotifications()
             }
         } else {
@@ -114,7 +114,7 @@ final class NotificationManager {
     private func scheduleBackgroundRefresh() {
         let request = BGAppRefreshTaskRequest(
             identifier: AppConfig.backgroundTaskId)
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 12 * 3600)
+        request.earliestBeginDate = Date(timeIntervalSinceNow: TimeIntervals.twelveHours)
 
         do {
             try BGTaskScheduler.shared.submit(request)
@@ -136,7 +136,7 @@ final class NotificationManager {
 
     func syncNotifications() {
         guard currentLocation != nil else {
-            print("Location not available. Cannot schedule notifications.")
+            // Location not yet available (normal on first launch)
             return
         }
 
@@ -164,49 +164,59 @@ final class NotificationManager {
 
     private func scheduleDailyNotifications(for prayerTimes: PrayerTimes) {
         var prayerTimesToNotify = [
-            ("Fajr", prayerTimes.fajr),
-            ("Sunrise", prayerTimes.sunrise),
-            ("Dhuhr", prayerTimes.dhuhr),
-            ("Asr", prayerTimes.asr),
-            ("Maghrib", prayerTimes.maghrib),
-            ("Isha", prayerTimes.isha),
+            (PrayerNames.fajr, prayerTimes.fajr),
+            (PrayerNames.sunrise, prayerTimes.sunrise),
+            (PrayerNames.dhuhr, prayerTimes.dhuhr),
+            (PrayerNames.asr, prayerTimes.asr),
+            (PrayerNames.maghrib, prayerTimes.maghrib),
+            (PrayerNames.isha, prayerTimes.isha),
         ]
 
-        let storage = PrayerDataStorage.shared
+        let storage = SharedPrayerDataStorage.shared
 
         if storage.isDuhaEnabled() {
-            let duhaTime = prayerTimes.sunrise.addingTimeInterval(45 * 60)
-            prayerTimesToNotify.append(("Duha", duhaTime))
+            let duhaTime = PrayerTimeCalculator.duhaTime(from: prayerTimes.sunrise)
+            prayerTimesToNotify.append((PrayerNames.duha, duhaTime))
         }
 
         if storage.isTahajjudEnabled() {
-            let fajrTomorrow = prayerTimes.fajr.addingTimeInterval(86400)
-            let nightDuration = fajrTomorrow.timeIntervalSince(prayerTimes.maghrib)
-            let lastThird = nightDuration / 3
-            let tahajjudTime = fajrTomorrow.addingTimeInterval(-lastThird)
-
-            prayerTimesToNotify.append(("Tahajjud", tahajjudTime))
+            let fajrTomorrow = prayerTimes.fajr.addingTimeInterval(TimeIntervals.oneDay)
+            let tahajjudTime = PrayerTimeCalculator.tahajjudTime(
+                maghrib: prayerTimes.maghrib,
+                fajrTomorrow: fajrTomorrow
+            )
+            prayerTimesToNotify.append((PrayerNames.tahajjud, tahajjudTime))
         }
 
         if notificationSettings["QiraaAfterSunrise"] == true {
             prayerTimesToNotify.append(
-                ("Qiraa Ends (Sunrise)", prayerTimes.sunrise.addingTimeInterval(45 * 60)))
+                (
+                    "Qiraa Ends (Sunrise)",
+                    prayerTimes.sunrise.addingTimeInterval(TimeIntervals.duhaOffsetFromSunrise)
+                ))
         }
 
         if notificationSettings["QiraaBeforeDhuhr"] == true {
             prayerTimesToNotify.append(
-                ("Qiraa Starts (Dhuhr)", prayerTimes.dhuhr.addingTimeInterval(-45 * 60)))
+                (
+                    "Qiraa Starts (Dhuhr)",
+                    prayerTimes.dhuhr.addingTimeInterval(-TimeIntervals.duhaOffsetFromSunrise)
+                ))
         }
 
         if notificationSettings["QiraaBeforeMaghrib"] == true {
             prayerTimesToNotify.append(
-                ("Qiraa Starts (Maghrib)", prayerTimes.maghrib.addingTimeInterval(-45 * 60)))
+                (
+                    "Qiraa Starts (Maghrib)",
+                    prayerTimes.maghrib.addingTimeInterval(-TimeIntervals.duhaOffsetFromSunrise)
+                ))
         }
 
         for (prayerName, prayerTime) in prayerTimesToNotify {
             var shouldNotify = notificationSettings[prayerName] == true
 
-            if prayerName == "Tahajjud" || prayerName == "Duha" || prayerName.starts(with: "Qiraa")
+            if prayerName == PrayerNames.tahajjud || prayerName == PrayerNames.duha
+                || prayerName.starts(with: "Qiraa")
             {
                 shouldNotify = true
             }
