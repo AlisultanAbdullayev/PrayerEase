@@ -8,9 +8,6 @@
 import SwiftUI
 import WidgetKit
 
-// MARK: - Constants
-
-let accentGreen = Color(red: 0.2, green: 0.8, blue: 0.4)
 
 // NOTE: SharedPrayerTime is now defined in SharedTypes.swift (shared across all targets)
 
@@ -30,7 +27,7 @@ struct UnifiedHeaderView: View {
                 // Prayer Name and Countdown
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(prayerName)
-                        .foregroundStyle(accentGreen)
+                        .foregroundStyle(.accent)
                     Text("at")
                         .foregroundStyle(.secondary)
                     Text(prayerTime, format: .dateTime.hour().minute())
@@ -112,7 +109,7 @@ struct PrayerGridCell: View {
 
     /// Base background for active/inactive states
     private var baseBackground: Color {
-        isActive ? accentGreen : .gray.opacity(0.15)
+        isActive ? .accent : .gray.opacity(0.15)
     }
 
     /// Final background adjusted for widget rendering mode

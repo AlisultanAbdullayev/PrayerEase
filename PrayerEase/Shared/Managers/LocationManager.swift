@@ -207,7 +207,7 @@ final class LocationManager {
         // Check if location changed significantly (5km threshold)
         let distance = newLocation.distance(from: currentLocation)
         guard distance >= significantDistanceThreshold else {
-            print("DEBUG: Location change insignificant (\(Int(distance))m < 5km). Skipping.")
+            print("DEBUG: Location change insignificant (\(Int(distance))m < 35km). Skipping.")
             return
         }
 
