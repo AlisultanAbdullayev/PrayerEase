@@ -25,6 +25,8 @@ private let significantDistanceThreshold: CLLocationDistance = 35000  // 35 km
 @MainActor
 @Observable
 final class LocationManager {
+    static let shared = LocationManager()
+
     // MARK: - Confirmed Location (used by widgets/complications)
     private(set) var locationName: String = "N/A" {
         didSet { saveLocationName() }
@@ -91,8 +93,10 @@ final class LocationManager {
     }
 
     private func setupLocationManager() {
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.distanceFilter = 100
+        locationManager.desiredAccuracy = kCLLocationAccuracyKilometer  // Lower accuracy = better battery
+        locationManager.distanceFilter = 500  // Only update on significant movement (500m)
+        locationManager.allowsBackgroundLocationUpdates = false
+        locationManager.pausesLocationUpdatesAutomatically = true
 
         let adapter = LocationDelegate(manager: self)
         self.locationDelegate = adapter
@@ -178,20 +182,35 @@ final class LocationManager {
             }
         }
 
+        // Continuous monitoring for background location changes (35km threshold)
         locationTask = Task { [weak self] in
             guard let self = self else { return }
             do {
-                print("DEBUG: Waiting for liveUpdates...")
+                print("DEBUG: Starting continuous location monitoring...")
                 let updates = CLLocationUpdate.liveUpdates()
                 for try await update in updates {
-                    // Skip nil locations (normal during startup)
                     guard let location = update.location else { continue }
                     await self.handleLocationUpdate(location)
+                    // Continue monitoring for location changes
                 }
             } catch {
                 print("DEBUG: Location updates error: \(error)")
             }
         }
+    }
+
+    // MARK: - Accuracy Boost for Qibla
+
+    /// Temporarily boost accuracy for Qibla compass (call when entering Qibla view)
+    func boostAccuracyForQibla() {
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        print("DEBUG: Boosted accuracy for Qibla")
+    }
+
+    /// Restore normal accuracy (call when leaving Qibla view)
+    func restoreNormalAccuracy() {
+        locationManager.desiredAccuracy = kCLLocationAccuracyKilometer
+        print("DEBUG: Restored normal accuracy")
     }
 
     /// Handles new location - stores as pending if significant change detected
@@ -295,13 +314,16 @@ final class LocationManager {
         // Clear pending state
         clearPendingLocation()
 
+        // Reschedule notifications for new location
+        NotificationManager.shared.updateLocation(pending)
+
         // Refresh widgets
         WidgetCenter.shared.reloadAllTimelines()
 
         // Notify watch
         IOSConnectivityManager.shared.sendCurrentPrayerData()
 
-        print("DEBUG: Location confirmed and widgets refreshed")
+        print("DEBUG: Location confirmed, notifications rescheduled, widgets refreshed")
     }
 
     /// Called when user declines the location update
@@ -344,7 +366,23 @@ final class LocationManager {
         }
     }
 
-    func refreshLocation() async {
+    // MARK: - Force Update Flag
+    private var forceNextUpdate = false
+
+    func refreshLocation(force: Bool = false, silent: Bool = false) async {
+        if force {
+            if silent {
+                // Silent mode: update directly without prompt (for Qibla view)
+                await forceSilentLocationUpdate()
+            } else {
+                // Prompt mode: bypass threshold but still show keep/update alert
+                forceNextUpdate = true
+                await forceLocationUpdateWithPrompt()
+            }
+            return
+        }
+
+        // Standard refresh (respects threshold)
         if isAutoLocationEnabled {
             if locationTask == nil {
                 startLocationUpdates(authorizeIfNeeded: true)
@@ -352,6 +390,91 @@ final class LocationManager {
         } else {
             await startOneTimeUpdate()
         }
+    }
+
+    /// Force location update but show the keep/update prompt if location differs
+    private func forceLocationUpdateWithPrompt() async {
+        do {
+            let updates = CLLocationUpdate.liveUpdates()
+            for try await update in updates {
+                if let location = update.location {
+                    // Check if location is actually different from saved
+                    if let current = userLocation {
+                        let distance = location.distance(from: current)
+                        if distance < 100 {
+                            print("DEBUG: Force refresh - location unchanged (< 100m)")
+                            break
+                        }
+                    }
+                    // Trigger the prompt flow (reuse existing handleLocationUpdate but force it)
+                    await handleForcedLocationUpdate(location)
+                    break
+                }
+            }
+        } catch {
+            print("DEBUG: Force location update error: \(error)")
+        }
+        forceNextUpdate = false
+    }
+
+    /// Force location update without any prompts (for Qibla view)
+    private func forceSilentLocationUpdate() async {
+        do {
+            let updates = CLLocationUpdate.liveUpdates()
+            for try await update in updates {
+                if let location = update.location {
+                    // Directly update without threshold check or prompts
+                    self.userLocation = location
+                    self.isLocationActive = true
+                    await reverseGeocode(location: location)
+                    print("DEBUG: Silent force update completed")
+                    break
+                }
+            }
+        } catch {
+            print("DEBUG: Silent force update error: \(error)")
+        }
+    }
+
+    /// Handles forced location update - always triggers prompt if location differs
+    private func handleForcedLocationUpdate(_ newLocation: CLLocation) async {
+        // Check if location is actually different
+        guard let currentLocation = self.userLocation else {
+            // First time - set directly
+            self.userLocation = newLocation
+            self.isLocationActive = true
+            await reverseGeocode(location: newLocation)
+            return
+        }
+
+        let distance = newLocation.distance(from: currentLocation)
+        if distance < 100 {
+            print("DEBUG: Forced update - location unchanged (< 100m)")
+            return
+        }
+
+        print("DEBUG: Forced location change detected: \(Int(distance))m")
+
+        // Store as PENDING location
+        self.pendingLocation = newLocation
+        self.hasPendingLocationChange = true
+
+        // Reverse geocode the pending location
+        if let request = MKReverseGeocodingRequest(location: newLocation) {
+            do {
+                let mapItems = try await request.mapItems
+                if let mapItem = mapItems.first {
+                    self.pendingLocationName =
+                        mapItem.addressRepresentations?.cityWithContext ?? "New Location"
+                }
+            } catch {
+                self.pendingLocationName = "New Location"
+            }
+        }
+
+        // Reset notification flag and show prompt
+        pendingNotificationSent = true
+        isShowingLocationPrompt = true
     }
 
     private func startOneTimeUpdate() async {

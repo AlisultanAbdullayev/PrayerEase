@@ -25,7 +25,8 @@ struct PrayerTimesFormView: View {
             }
         }
         .refreshable {
-            await locationManager.refreshLocation()
+            // Force location check - shows keep/update prompt if location differs
+            await locationManager.refreshLocation(force: true, silent: false)
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {

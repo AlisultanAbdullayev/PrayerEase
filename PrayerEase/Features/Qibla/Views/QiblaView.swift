@@ -25,21 +25,31 @@ struct QiblaView: View {
                     VStack(spacing: 12) {
                         compassView(size: geometry.size.width * 0.8)
 
-                        if accuracyPercentage < 75 {
+                        if accuracyPercentage < 85 {
                             accuracyWarning
                         }
                     }
                     .animation(
                         .spring(response: 0.6, dampingFraction: 0.7),
-                        value: accuracyPercentage < 75
+                        value: accuracyPercentage < 85
                     )
                     .sensoryFeedback(.success, trigger: isPointingToQibla)
-                    .sensoryFeedback(.warning, trigger: accuracyPercentage < 75)
+                    .sensoryFeedback(.warning, trigger: accuracyPercentage < 85)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .navigationTitle("Qibla Direction")
-                .onAppear(perform: locationManager.startUpdatingHeading)
-                .onDisappear(perform: locationManager.stopUpdatingHeading)
+                .onAppear {
+                    locationManager.startUpdatingHeading()
+                    locationManager.boostAccuracyForQibla()
+                }
+                .onDisappear {
+                    locationManager.stopUpdatingHeading()
+                    locationManager.restoreNormalAccuracy()
+                }
+                .task {
+                    // Force-refresh location and show prompt if location differs
+                    await locationManager.refreshLocation(force: true, silent: false)
+                }
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
