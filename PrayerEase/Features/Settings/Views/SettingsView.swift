@@ -168,7 +168,8 @@ struct NotificationSettingsView: View {
         return Section(header: Text("Prayer Alerts")) {
             DisclosureGroup(isExpanded: $isNotifyExactExpanded) {
                 ForEach(notificationManager.notificationSettings.keys.sorted(), id: \.self) { key in
-                    if key != "Tahajjud" && key != "Duha" {
+                    // Exclude optional prayers and Qiraa (they have their own sections)
+                    if key != "Tahajjud" && key != "Duha" && !key.starts(with: "Qiraa") {
                         Toggle(isOn: bindingForNotification(key: key, isBefore: false)) {
                             Text(key).tag(key)
                         }

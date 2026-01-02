@@ -88,40 +88,32 @@ struct PrayerTimelineProvider: TimelineProvider {
         var entries: [PrayerWidgetEntry] = []
         let calendar = Calendar.current
 
-        // Load prayers once for efficiency
+        // Load data ONCE for all entries (avoid repeated disk reads)
         let loadedPrayers = loadPrayerTimes(for: now)
+        let locationName = storage.loadLocationName()
+        let islamicDate = storage.loadIslamicDate()
 
         // Find next prayer to optimize entry generation
         let nextPrayerTime = loadedPrayers.first(where: { $0.time > now })?.time
         let timeToNextPrayer = nextPrayerTime.map { $0.timeIntervalSince(now) } ?? Double.infinity
 
-        // 1. Generate entries based on proximity to next prayer
-        if timeToNextPrayer <= TimeIntervals.oneHour {
-            // Less than 1 hour: minute-by-minute for accurate countdown
-            for minuteOffset in 0..<60 {
-                guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
-                else { continue }
-                entries.append(loadEntry(for: entryDate))
-            }
-            // Then every 5 minutes for the remaining 3 hours
-            for minuteOffset in stride(from: 60, to: 240, by: 5) {
-                guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
-                else { continue }
-                entries.append(loadEntry(for: entryDate))
-            }
-        } else {
-            // More than 1 hour: standard 15-min entries (battery efficient)
-            for minuteOffset in stride(from: 0, to: 240, by: 15) {
-                guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
-                else { continue }
-                entries.append(loadEntry(for: entryDate))
-            }
+        // Simplified entry generation - fewer entries, SwiftUI timer handles real-time updates
+        // Standard 15-min entries (battery efficient, timer handles countdown)
+        for minuteOffset in stride(from: 0, to: 240, by: 15) {
+            guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
+            else { continue }
+            entries.append(
+                createEntry(
+                    for: entryDate,
+                    prayerTimes: loadedPrayers,
+                    locationName: locationName,
+                    islamicDate: islamicDate
+                ))
         }
 
-        // 2. Critical prayer-time entries (ensure immediate update at prayer times)
+        // Critical prayer-time entries (ensure immediate update at prayer times)
         let protectionWindow = now.addingTimeInterval(TimeIntervals.fourHours)
 
-        // Add tomorrow's Fajr candidate
         var candidates = loadedPrayers.filter { $0.time > now }
         if let first = loadedPrayers.first,
             let tomorrowFajr = calendar.date(byAdding: .day, value: 1, to: first.time)
@@ -130,39 +122,35 @@ struct PrayerTimelineProvider: TimelineProvider {
         }
 
         for prayer in candidates where prayer.time < protectionWindow {
-            // T-1h: Switch from "Xh+" to "59 min"
-            let tMinus1h = prayer.time.addingTimeInterval(-TimeIntervals.oneHourMinus5Seconds)
-
-            // T-1m: Switch from "X min" to Timer
-            let tMinus1m = prayer.time.addingTimeInterval(-TimeIntervals.oneMinute)
-
-            // Exact prayer time: Show next prayer immediately
-            let atPrayer = prayer.time
-
-            // 1 second after: Ensure transition
-            let afterPrayer = prayer.time.addingTimeInterval(1)
-
-            for trigger in [tMinus1h, tMinus1m, atPrayer, afterPrayer] {
+            // Exact prayer time and 1 second after
+            for trigger in [prayer.time, prayer.time.addingTimeInterval(1)] {
                 if trigger > now && trigger < protectionWindow {
-                    entries.append(loadEntry(for: trigger))
+                    entries.append(
+                        createEntry(
+                            for: trigger,
+                            prayerTimes: loadedPrayers,
+                            locationName: locationName,
+                            islamicDate: islamicDate
+                        ))
                 }
             }
         }
 
-        // 3. Sort and deduplicate
+        // Sort and deduplicate
         entries.sort { $0.date < $1.date }
 
-        // Request refresh sooner when close to prayer time
-        let refreshInterval = timeToNextPrayer <= TimeIntervals.oneHour ? 5 : 15
-        let refreshDate = calendar.date(byAdding: .minute, value: refreshInterval, to: now) ?? now
-        let timeline = Timeline(entries: entries, policy: .after(refreshDate))
-        completion(timeline)
+        // Standard 15-min refresh (timer handles real-time countdown)
+        let refreshDate = calendar.date(byAdding: .minute, value: 15, to: now) ?? now
+        completion(Timeline(entries: entries, policy: .after(refreshDate)))
     }
 
-    private func loadEntry(for date: Date) -> PrayerWidgetEntry {
-        let prayerTimes = loadPrayerTimes(for: date)
-        let locationName = storage.loadLocationName()
-        let islamicDate = storage.loadIslamicDate()
+    // Optimized: create entry with pre-loaded data (no disk reads)
+    private func createEntry(
+        for date: Date,
+        prayerTimes: [WidgetPrayerTime],
+        locationName: String,
+        islamicDate: String
+    ) -> PrayerWidgetEntry {
         let (nextName, nextTime) = findNextPrayer(from: date, prayerTimes: prayerTimes)
         let (currentName, currentTime) = findCurrentPrayer(from: date, prayerTimes: prayerTimes)
         let previousTime = findPreviousPrayerTime(from: date, prayerTimes: prayerTimes)
@@ -177,6 +165,19 @@ struct PrayerTimelineProvider: TimelineProvider {
             prayerTimes: prayerTimes,
             islamicDate: islamicDateIfAvailable(islamicDate, for: date),
             previousPrayerTime: previousTime
+        )
+    }
+
+    // Legacy: load entry with disk reads (used by snapshot)
+    private func loadEntry(for date: Date) -> PrayerWidgetEntry {
+        let prayerTimes = loadPrayerTimes(for: date)
+        let locationName = storage.loadLocationName()
+        let islamicDate = storage.loadIslamicDate()
+        return createEntry(
+            for: date,
+            prayerTimes: prayerTimes,
+            locationName: locationName,
+            islamicDate: islamicDate
         )
     }
 
