@@ -35,18 +35,12 @@ final class WatchDataManager {
     // MARK: - Data Loading
 
     func loadPrayerData() {
-        guard let defaults = userDefaults else {
-            print("DEBUG Watch: Failed to access App Group UserDefaults")
-            return
-        }
+        guard let defaults = userDefaults else { return }
 
         if let data = defaults.data(forKey: StorageKeys.widgetPrayerTimes),
             let decoded = try? JSONDecoder().decode([SharedPrayerTime].self, from: data)
         {
             self.prayerTimes = decoded
-            print("DEBUG Watch: Loaded \(decoded.count) prayer times")
-        } else {
-            print("DEBUG Watch: No prayer times data found in App Group")
         }
 
         self.locationName =
@@ -55,9 +49,6 @@ final class WatchDataManager {
 
         self.isDuhaEnabled = defaults.bool(forKey: StorageKeys.isDuhaEnabled)
         self.isTahajjudEnabled = defaults.bool(forKey: StorageKeys.isTahajjudEnabled)
-
-        print("DEBUG Watch: Location: \(locationName), Islamic Date: \(islamicDate)")
-        print("DEBUG Watch: Duha: \(isDuhaEnabled), Tahajjud: \(isTahajjudEnabled)")
     }
 
     func refresh() {
@@ -71,6 +62,13 @@ final class WatchDataManager {
         isDuhaEnabled: Bool,
         isTahajjudEnabled: Bool
     ) {
+        // Deduplication: skip if data is identical
+        guard
+            self.prayerTimes != prayerTimes
+                || self.locationName != locationName
+                || self.islamicDate != islamicDate
+        else { return }
+
         self.prayerTimes = prayerTimes
         self.locationName = locationName
         self.islamicDate = islamicDate
@@ -78,16 +76,10 @@ final class WatchDataManager {
         self.isTahajjudEnabled = isTahajjudEnabled
 
         persistDataForWidget()
-
-        print(
-            "DEBUG Watch: Updated from context - \(prayerTimes.count) prayers for \(locationName)")
     }
 
     private func persistDataForWidget() {
-        guard let defaults = UserDefaults(suiteName: AppConfig.appGroupId) else {
-            print("DEBUG Watch: Failed to access App Group for widget persistence")
-            return
-        }
+        guard let defaults = UserDefaults(suiteName: AppConfig.appGroupId) else { return }
 
         if let encoded = try? JSONEncoder().encode(prayerTimes) {
             defaults.set(encoded, forKey: StorageKeys.widgetPrayerTimes)
@@ -99,8 +91,6 @@ final class WatchDataManager {
         defaults.set(isTahajjudEnabled, forKey: StorageKeys.isTahajjudEnabled)
 
         reloadWidgetTimelines()
-
-        print("DEBUG Watch: Persisted data for widget to App Group")
     }
 
     private func reloadWidgetTimelines() {

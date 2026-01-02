@@ -16,6 +16,9 @@ final class WatchConnectivityManager: NSObject {
 
     var isReachable = false
 
+    // Deduplication: track last processed context timestamp
+    private var lastProcessedTimestamp: TimeInterval = 0
+
     private override init() {
         super.init()
         if WCSession.isSupported() {
@@ -26,37 +29,27 @@ final class WatchConnectivityManager: NSObject {
     }
 
     func requestPrayerDataUpdate() {
-        guard WCSession.default.activationState == .activated else {
-            print("DEBUG Watch: Session not activated")
-            return
-        }
+        guard WCSession.default.activationState == .activated else { return }
 
         let receivedContext = WCSession.default.receivedApplicationContext
         if !receivedContext.isEmpty {
-            print("DEBUG Watch: Processing cached application context")
             processApplicationContext(receivedContext)
         }
 
+        // Only request from iOS if reachable and we don't have recent data
         if WCSession.default.isReachable {
             let message = ["action": "requestPrayerData"]
-            WCSession.default.sendMessage(
-                message,
-                replyHandler: { response in
-                    print("DEBUG Watch: Received reply: \(response)")
-                },
-                errorHandler: { error in
-                    print("DEBUG Watch: Error requesting data: \(error.localizedDescription)")
-                })
-        } else {
-            print("DEBUG Watch: iOS app not reachable, using cached context")
+            WCSession.default.sendMessage(message, replyHandler: { _ in }, errorHandler: { _ in })
         }
     }
 
     private func processApplicationContext(_ context: [String: Any]) {
-        guard let prayerDicts = context["prayerTimes"] as? [[String: Any]] else {
-            print("DEBUG Watch: No prayer times in context")
-            return
-        }
+        // Deduplication: check timestamp to avoid reprocessing same data
+        let timestamp = context["timestamp"] as? TimeInterval ?? 0
+        guard timestamp > lastProcessedTimestamp else { return }
+        lastProcessedTimestamp = timestamp
+
+        guard let prayerDicts = context["prayerTimes"] as? [[String: Any]] else { return }
 
         var prayers: [SharedPrayerTime] = []
         for dict in prayerDicts {
@@ -72,9 +65,6 @@ final class WatchConnectivityManager: NSObject {
         let islamicDate = context["islamicDate"] as? String ?? ""
         let isDuhaEnabled = context["isDuhaEnabled"] as? Bool ?? false
         let isTahajjudEnabled = context["isTahajjudEnabled"] as? Bool ?? false
-
-        print("DEBUG Watch: Processed \(prayers.count) prayers from context")
-        print("DEBUG Watch: Location: \(locationName), Date: \(islamicDate)")
 
         Task { @MainActor in
             WatchDataManager.shared.updateFromContext(
@@ -97,15 +87,9 @@ extension WatchConnectivityManager: WCSessionDelegate {
         activationDidCompleteWith activationState: WCSessionActivationState,
         error: Error?
     ) {
+        guard error == nil, activationState == .activated else { return }
         Task { @MainActor in
-            if let error = error {
-                print("DEBUG Watch: Session activation failed: \(error.localizedDescription)")
-            } else {
-                print("DEBUG Watch: Session activated with state: \(activationState.rawValue)")
-                if activationState == .activated {
-                    self.requestPrayerDataUpdate()
-                }
-            }
+            self.requestPrayerDataUpdate()
         }
     }
 
@@ -114,7 +98,6 @@ extension WatchConnectivityManager: WCSessionDelegate {
         didReceiveApplicationContext applicationContext: [String: Any]
     ) {
         Task { @MainActor in
-            print("DEBUG Watch: Received application context update")
             self.processApplicationContext(applicationContext)
         }
     }
@@ -123,9 +106,8 @@ extension WatchConnectivityManager: WCSessionDelegate {
         _ session: WCSession,
         didReceiveMessage message: [String: Any]
     ) {
-        Task { @MainActor in
-            print("DEBUG Watch: Received message: \(message)")
-            if message["prayerDataUpdated"] as? Bool == true {
+        if message["prayerDataUpdated"] as? Bool == true {
+            Task { @MainActor in
                 self.requestPrayerDataUpdate()
             }
         }
@@ -136,7 +118,6 @@ extension WatchConnectivityManager: WCSessionDelegate {
         didReceiveUserInfo userInfo: [String: Any] = [:]
     ) {
         Task { @MainActor in
-            print("DEBUG Watch: Received user info")
             self.processApplicationContext(userInfo)
         }
     }
@@ -144,10 +125,7 @@ extension WatchConnectivityManager: WCSessionDelegate {
     nonisolated func sessionReachabilityDidChange(_ session: WCSession) {
         Task { @MainActor in
             self.isReachable = session.isReachable
-            print("DEBUG Watch: Reachability changed: \(session.isReachable)")
-            if session.isReachable {
-                self.requestPrayerDataUpdate()
-            }
+            // Don't request data on every reachability change - session activation handles initial load
         }
     }
 }
