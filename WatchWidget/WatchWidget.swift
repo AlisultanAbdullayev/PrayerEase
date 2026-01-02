@@ -10,14 +10,12 @@ import SwiftUI
 import WidgetKit
 
 // NOTE: SharedPrayerTime is now defined in SharedTypes.swift (shared across all targets)
-
 // MARK: - Countdown Formatting Helper
 
 /// Uses PrayerTimeCalculator for consistent formatting across targets
 private func formatCountdown(_ remaining: TimeInterval) -> String {
     PrayerTimeCalculator.formatCompactCountdown(remaining)
 }
-
 // MARK: - Entry
 
 struct WatchWidgetEntry: TimelineEntry {
@@ -60,39 +58,53 @@ struct WatchTimelineProvider: TimelineProvider {
         let now = Date()
         var entries: [WatchWidgetEntry] = []
         let calendar = Calendar.current
-
-        // Load prayer times once for efficiency
         let prayerTimes = loadPrayerTimes()
 
-        // Find next prayer to determine update frequency
-//        let nextPrayer = prayerTimes.first { $0.time > now }
-//        let timeUntilNextPrayer = nextPrayer?.time.timeIntervalSince(now) ?? TimeIntervals.oneHour
+        // 1. Find next prayer to optimize update frequency
+        let nextPrayer = prayerTimes.first { $0.time > now }
+        let timeToNext = nextPrayer?.time.timeIntervalSince(now) ?? TimeIntervals.oneHour
+        let isCloseToPrayer = timeToNext <= TimeIntervals.oneHour
 
-        // Standard 15-minute entries for battery efficiency
-        // SwiftUI .timer style handles real-time countdown automatically
-        for minuteOffset in stride(from: 0, to: 240, by: 15) {
-            guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
-            else { continue }
-            entries.append(loadEntry(for: entryDate, cachedPrayers: prayerTimes))
+        // 2. Generate entries
+        if isCloseToPrayer {
+            // High frequency (every minute) for the next hour to support "Xm+" countdown
+            // This ensures AOD text updates every minute without needing frequent Timeline refreshes
+            for minuteOffset in 0..<60 {
+                guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
+                else { continue }
+                entries.append(loadEntry(for: entryDate, cachedPrayers: prayerTimes))
+            }
+            // Then every 15 mins for the rest
+            for minuteOffset in stride(from: 60, to: 240, by: 15) {
+                guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
+                else { continue }
+                entries.append(loadEntry(for: entryDate, cachedPrayers: prayerTimes))
+            }
+        } else {
+            // Low frequency (every 15 mins) when far from prayer
+            for minuteOffset in stride(from: 0, to: 240, by: 15) {
+                guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
+                else { continue }
+                entries.append(loadEntry(for: entryDate, cachedPrayers: prayerTimes))
+            }
         }
 
         // 3. Critical prayer-time entries (ensure update at exact prayer times)
         let protectionWindow = now.addingTimeInterval(TimeIntervals.fourHours)
         for prayer in prayerTimes where prayer.time > now && prayer.time < protectionWindow {
-            // Entry AT prayer time
             entries.append(loadEntry(for: prayer.time, cachedPrayers: prayerTimes))
-
-            // Entry 1 second after (to show next prayer immediately)
             if let afterPrayer = calendar.date(byAdding: .second, value: 1, to: prayer.time) {
                 entries.append(loadEntry(for: afterPrayer, cachedPrayers: prayerTimes))
             }
         }
 
-        // 4. Sort and deduplicate by date
+        // 4. Sort and deduplicate
         entries.sort { $0.date < $1.date }
 
-        // Request refresh in 5 minutes (watch OS will batch updates)
-        let refreshDate = calendar.date(byAdding: .minute, value: 5, to: now) ?? now
+        // Refresh every 30 mins to conserve battery (efficiency request)
+        // The minute-by-minute entries above ensure accuracy during this 30min window
+        // without waking the extension frequently.
+        let refreshDate = calendar.date(byAdding: .minute, value: 30, to: now) ?? now
         completion(Timeline(entries: entries, policy: .after(refreshDate)))
     }
     /// Loads prayer times from App Group storage

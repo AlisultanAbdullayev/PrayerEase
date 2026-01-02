@@ -71,7 +71,7 @@ struct PrayerTimelineProvider: TimelineProvider {
     func placeholder(in context: Context) -> PrayerWidgetEntry {
         // Use cached real data for placeholder if available (better perceived loading)
         .placeholder
-//        loadEntry(for: Date())
+        //        loadEntry(for: Date())
     }
 
     func getSnapshot(in context: Context, completion: @escaping (PrayerWidgetEntry) -> Void) {
@@ -106,7 +106,7 @@ struct PrayerTimelineProvider: TimelineProvider {
         entries.append(immediateEntry)
 
         // Standard 15-min entries (battery efficient, timer handles countdown)
-        for minuteOffset in stride(from: 15, to: 240, by: 15) {
+        for minuteOffset in stride(from: 0, to: 240, by: 15) {
             guard let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: now)
             else { continue }
             entries.append(
