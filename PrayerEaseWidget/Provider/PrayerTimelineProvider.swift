@@ -70,7 +70,8 @@ struct PrayerTimelineProvider: TimelineProvider {
 
     func placeholder(in context: Context) -> PrayerWidgetEntry {
         // Use cached real data for placeholder if available (better perceived loading)
-        loadEntry(for: Date())
+        .placeholder
+//        loadEntry(for: Date())
     }
 
     func getSnapshot(in context: Context, completion: @escaping (PrayerWidgetEntry) -> Void) {
