@@ -1,8 +1,4 @@
 ---
-trigger: always_on
----
-
----
 name: app-store-changelog
 description: Create user-facing App Store release notes by collecting and summarizing all user-impacting changes since the last git tag (or a specified ref). Use when asked to generate a comprehensive release changelog, App Store "What's New" text, or release notes based on git history or tags.
 ---
