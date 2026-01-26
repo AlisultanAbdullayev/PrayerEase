@@ -16,31 +16,43 @@ struct SalahTimeRowView: View {
 
     var body: some View {
         HStack {
-            leadingContent
+            SalahLeadingContentView(imageName: imageName, salahName: salahName)
             Spacer(minLength: 80)
-            notificationButton
+            SalahNotificationButton(
+                salahName: salahName,
+                notificationManager: notificationManager
+            )
             Spacer()
             Text(salahTime)
         }
     }
+}
 
-    private var leadingContent: some View {
+private struct SalahLeadingContentView: View {
+    let imageName: String
+    let salahName: String
+
+    var body: some View {
         HStack {
             Image(systemName: imageName)
-                .frame(width: 30, alignment: .leading)
+                .font(.body)
             Text(salahName)
         }
-        .frame(width: 110, alignment: .leading)
+        .frame(maxWidth: 110, alignment: .leading)
     }
+}
 
-    private var notificationButton: some View {
+private struct SalahNotificationButton: View {
+    let salahName: String
+    let notificationManager: NotificationManager
+
+    var body: some View {
         Button(action: toggleNotification) {
             Image(
                 systemName: notificationManager.notificationSettings[salahName] ?? true
                     ? "bell.fill" : "bell.slash"
             )
         }
-
         .buttonStyle(.glass)
         .sensoryFeedback(
             .selection, trigger: notificationManager.notificationSettings[salahName] ?? false)

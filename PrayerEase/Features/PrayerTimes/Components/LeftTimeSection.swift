@@ -11,7 +11,7 @@ import Adhan
 struct LeftTimeSection: View {
     let prayers: PrayerTimes
     @State private var currentTime = Date()
-    @State private var timer: Timer?
+    @State private var timerTask: Task<Void, Never>?
 
     private var timeUntilNextPrayer: Date {
         if let nextPrayer = prayers.nextPrayer() {
@@ -30,32 +30,35 @@ struct LeftTimeSection: View {
             timeRemainingText
                 .frame(maxWidth: .infinity, alignment: .center)
                 .font(.largeTitle)
-                .fontWeight(.bold)
+                .bold()
                 .fontDesign(.rounded)
                 .id(prayers.fajr) // Force refresh when prayers change
         } header: {
             Text("Time until next prayer")
-                .foregroundColor(.accentColor)
+                .foregroundStyle(.accent)
                 .font(.body)
-                .fontWeight(.regular)
         }
-        .onAppear(perform: startTimer)
-        .onDisappear(perform: stopTimer)
+        .task {
+            await startTimer()
+        }
+        .onDisappear {
+            stopTimer()
+        }
     }
 
-    private func startTimer() {
-        // Invalidate existing timer if any
-        timer?.invalidate()
-
-        // Create and store new timer
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            currentTime = Date()
+    private func startTimer() async {
+        timerTask?.cancel()
+        timerTask = Task {
+            while !Task.isCancelled {
+                currentTime = Date()
+                try? await Task.sleep(for: .seconds(1))
+            }
         }
     }
 
     private func stopTimer() {
-        timer?.invalidate()
-        timer = nil
+        timerTask?.cancel()
+        timerTask = nil
     }
 }
 

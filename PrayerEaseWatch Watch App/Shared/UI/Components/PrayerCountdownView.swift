@@ -39,10 +39,10 @@ private struct CountdownContent: View {
     var body: some View {
         VStack(spacing: 4) {
             if let prayer = nextPrayer {
-                headerView(for: prayer)
-                countdownText
+                CountdownHeaderView(prayer: prayer)
+                CountdownTimerView(prayerTime: prayer.time, currentDate: currentDate)
             } else {
-                placeholderText
+                CountdownPlaceholderView()
             }
         }
         .onChange(of: hasReachedPrayerTime) { _, reached in
@@ -54,34 +54,18 @@ private struct CountdownContent: View {
 
     // MARK: - Computed Properties
 
-    private var timeRemaining: TimeInterval {
-        guard let prayer = nextPrayer else { return 0 }
-        return max(0, prayer.time.timeIntervalSince(currentDate))
-    }
-
     private var hasReachedPrayerTime: Bool {
         guard let prayer = nextPrayer else { return false }
         return currentDate >= prayer.time
     }
+}
 
-    private var formattedCountdown: String {
-        guard timeRemaining > 0 else { return "00:00" }
+// MARK: - View Components
 
-        let totalSeconds = Int(timeRemaining)
-        let hours = Int(totalSeconds / Int(TimeIntervals.oneHour))
-        let minutes = (totalSeconds % Int(TimeIntervals.oneHour)) / 60
-        let seconds = totalSeconds % 60
+private struct CountdownHeaderView: View {
+    let prayer: SharedPrayerTime
 
-        // KISS: Simple conditional formatting
-        return hours > 0
-            ? String(format: "%d:%02d:%02d", hours, minutes, seconds)
-            : String(format: "%02d:%02d", minutes, seconds)
-    }
-
-    // MARK: - View Components (DRY - extracted for reuse)
-
-    @ViewBuilder
-    private func headerView(for prayer: SharedPrayerTime) -> some View {
+    var body: some View {
         HStack(spacing: 4) {
             Text("\(prayer.name) at:")
                 .font(.caption)
@@ -92,17 +76,30 @@ private struct CountdownContent: View {
                 .foregroundStyle(.white)
         }
     }
+}
 
-    private var countdownText: some View {
-        Text(formattedCountdown)
-            .font(.title)
-            .bold()
-            .fontDesign(.rounded)
-            .monospacedDigit()
-            .contentTransition(.numericText())
+private struct CountdownTimerView: View {
+    let prayerTime: Date
+    let currentDate: Date
+
+    var body: some View {
+        Group {
+            if currentDate >= prayerTime {
+                Text("00:00")
+            } else {
+                Text(prayerTime, style: .timer)
+            }
+        }
+        .font(.title)
+        .bold()
+        .fontDesign(.rounded)
+        .monospacedDigit()
+        .contentTransition(.numericText())
     }
+}
 
-    private var placeholderText: some View {
+private struct CountdownPlaceholderView: View {
+    var body: some View {
         Text("--:--:--")
             .font(.title)
             .foregroundStyle(.secondary)

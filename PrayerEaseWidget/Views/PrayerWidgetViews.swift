@@ -67,7 +67,8 @@ struct SmallWidgetView: View {
             Spacer(minLength: 8)
 
             Text(entry.nextPrayerTime, style: .timer)
-                .font(.title.weight(.bold))
+                .font(.title)
+                .bold()
                 .fontDesign(.rounded)
                 .monospacedDigit()
                 .foregroundStyle(.primary)
@@ -133,24 +134,29 @@ struct LargeWidgetView: View {
             Spacer()
 
             // List view for large widget
-            prayerListContent
+            LargePrayerListView(
+                prayers: entry.prayerTimes,
+                currentPrayerName: entry.currentPrayerName
+            )
         }
         .padding()
     }
+}
 
-    // MARK: - Extracted Subviews (fixes type-checker timeout)
+private struct LargePrayerListView: View {
+    let prayers: [SharedPrayerTime]
+    let currentPrayerName: String
 
-    private var prayerListContent: some View {
+    var body: some View {
         VStack {
-            ForEach(entry.prayerTimes) { prayer in
+            ForEach(prayers) { prayer in
                 LargePrayerRow(
                     prayer: prayer,
-                    isActive: prayer.name == entry.currentPrayerName,
-                    isLast: prayer.id == entry.prayerTimes.last?.id
+                    isActive: prayer.name == currentPrayerName,
+                    isLast: prayer.id == prayers.last?.id
                 )
             }
         }
-        .font(.callout)
     }
 }
 
@@ -168,7 +174,7 @@ private struct LargePrayerRow: View {
                 Text(prayer.time, format: .dateTime.hour().minute())
             }
             .foregroundStyle(isActive ? Color.accent : .secondary)
-            .fontWeight(isActive ? .bold : .regular)
+            .font(isActive ? .callout.bold() : .callout)
 
             if !isLast {
                 Divider()
@@ -203,9 +209,13 @@ struct AccessoryCircularView: View {
     var body: some View {
         Gauge(value: 1.0 - progress) {
             Text(prayerShortName)
-                .font(.caption2.bold())
+                .font(.caption2)
+                .bold()
         } currentValueLabel: {
-            timeLabel
+            AccessoryCircularTimeLabelView(
+                nextPrayerTime: entry.nextPrayerTime,
+                entryDate: entry.date
+            )
                 .multilineTextAlignment(.center)
                 .font(.caption2)
         }
@@ -219,16 +229,21 @@ struct AccessoryCircularView: View {
         return String(entry.nextPrayerName.prefix(3)).uppercased()
     }
 
-    @ViewBuilder
-    private var timeLabel: some View {
-        let timeInterval = entry.nextPrayerTime.timeIntervalSince(entry.date)
+}
+
+private struct AccessoryCircularTimeLabelView: View {
+    let nextPrayerTime: Date
+    let entryDate: Date
+
+    var body: some View {
+        let timeInterval = nextPrayerTime.timeIntervalSince(entryDate)
         if timeInterval >= 3600 {  // >= 1 hour
             let hours = Int(timeInterval / 3600)
             Text("\(hours)h+")
         } else if timeInterval <= 60 {
-            Text(entry.nextPrayerTime, style: .timer)
+            Text(nextPrayerTime, style: .timer)
         } else {
-            Text(entry.nextPrayerTime, style: .relative)
+            Text(nextPrayerTime, style: .relative)
         }
     }
 }
@@ -275,7 +290,6 @@ struct AccessoryCornerView: View {
 
     var body: some View {
         Text(entry.nextPrayerTime, style: .timer)
-            // .font(.system(size: 16, weight: .semibold, design: .rounded))
             .fontWeight(.semibold)
             .fontDesign(.rounded)
             .monospacedDigit()

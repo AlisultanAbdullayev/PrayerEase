@@ -32,9 +32,12 @@ struct EventsView: View {
                 .padding()
 
                 if selectedView == .prayers {
-                    monthNavigationHeader
-                    prayerTimesHeader
-                    prayerTimesList
+                    MonthNavigationHeaderView(
+                        currentDate: currentDate,
+                        onChangeMonth: changeMonth
+                    )
+                    PrayerTimesHeaderView()
+                    PrayerTimesListView()
                 } else {
                     IslamicHolidaysView()
                 }
@@ -68,9 +71,21 @@ struct EventsView: View {
         }
     }
 
-    private var monthNavigationHeader: some View {
+    private func changeMonth(by value: Int) {
+        if let newDate = Calendar.current.date(byAdding: .month, value: value, to: currentDate) {
+            currentDate = newDate
+        }
+    }
+}
+
+// MARK: - Subviews
+private struct MonthNavigationHeaderView: View {
+    let currentDate: Date
+    let onChangeMonth: (Int) -> Void
+
+    var body: some View {
         HStack {
-            Button(action: { changeMonth(by: -1) }) {
+            Button(action: { onChangeMonth(-1) }) {
                 Image(systemName: "chevron.left")
                     .padding()
             }
@@ -83,18 +98,21 @@ struct EventsView: View {
 
             Spacer()
 
-            Button(action: { changeMonth(by: 1) }) {
+            Button(action: { onChangeMonth(1) }) {
                 Image(systemName: "chevron.right")
                     .padding()
             }
         }
         .padding(.horizontal)
     }
+}
 
-    private var prayerTimesHeader: some View {
+private struct PrayerTimesHeaderView: View {
+    private let prayerNames = ["Day", "Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"]
+
+    var body: some View {
         HStack {
-            ForEach(["Day", "Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"], id: \.self) {
-                prayerName in
+            ForEach(prayerNames, id: \.self) { prayerName in
                 Text(prayerName)
                     .font(.subheadline)
                     .foregroundStyle(
@@ -108,8 +126,12 @@ struct EventsView: View {
         .padding(.horizontal)
         .padding(.top, 8)
     }
+}
 
-    private var prayerTimesList: some View {
+private struct PrayerTimesListView: View {
+    @Environment(PrayerTimeManager.self) private var prayerTimesManager
+
+    var body: some View {
         ScrollViewReader { proxy in
             List {
                 ForEach(prayerTimesManager.prayerTimesArr.indices, id: \.self) { index in
@@ -145,12 +167,6 @@ struct EventsView: View {
             withAnimation {
                 proxy.scrollTo(index, anchor: .center)
             }
-        }
-    }
-
-    private func changeMonth(by value: Int) {
-        if let newDate = Calendar.current.date(byAdding: .month, value: value, to: currentDate) {
-            currentDate = newDate
         }
     }
 

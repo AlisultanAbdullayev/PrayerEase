@@ -21,7 +21,7 @@ struct PrayerTimesFormView: View {
                 LeftTimeSection(prayers: prayerTimes)
                 PrayerTimesList(prayers: prayerTimes)
             } else {
-                progressView
+                PrayerTimesLoadingView()
             }
         }
         .refreshable {
@@ -33,7 +33,7 @@ struct PrayerTimesFormView: View {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(formattedHijriDate)
                         .font(.footnote)
-                        .fontWeight(.bold)
+                        .bold()
                         .foregroundStyle(.accent)
 
                     Text(currentDate, style: .date)
@@ -52,7 +52,10 @@ struct PrayerTimesFormView: View {
         return formatter.string(from: currentDate)
     }
 
-    private var progressView: some View {
+}
+
+private struct PrayerTimesLoadingView: View {
+    var body: some View {
         ProgressView("Loading prayer times...")
             .frame(maxWidth: .infinity)
     }

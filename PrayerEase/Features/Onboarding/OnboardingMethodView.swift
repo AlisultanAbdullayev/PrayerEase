@@ -28,7 +28,7 @@ struct OnboardingMethodView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Calculation Method")
                             .font(.headline)
-                            .foregroundColor(.primary)
+                            .foregroundStyle(.primary)
 
                         Menu {
                             Picker("Method", selection: $manager.method) {
@@ -40,10 +40,10 @@ struct OnboardingMethodView: View {
                         } label: {
                             HStack {
                                 Text(methodName(for: prayerTimeManager.method))
-                                    .foregroundColor(.primary)
+                                    .foregroundStyle(.primary)
                                 Spacer()
                                 Image(systemName: "chevron.up.chevron.down")
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                                     .font(.caption)
                             }
                             .padding()
@@ -54,7 +54,7 @@ struct OnboardingMethodView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Madhab")
                             .font(.headline)
-                            .foregroundColor(.primary)
+                            .foregroundStyle(.primary)
 
                         Menu {
                             Picker("Madhab", selection: $manager.madhab) {
@@ -69,10 +69,10 @@ struct OnboardingMethodView: View {
                                     prayerTimeManager.madhab == .hanafi
                                         ? "Hanafi" : "Shafi, Maliki, Hanbali"
                                 )
-                                .foregroundColor(.primary)
+                                .foregroundStyle(.primary)
                                 Spacer()
                                 Image(systemName: "chevron.up.chevron.down")
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                                     .font(.caption)
                             }
                             .padding()

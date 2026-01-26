@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import WatchConnectivity
+@preconcurrency import WatchConnectivity
 
 /// Manages communication between iOS app and watchOS app
 @MainActor
@@ -66,15 +66,66 @@ final class WatchConnectivityManager: NSObject {
         let isDuhaEnabled = context["isDuhaEnabled"] as? Bool ?? false
         let isTahajjudEnabled = context["isTahajjudEnabled"] as? Bool ?? false
 
+        WatchDataManager.shared.updateFromContext(
+            prayerTimes: prayers,
+            locationName: locationName,
+            islamicDate: islamicDate,
+            isDuhaEnabled: isDuhaEnabled,
+            isTahajjudEnabled: isTahajjudEnabled
+        )
+    }
+
+    nonisolated private func extractAndProcessContext(_ context: [String: Any]) {
+        // Extract values in nonisolated context before crossing isolation boundary
+        let timestamp = context["timestamp"] as? TimeInterval ?? 0
+        guard let prayerDicts = context["prayerTimes"] as? [[String: Any]] else { return }
+
+        var prayers: [SharedPrayerTime] = []
+        for dict in prayerDicts {
+            if let name = dict["name"] as? String,
+                let timeInterval = dict["time"] as? TimeInterval
+            {
+                let time = Date(timeIntervalSince1970: timeInterval)
+                prayers.append(SharedPrayerTime(name: name, time: time))
+            }
+        }
+
+        let locationName = context["locationName"] as? String ?? ""
+        let islamicDate = context["islamicDate"] as? String ?? ""
+        let isDuhaEnabled = context["isDuhaEnabled"] as? Bool ?? false
+        let isTahajjudEnabled = context["isTahajjudEnabled"] as? Bool ?? false
+
         Task { @MainActor in
-            WatchDataManager.shared.updateFromContext(
-                prayerTimes: prayers,
+            self.processApplicationContextWithValues(
+                timestamp: timestamp,
+                prayers: prayers,
                 locationName: locationName,
                 islamicDate: islamicDate,
                 isDuhaEnabled: isDuhaEnabled,
                 isTahajjudEnabled: isTahajjudEnabled
             )
         }
+    }
+
+    private func processApplicationContextWithValues(
+        timestamp: TimeInterval,
+        prayers: [SharedPrayerTime],
+        locationName: String,
+        islamicDate: String,
+        isDuhaEnabled: Bool,
+        isTahajjudEnabled: Bool
+    ) {
+        // Deduplication: check timestamp to avoid reprocessing same data
+        guard timestamp > lastProcessedTimestamp else { return }
+        lastProcessedTimestamp = timestamp
+
+        WatchDataManager.shared.updateFromContext(
+            prayerTimes: prayers,
+            locationName: locationName,
+            islamicDate: islamicDate,
+            isDuhaEnabled: isDuhaEnabled,
+            isTahajjudEnabled: isTahajjudEnabled
+        )
     }
 }
 
@@ -97,9 +148,7 @@ extension WatchConnectivityManager: WCSessionDelegate {
         _ session: WCSession,
         didReceiveApplicationContext applicationContext: [String: Any]
     ) {
-        Task { @MainActor in
-            self.processApplicationContext(applicationContext)
-        }
+        self.extractAndProcessContext(applicationContext)
     }
 
     nonisolated func session(
@@ -117,15 +166,17 @@ extension WatchConnectivityManager: WCSessionDelegate {
         _ session: WCSession,
         didReceiveUserInfo userInfo: [String: Any] = [:]
     ) {
-        Task { @MainActor in
-            self.processApplicationContext(userInfo)
-        }
+        self.extractAndProcessContext(userInfo)
     }
 
     nonisolated func sessionReachabilityDidChange(_ session: WCSession) {
+        let reachable = session.isReachable
         Task { @MainActor in
-            self.isReachable = session.isReachable
+            self.isReachable = reachable
             // Don't request data on every reachability change - session activation handles initial load
         }
     }
 }
+
+
+

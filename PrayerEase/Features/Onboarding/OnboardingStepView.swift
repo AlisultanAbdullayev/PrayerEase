@@ -50,22 +50,21 @@ struct OnboardingStepView<Content: View>: View {
             Spacer()
 
             Image(systemName: systemImage)
-                .font(.system(size: 80))
-                .foregroundColor(.accentColor)
+                .font(.largeTitle)
+                .imageScale(.large)
+                .foregroundStyle(.accent)
                 .padding(.bottom, 10)
 
             VStack(spacing: 8) {
                 Text(title)
                     .font(.largeTitle)
-                    .fontWeight(.bold)
+                    .bold()
                     .multilineTextAlignment(.center)
 
                 if let subtitle = subtitle {
                     Text(subtitle)
-                        /*    .font(.title3)
-                            .fontWeight(.semibold)*/
-                    .font(.headline)
-                        .foregroundColor(.secondary)
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
             }
@@ -90,7 +89,6 @@ struct OnboardingStepView<Content: View>: View {
                         action()
                     }) {
                         Text(actionButtonTitle)
-                            .fontWeight(.semibold)
                     }
                     .buttonStyle(.glassProminent)
                     .controlSize(.large)
@@ -102,7 +100,7 @@ struct OnboardingStepView<Content: View>: View {
                 {
                     Button(action: secondaryAction) {
                         Text(secondaryTitle)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                 }
             }

@@ -13,18 +13,19 @@ struct LocationNotFoundView: View {
     var body: some View {
         VStack(spacing: 30) {
             Image(systemName: "location.fill")
-                .font(.system(size: 90))
-                .foregroundColor(.accent)
+                .font(.largeTitle)
+                .imageScale(.large)
+                .foregroundStyle(.accent)
 
             HStack {
                 Text("Correct")
                     .font(.title)
-                    .fontWeight(.bold)
+                    .bold()
 
                 Text("Location")
                     .font(.title)
-                    .fontWeight(.bold)
-                    .foregroundColor(.accent)
+                    .bold()
+                    .foregroundStyle(.accent)
             }
             Text(
                 "To access the most accurate prayer times instantly through the Salah app, you need to allow location access."
@@ -49,7 +50,7 @@ struct LocationNotFoundView: View {
                     ? "Enable Location Access" : "Enable Location Access from Settings"
             )
             .font(.callout)
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
 
             Button {
                 if locationManager.authorizationStatus == .notDetermined {

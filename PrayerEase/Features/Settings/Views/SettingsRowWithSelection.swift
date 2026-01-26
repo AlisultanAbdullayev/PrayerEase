@@ -24,19 +24,25 @@ struct SettingsRowWithSelection<Content: View>: View {
     
     var body: some View {
         HStack {
-            leadingContent
+            SettingsRowLeadingContent(text: text, systemImage: systemImage)
             Spacer()
             content
         }
     }
-    
-    @ViewBuilder
-    private var leadingContent: some View {
-        if let systemImage = systemImage {
-            Image(systemName: systemImage)
-                .foregroundStyle(Color.accentColor)
+}
+
+private struct SettingsRowLeadingContent: View {
+    let text: Text?
+    let systemImage: String?
+
+    var body: some View {
+        HStack(spacing: 6) {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .foregroundStyle(.accent)
+            }
+            text
         }
-        text
     }
 }
 

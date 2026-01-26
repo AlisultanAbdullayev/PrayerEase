@@ -11,20 +11,36 @@ import SwiftUI
 import WidgetKit
 
 struct PrayerTimesView: View {
+    // MARK: - Environment
     @Environment(LocationManager.self) private var locationManager
     @Environment(NotificationManager.self) private var notificationManager
     @Environment(PrayerTimeManager.self) private var prayerTimeManager
-
     @Environment(\.scenePhase) private var scenePhase
 
-    @State private var isSheetShowing = false
-    @State private var isSetupSheetPresented = false
+    // MARK: - State
+    @State private var presentedSheet: PresentedSheet?
     @State private var currentDate = Date()
 
+    // MARK: - Constants
     private let hijriCalendar = Calendar(identifier: .islamicUmmAlQura)
 
+    // MARK: - Body
     var body: some View {
-        content
+        Group {
+            if locationManager.userLocation == nil {
+                LocationNotFoundTriggerView(presentedSheet: $presentedSheet)
+            } else {
+                PrayerTimesFormView(currentDate: currentDate, hijriCalendar: hijriCalendar)
+            }
+        }
+            .navigationTitle("Salah time")
+            .task { updatePrayerTimes() }
+            .task {
+                await setupDayChangeTimer()
+            }
+            .sheet(item: $presentedSheet) { sheet in
+                PrayerTimesSheetView(sheet: sheet, prayerTimeManager: prayerTimeManager)
+            }
             .onChange(of: scenePhase) { _, newPhase in
                 handleScenePhaseChange(newPhase)
             }
@@ -51,44 +67,7 @@ struct PrayerTimesView: View {
             }
     }
 
-    private var content: some View {
-        sheetContent
-            .navigationTitle("Salah time")
-            .task { updatePrayerTimes() }
-            .task {
-                await setupDayChangeTimer()
-            }
-    }
-
-    private var sheetContent: some View {
-        contentGroup
-            .sheet(isPresented: $isSheetShowing) {
-                LocationNotFoundView()
-                    .interactiveDismissDisabled()
-            }
-            .sheet(isPresented: $isSetupSheetPresented) {
-                SetupSheetView(prayerTimeManager: prayerTimeManager)
-                    .interactiveDismissDisabled()
-            }
-    }
-
-    @ViewBuilder
-    private var contentGroup: some View {
-        if locationManager.userLocation == nil {
-            locationNotFoundView
-        } else {
-            PrayerTimesFormView(currentDate: currentDate, hijriCalendar: hijriCalendar)
-        }
-    }
-
-    private var locationNotFoundView: some View {
-        VStack {}
-            .onAppear { isSheetShowing = true }
-            .onDisappear { isSheetShowing = false }
-    }
-
     // MARK: - Helpers
-
     private func getFormattedHijriDate() -> String {
         let formatter = DateFormatter()
         formatter.calendar = hijriCalendar
@@ -109,7 +88,7 @@ struct PrayerTimesView: View {
         guard let tz = timeZone, !prayerTimeManager.isMethodManuallySet else { return }
         let found = prayerTimeManager.autoSelectMethod(for: tz)
         if !found {
-            isSetupSheetPresented = true
+            presentedSheet = .setup
         }
     }
 
@@ -170,6 +149,43 @@ struct PrayerTimesView: View {
     }
 }
 
+// MARK: - Subviews
+private struct LocationNotFoundTriggerView: View {
+    @Binding var presentedSheet: PresentedSheet?
+
+    var body: some View {
+        Color.clear
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onAppear { presentedSheet = .locationNotFound }
+            .onDisappear { presentedSheet = nil }
+    }
+}
+
+private struct PrayerTimesSheetView: View {
+    let sheet: PresentedSheet
+    let prayerTimeManager: PrayerTimeManager
+
+    var body: some View {
+        switch sheet {
+        case .locationNotFound:
+            LocationNotFoundView()
+                .interactiveDismissDisabled()
+        case .setup:
+            SetupSheetView(prayerTimeManager: prayerTimeManager)
+                .interactiveDismissDisabled()
+        }
+    }
+}
+
+// MARK: - Supporting Types
+private enum PresentedSheet: Identifiable {
+    case locationNotFound
+    case setup
+
+    var id: Self { self }
+}
+
+// MARK: - Preview
 #Preview {
     PrayerTimesView()
         .environment(LocationManager())

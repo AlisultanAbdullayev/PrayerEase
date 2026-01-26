@@ -118,143 +118,27 @@ struct NotificationSettingsView: View {
 
     var body: some View {
         Form {
-            liveActivitySection
-            exactAlertsSection
-            qiraaSection
-            preAlertsSection
+            LiveActivitySection(
+                widgetDataManager: widgetDataManager,
+                startLiveActivityIfPossible: startLiveActivityIfPossible
+            )
+            ExactAlertsSection(
+                isNotifyExactExpanded: $isNotifyExactExpanded,
+                widgetDataManager: widgetDataManager,
+                notificationManager: notificationManager,
+                bindingForNotification: bindingForNotification,
+                bindingForOptionalPrayerNotification: bindingForOptionalPrayerNotification
+            )
+            QiraaSection(bindingForNotification: bindingForNotification)
+            PreAlertsSection(
+                isNotifyBeforeExpanded: $isNotifyBeforeExpanded,
+                notificationManager: notificationManager,
+                bindingForNotification: bindingForNotification
+            )
         }
         .navigationTitle("Notifications")
         .onDisappear {
             isNotifyBeforeExpanded = false
-        }
-    }
-
-    private var liveActivitySection: some View {
-        @Bindable var manager = widgetDataManager
-
-        return Section {
-            Toggle(isOn: $manager.isLiveActivityEnabled) {
-                HStack {
-                    Image(systemName: "clock.badge")
-                        .foregroundStyle(.accent)
-                    Text("Live Activity")
-                }
-            }
-            .onChange(of: widgetDataManager.isLiveActivityEnabled) { _, isEnabled in
-                Task {
-                    if isEnabled {
-                        await startLiveActivityIfPossible()
-                    } else {
-                        await widgetDataManager.endLiveActivity()
-                    }
-                }
-            }
-
-            if !ActivityAuthorizationInfo().areActivitiesEnabled {
-                Text("Live Activities are disabled. Enable them in Settings > PrayerEase.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        } header: {
-            Text("Live Activity")
-        } footer: {
-            Text("Shows prayer countdown on your Lock Screen and Dynamic Island.")
-        }
-    }
-
-    private var exactAlertsSection: some View {
-        @Bindable var manager = widgetDataManager
-
-        return Section(header: Text("Prayer Alerts")) {
-            DisclosureGroup(isExpanded: $isNotifyExactExpanded) {
-                ForEach(notificationManager.notificationSettings.keys.sorted(), id: \.self) { key in
-                    // Exclude optional prayers and Qiraa (they have their own sections)
-                    if key != "Tahajjud" && key != "Duha" && !key.starts(with: "Qiraa") {
-                        Toggle(isOn: bindingForNotification(key: key, isBefore: false)) {
-                            Text(key).tag(key)
-                        }
-                    }
-                }
-
-                Toggle(
-                    isOn: bindingForOptionalPrayerNotification(
-                        key: "Duha", isEnabledBinding: $manager.isDuhaEnabled)
-                ) {
-                    Text("Duha")
-                }
-
-                Toggle(
-                    isOn: bindingForOptionalPrayerNotification(
-                        key: "Tahajjud", isEnabledBinding: $manager.isTahajjudEnabled)
-                ) {
-                    Text("Tahajjud")
-                }
-
-            } label: {
-                SettingsRowWithSelection(
-                    text: Text("Notify at prayer time"), systemImage: "bell.fill"
-                ) {}
-            }
-        }
-    }
-
-    private var qiraaSection: some View {
-        Section(header: Text("Qiraa Times")) {
-            Toggle(isOn: bindingForNotification(key: "QiraaAfterSunrise", isBefore: false)) {
-                VStack(alignment: .leading) {
-                    Text("After Sunrise")
-                    Text("45 min after sunrise")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Toggle(isOn: bindingForNotification(key: "QiraaBeforeDhuhr", isBefore: false)) {
-                VStack(alignment: .leading) {
-                    Text("Before Dhuhr")
-                    Text("45 min before dhuhr")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Toggle(isOn: bindingForNotification(key: "QiraaBeforeMaghrib", isBefore: false)) {
-                VStack(alignment: .leading) {
-                    Text("Before Maghrib")
-                    Text("45 min before maghrib")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-    }
-
-    private var preAlertsSection: some View {
-        @Bindable var manager = notificationManager
-
-        return Section(header: Text("Pre-Prayer Alerts")) {
-            DisclosureGroup(isExpanded: $isNotifyBeforeExpanded) {
-                ForEach(notificationManager.notificationSettingsBefore.keys.sorted(), id: \.self) {
-                    key in
-                    Toggle(isOn: bindingForNotification(key: key, isBefore: true)) {
-                        Text(key).tag(key)
-                    }
-                }
-            } label: {
-                SettingsRowWithSelection(text: Text("Notify before salahs"), systemImage: "clock") {
-                }
-            }
-
-            SettingsRowWithSelection(text: Text("Minutes before"), systemImage: "hourglass") {
-                Picker("", selection: $manager.beforeMinutes) {
-                    ForEach(notificationManager.minuteOptions, id: \.self) { minute in
-                        Text(minute == 60 ? "1 hour" : "\(minute) minutes").tag(minute)
-                    }
-                }
-            }
-            .onAppear {
-                if !notificationManager.minuteOptions.contains(notificationManager.beforeMinutes) {
-                    notificationManager.beforeMinutes = notificationManager.minuteOptions[3]
-                }
-            }
         }
     }
 
@@ -317,6 +201,154 @@ struct NotificationSettingsView: View {
     }
 }
 
+// MARK: - Notification Sections
+
+private struct LiveActivitySection: View {
+    @Bindable var widgetDataManager: WidgetDataManager
+    let startLiveActivityIfPossible: () async -> Void
+
+    var body: some View {
+        Section {
+            Toggle(isOn: $widgetDataManager.isLiveActivityEnabled) {
+                HStack {
+                    Image(systemName: "clock.badge")
+                        .foregroundStyle(.accent)
+                    Text("Live Activity")
+                }
+            }
+            .onChange(of: widgetDataManager.isLiveActivityEnabled) { _, isEnabled in
+                Task {
+                    if isEnabled {
+                        await startLiveActivityIfPossible()
+                    } else {
+                        await widgetDataManager.endLiveActivity()
+                    }
+                }
+            }
+
+            if !ActivityAuthorizationInfo().areActivitiesEnabled {
+                Text("Live Activities are disabled. Enable them in Settings > PrayerEase.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("Live Activity")
+        } footer: {
+            Text("Shows prayer countdown on your Lock Screen and Dynamic Island.")
+        }
+    }
+}
+
+private struct ExactAlertsSection: View {
+    @Binding var isNotifyExactExpanded: Bool
+    @Bindable var widgetDataManager: WidgetDataManager
+    let notificationManager: NotificationManager
+    let bindingForNotification: (String, Bool) -> Binding<Bool>
+    let bindingForOptionalPrayerNotification: (String, Binding<Bool>) -> Binding<Bool>
+
+    var body: some View {
+        Section(header: Text("Prayer Alerts")) {
+            DisclosureGroup(isExpanded: $isNotifyExactExpanded) {
+                ForEach(notificationManager.notificationSettings.keys.sorted(), id: \.self) { key in
+                    // Exclude optional prayers and Qiraa (they have their own sections)
+                    if key != "Tahajjud" && key != "Duha" && !key.starts(with: "Qiraa") {
+                        Toggle(isOn: bindingForNotification(key, false)) {
+                            Text(key).tag(key)
+                        }
+                    }
+                }
+
+                Toggle(
+                    isOn: bindingForOptionalPrayerNotification(
+                        "Duha", $widgetDataManager.isDuhaEnabled)
+                ) {
+                    Text("Duha")
+                }
+
+                Toggle(
+                    isOn: bindingForOptionalPrayerNotification(
+                        "Tahajjud", $widgetDataManager.isTahajjudEnabled)
+                ) {
+                    Text("Tahajjud")
+                }
+
+            } label: {
+                SettingsRowWithSelection(
+                    text: Text("Notify at prayer time"), systemImage: "bell.fill"
+                ) {}
+            }
+        }
+    }
+}
+
+private struct QiraaSection: View {
+    let bindingForNotification: (String, Bool) -> Binding<Bool>
+
+    var body: some View {
+        Section(header: Text("Qiraa Times")) {
+            Toggle(isOn: bindingForNotification("QiraaAfterSunrise", false)) {
+                VStack(alignment: .leading) {
+                    Text("After Sunrise")
+                    Text("45 min after sunrise")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Toggle(isOn: bindingForNotification("QiraaBeforeDhuhr", false)) {
+                VStack(alignment: .leading) {
+                    Text("Before Dhuhr")
+                    Text("45 min before dhuhr")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Toggle(isOn: bindingForNotification("QiraaBeforeMaghrib", false)) {
+                VStack(alignment: .leading) {
+                    Text("Before Maghrib")
+                    Text("45 min before maghrib")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+}
+
+private struct PreAlertsSection: View {
+    @Binding var isNotifyBeforeExpanded: Bool
+    @Bindable var notificationManager: NotificationManager
+    let bindingForNotification: (String, Bool) -> Binding<Bool>
+
+    var body: some View {
+        Section(header: Text("Pre-Prayer Alerts")) {
+            DisclosureGroup(isExpanded: $isNotifyBeforeExpanded) {
+                ForEach(notificationManager.notificationSettingsBefore.keys.sorted(), id: \.self) {
+                    key in
+                    Toggle(isOn: bindingForNotification(key, true)) {
+                        Text(key).tag(key)
+                    }
+                }
+            } label: {
+                SettingsRowWithSelection(text: Text("Notify before salahs"), systemImage: "clock") {
+                }
+            }
+
+            SettingsRowWithSelection(text: Text("Minutes before"), systemImage: "hourglass") {
+                Picker("", selection: $notificationManager.beforeMinutes) {
+                    ForEach(notificationManager.minuteOptions, id: \.self) { minute in
+                        Text(minute == 60 ? "1 hour" : "\(minute) minutes").tag(minute)
+                    }
+                }
+            }
+            .onAppear {
+                if !notificationManager.minuteOptions.contains(notificationManager.beforeMinutes) {
+                    notificationManager.beforeMinutes = notificationManager.minuteOptions[3]
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Prayer Settings
 
 struct PrayerSettingsView: View {
@@ -326,66 +358,13 @@ struct PrayerSettingsView: View {
 
     var body: some View {
         Form {
-            optionalPrayersSection
-            calculationSection
+            OptionalPrayersSection(widgetDataManager: widgetDataManager)
+            CalculationSection(
+                prayerTimeManager: prayerTimeManager,
+                methodName: methodName
+            )
         }
         .navigationTitle("Prayer Settings")
-    }
-
-    private var optionalPrayersSection: some View {
-        @Bindable var manager = widgetDataManager
-
-        return Section(header: Text("Optional Prayers")) {
-            Toggle(isOn: $manager.isTahajjudEnabled) {
-                HStack {
-                    Image(systemName: "moon.stars")
-                        .foregroundStyle(.purple)
-                    VStack(alignment: .leading) {
-                        Text("Tahajjud")
-                        Text("Last third of the night")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-
-            Toggle(isOn: $manager.isDuhaEnabled) {
-                HStack {
-                    Image(systemName: "sun.max")
-                        .foregroundStyle(.orange)
-                    VStack(alignment: .leading) {
-                        Text("Duha")
-                        Text("starts 45min after sunrise")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-        }
-    }
-
-    private var calculationSection: some View {
-        @Bindable var manager = prayerTimeManager
-
-        return Section(header: Text("Calculation Method")) {
-            SettingsRowWithSelection(text: Text("Madhab"), systemImage: "doc.plaintext") {
-                Picker("", selection: $manager.madhab) {
-                    ForEach(prayerTimeManager.madhabs, id: \.self) { madhab in
-                        Text(madhab == .hanafi ? "Hanafi" : "Default (Shafi, Maliki, Hanbali)")
-                            .tag(madhab)
-                    }
-                }
-            }
-
-            SettingsRowWithSelection(text: Text("Institution"), systemImage: "book") {
-                Picker("", selection: $manager.method) {
-                    ForEach(prayerTimeManager.methods, id: \.self) { method in
-                        Text(methodName(for: method)).tag(method)
-                    }
-                }
-                .pickerStyle(NavigationLinkPickerStyle())
-            }
-        }
     }
 
     private func methodName(for method: CalculationMethod) -> String {
@@ -403,6 +382,69 @@ struct PrayerSettingsView: View {
         case .tehran: return "Institute of Geophysics, University of Tehran"
         case .turkey: return "Diyanet İşleri Başkanlığı, Turkey"
         case .other: return "Other"
+        }
+    }
+}
+
+// MARK: - Prayer Settings Sections
+
+private struct OptionalPrayersSection: View {
+    @Bindable var widgetDataManager: WidgetDataManager
+
+    var body: some View {
+        Section(header: Text("Optional Prayers")) {
+            Toggle(isOn: $widgetDataManager.isTahajjudEnabled) {
+                HStack {
+                    Image(systemName: "moon.stars")
+                        .foregroundStyle(.purple)
+                    VStack(alignment: .leading) {
+                        Text("Tahajjud")
+                        Text("Last third of the night")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Toggle(isOn: $widgetDataManager.isDuhaEnabled) {
+                HStack {
+                    Image(systemName: "sun.max")
+                        .foregroundStyle(.orange)
+                    VStack(alignment: .leading) {
+                        Text("Duha")
+                        Text("starts 45min after sunrise")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct CalculationSection: View {
+    @Bindable var prayerTimeManager: PrayerTimeManager
+    let methodName: (CalculationMethod) -> String
+
+    var body: some View {
+        Section(header: Text("Calculation Method")) {
+            SettingsRowWithSelection(text: Text("Madhab"), systemImage: "doc.plaintext") {
+                Picker("", selection: $prayerTimeManager.madhab) {
+                    ForEach(prayerTimeManager.madhabs, id: \.self) { madhab in
+                        Text(madhab == .hanafi ? "Hanafi" : "Default (Shafi, Maliki, Hanbali)")
+                            .tag(madhab)
+                    }
+                }
+            }
+
+            SettingsRowWithSelection(text: Text("Institution"), systemImage: "book") {
+                Picker("", selection: $prayerTimeManager.method) {
+                    ForEach(prayerTimeManager.methods, id: \.self) { method in
+                        Text(methodName(method)).tag(method)
+                    }
+                }
+                .pickerStyle(NavigationLinkPickerStyle())
+            }
         }
     }
 }

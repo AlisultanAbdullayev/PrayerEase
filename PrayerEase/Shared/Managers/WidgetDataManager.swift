@@ -5,7 +5,7 @@
 //  Created by Alisultan Abdullah on 12/21/25.
 //
 
-import ActivityKit
+@preconcurrency import ActivityKit
 import Adhan
 import Foundation
 import WidgetKit

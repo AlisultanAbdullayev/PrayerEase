@@ -7,17 +7,19 @@
 
 
 
-import OpenAI
+@preconcurrency import OpenAI
 import SwiftUI
 
-class ChatController: ObservableObject {
-    @Published var messages: [Message] = []
-    @Published var isLoading = false
-    @Published var botTypingText: String = "" // New property for typing animation
+@MainActor
+@Observable
+final class ChatController {
+    var messages: [Message] = []
+    var isLoading = false
+    var botTypingText: String = "" // New property for typing animation
     
-    let openAI = OpenAI(apiToken: "")
+    private let openAI = OpenAI(apiToken: "")
+    private var typingTask: Task<Void, Never>?
 
-    @MainActor
     func sendNewMessage(content: String) {
         isLoading = true
         botTypingText = "" // Reset typing text
@@ -28,24 +30,26 @@ class ChatController: ObservableObject {
         // Start typing animation asynchronously
         startTypingAnimation()
         
-        getBotReply()
+        Task {
+            await getBotReply()
+        }
     }
     
-    @MainActor
     private func startTypingAnimation() {
-        Task {
+        typingTask?.cancel()
+        typingTask = Task {
             while isLoading {
                 botTypingText.append(".")
                 if botTypingText.count > 3 {
                     botTypingText = ""
                 }
-                try await Task.sleep(nanoseconds: 500_000_000) // Update every 0.5 seconds
+                try? await Task.sleep(for: .milliseconds(500)) // Update every 0.5 seconds
             }
             botTypingText = "" // Clear when done
         }
     }
     
-    func getBotReply() {
+    private func getBotReply() async {
         let query = ChatQuery(
             messages: self.messages.map {
                 .init(role: .user, content: $0.content)!
@@ -53,23 +57,27 @@ class ChatController: ObservableObject {
             model: .gpt4_turbo
         )
         
-        openAI.chats(query: query) { result in
-            DispatchQueue.main.async {
-                self.isLoading = false
+        do {
+            let result = try await withCheckedThrowingContinuation { continuation in
+                openAI.chats(query: query) { result in
+                    switch result {
+                    case .success(let success):
+                        continuation.resume(returning: success)
+                    case .failure(let error):
+                        continuation.resume(throwing: error)
+                    }
+                }
             }
+            isLoading = false
             
-            switch result {
-            case .success(let success):
-                guard let choice = success.choices.first else {
-                    return
-                }
-                guard let message = choice.message.content?.string else { return }
-                DispatchQueue.main.async {
-                    self.messages.append(Message(content: message, isUser: false))
-                }
-            case .failure(let failure):
-                print(failure)
+            guard let choice = result.choices.first else {
+                return
             }
+            guard let message = choice.message.content?.string else { return }
+            self.messages.append(Message(content: message, isUser: false))
+        } catch {
+            isLoading = false
+            print("Chat error: \(error)")
         }
     }
 }
@@ -81,7 +89,7 @@ struct Message: Identifiable {
 }
 
 struct ChatView: View {
-    @StateObject var chatController: ChatController = .init()
+    @State private var chatController = ChatController()
     @State private var userMessage = ""
     @Namespace private var bottomID // For scroll animation
 
@@ -97,7 +105,7 @@ struct ChatView: View {
                         if chatController.isLoading {
                             HStack {
                                 Text("AI is typing\(chatController.botTypingText)")
-                                    .foregroundColor(.gray)
+                                    .foregroundStyle(.secondary)
                                     .italic()
                                 Spacer()
                             }
@@ -106,7 +114,7 @@ struct ChatView: View {
                         Spacer().id(bottomID) // Anchor for scrolling
                     }
                 }
-                .onChange(of: chatController.messages.count) { _,_ in
+                .onChange(of: chatController.messages.count) { _, _ in
                     withAnimation {
                         proxy.scrollTo(bottomID)
                     }
@@ -119,7 +127,7 @@ struct ChatView: View {
                 TextField("Message...", text: $userMessage, axis: .vertical)
                     .padding(8)
                     .background(Color.gray.opacity(0.1))
-                    .cornerRadius(8)
+                    .clipShape(.rect(cornerRadius: 8))
                 
                 Button("Send") {
                     chatController.sendNewMessage(content: userMessage)
@@ -129,7 +137,6 @@ struct ChatView: View {
                 .buttonStyle(.borderedProminent)
             }
             .padding()
-
         }
     }
 }
@@ -158,7 +165,7 @@ struct MessageView: View {
                     Text(attributedContent(message.content))
                         .padding()
                         .background(.regularMaterial)
-                        .foregroundColor(Color(.label))
+                        .foregroundStyle(Color(.label))
                         .clipShape(.rect(cornerRadius: 15))
                     Spacer()
                 }

@@ -9,9 +9,11 @@ import CoreLocation
 import SwiftUI
 
 struct QiblaView: View {
+    // MARK: - Environment
     @Environment(LocationManager.self) private var locationManager
 
-    @State private var isMapPresented = false
+    // MARK: - State
+    @State private var presentedSheet: PresentedSheet?
 
     private var qiblaDirection: Double {
         QiblaService.calculateQiblaDirection(
@@ -21,22 +23,25 @@ struct QiblaView: View {
     var body: some View {
         NavigationStack {
             if locationManager.isLocationActive {
-                GeometryReader { geometry in
-                    VStack(spacing: 12) {
-                        compassView(size: geometry.size.width * 0.8)
-
-                        if accuracyPercentage < 85 {
-                            accuracyWarning
-                        }
-                    }
-                    .animation(
-                        .spring(response: 0.6, dampingFraction: 0.7),
-                        value: accuracyPercentage < 85
+                VStack(spacing: 12) {
+                    CompassView(
+                        rotationDegrees: qiblaDirection - locationManager.heading,
+                        isPointingToQibla: isPointingToQibla
                     )
-                    .sensoryFeedback(.success, trigger: isPointingToQibla)
-                    .sensoryFeedback(.warning, trigger: accuracyPercentage < 85)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .containerRelativeFrame(.horizontal, count: 5, span: 4, spacing: 0)
+                    .aspectRatio(1, contentMode: .fit)
+
+                    if accuracyPercentage < 85 {
+                        AccuracyWarningView(accuracyPercentage: accuracyPercentage)
+                    }
                 }
+                .animation(
+                    .spring(response: 0.6, dampingFraction: 0.7),
+                    value: accuracyPercentage < 85
+                )
+                .sensoryFeedback(.success, trigger: isPointingToQibla)
+                .sensoryFeedback(.warning, trigger: accuracyPercentage < 85)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .navigationTitle("Qibla Direction")
                 .onAppear {
                     locationManager.startUpdatingHeading()
@@ -53,7 +58,7 @@ struct QiblaView: View {
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
-                            isMapPresented = true
+                            presentedSheet = .map
                         } label: {
                             Image(systemName: "map.fill")
                                 .font(.headline)
@@ -61,8 +66,11 @@ struct QiblaView: View {
                         }
                     }
                 }
-                .sheet(isPresented: $isMapPresented) {
-                    QiblaMapView()
+                .sheet(item: $presentedSheet) { sheet in
+                    switch sheet {
+                    case .map:
+                        QiblaMapView()
+                    }
                 }
             } else {
                 ContentUnavailableView(
@@ -76,57 +84,111 @@ struct QiblaView: View {
 
     // MARK: - Subviews
 
-    private func compassView(size: CGFloat) -> some View {
-        ZStack {
-            Circle()
-                .stroke(Color.secondary.opacity(0.3), lineWidth: 5)
-                .frame(width: size, height: size)
+    private struct CompassView: View {
+        let rotationDegrees: Double
+        let isPointingToQibla: Bool
 
-            ForEach(0..<72) { tick in
-                Rectangle()
-                    .fill(Color.secondary)
-                    .frame(width: tick % 9 == 0 ? 2 : 1, height: tick % 9 == 0 ? 20 : 10)
-                    .offset(y: size / 2 - 15)
-                    .rotationEffect(.degrees(Double(tick) * 5))
+        var body: some View {
+            ZStack {
+                CompassDialView()
+                CompassArrowView(isPointingToQibla: isPointingToQibla)
+                CompassLabelView(isPointingToQibla: isPointingToQibla)
             }
-
-            Image(systemName: "arrow.up")
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: size * 0.3, height: size * 0.3)
-                .foregroundStyle(isPointingToQibla ? .green : .secondary)
-
-            Text("QIBLA")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundStyle(isPointingToQibla ? .green : .secondary)
-                .offset(y: -size / 2 - 15)
+            .rotationEffect(.degrees(rotationDegrees))
         }
-        .rotationEffect(.degrees(Double(qiblaDirection - locationManager.heading)))
     }
 
-    private var accuracyWarning: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.title)
-                .foregroundStyle(.yellow)
+    private struct CompassDialView: View {
+        var body: some View {
+            ZStack {
+                Circle()
+                    .stroke(Color.secondary.opacity(0.3), lineWidth: 5)
 
-            Text(
-                "Compass accuracy is low: \(Text("\(accuracyPercentage)%").foregroundStyle(.red))"
-            )
-            .font(.headline)
+                Canvas { context, size in
+                    let radius = min(size.width, size.height) / 2
+                    let center = CGPoint(x: size.width / 2, y: size.height / 2)
+                    let tickCount = 72
+                    let tickInset = radius * 0.08
+                    let majorTickLength = radius * 0.12
+                    let minorTickLength = radius * 0.06
 
-            Text(
-                "Metal or magnetic interference detected.\nMove away from electronic devices or recalibrate."
-            )
-            .font(.caption)
-            .multilineTextAlignment(.center)
-            .foregroundStyle(.secondary)
+                    for tick in 0..<tickCount {
+                        let angle = CGFloat(tick) * (2 * .pi / CGFloat(tickCount))
+                        let isMajor = tick % 9 == 0
+                        let tickLength = isMajor ? majorTickLength : minorTickLength
+                        let tickWidth: CGFloat = isMajor ? max(2, radius * 0.01) : max(1, radius * 0.006)
+
+                        let start = CGPoint(
+                            x: center.x + cos(angle) * (radius - tickInset - tickLength),
+                            y: center.y + sin(angle) * (radius - tickInset - tickLength)
+                        )
+                        let end = CGPoint(
+                            x: center.x + cos(angle) * (radius - tickInset),
+                            y: center.y + sin(angle) * (radius - tickInset)
+                        )
+
+                        var path = Path()
+                        path.move(to: start)
+                        path.addLine(to: end)
+                        context.stroke(path, with: .color(.secondary), lineWidth: tickWidth)
+                    }
+                }
+            }
         }
-        .padding()
-        .glassEffect(.clear, in: .rect(cornerRadius: 12))
-        .padding(.top, 10)
-        .transition(.scale.combined(with: .opacity))
+    }
+
+    private struct CompassArrowView: View {
+        let isPointingToQibla: Bool
+
+        var body: some View {
+            Image(systemName: "arrow.up")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .containerRelativeFrame(.horizontal, count: 10, span: 3, spacing: 0)
+                .foregroundStyle(isPointingToQibla ? .green : .secondary)
+        }
+    }
+
+    private struct CompassLabelView: View {
+        let isPointingToQibla: Bool
+        @ScaledMetric(relativeTo: .title2) private var labelOffset: CGFloat = 12
+
+        var body: some View {
+            Text("QIBLA")
+                .font(.title2)
+                .bold()
+                .foregroundStyle(isPointingToQibla ? .green : .secondary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .offset(y: -labelOffset)
+        }
+    }
+
+    private struct AccuracyWarningView: View {
+        let accuracyPercentage: Int
+
+        var body: some View {
+            VStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.title)
+                    .foregroundStyle(.yellow)
+
+                Text(
+                    "Compass accuracy is low: \(Text("\(accuracyPercentage)%").foregroundStyle(.red))"
+                )
+                .font(.headline)
+
+                Text(
+                    "Metal or magnetic interference detected.\nMove away from electronic devices or recalibrate."
+                )
+                .font(.caption)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+            }
+            .padding()
+            .glassEffect(.clear, in: .rect(cornerRadius: 12))
+            .padding(.top, 10)
+            .transition(.scale.combined(with: .opacity))
+        }
     }
 
     // MARK: - Computed Properties
@@ -142,6 +204,14 @@ struct QiblaView: View {
     }
 }
 
+// MARK: - Supporting Types
+private enum PresentedSheet: Identifiable {
+    case map
+
+    var id: Self { self }
+}
+
+// MARK: - Preview
 #Preview {
     QiblaView()
         .environment(LocationManager())

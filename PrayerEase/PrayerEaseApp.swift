@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import UserNotifications
+@preconcurrency import UserNotifications
 
 // MARK: - AppDelegate for Notification Actions
 
@@ -21,13 +21,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     }
 
     /// Handle notification actions (Update/Keep buttons)
-    func userNotificationCenter(
+    nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         Task { @MainActor in
-            let locationManager = await getLocationManager()
+            let locationManager = getLocationManager()
 
             switch response.actionIdentifier {
             case "UPDATE_LOCATION":
@@ -48,13 +48,14 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             default:
                 break
             }
-
-            completionHandler()
         }
+        
+        // Call completion handler outside of Task to avoid Sendable issues
+        completionHandler()
     }
 
     /// Show notifications even when app is in foreground
-    func userNotificationCenter(
+    nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler:

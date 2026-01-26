@@ -20,19 +20,19 @@ struct OnboardingWelcomeView: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: 120, height: 120)
-                .cornerRadius(24)
+                .clipShape(.rect(cornerRadius: 24))
                 .shadow(radius: 10)
                 // Fallback if AppIcon asset is not directly loadable by name in SwiftUI Image yet
 
             VStack(spacing: 10) {
                 Text("Welcome to PrayerEase")
                     .font(.largeTitle)
-                    .fontWeight(.bold)
+                    .bold()
                     .multilineTextAlignment(.center)
 
                 Text("Your modern companion for accurate prayer times.")
                     .font(.title3)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
 
@@ -54,8 +54,6 @@ struct OnboardingWelcomeView: View {
                 onContinue()
             }) {
                 Text("Get Started")
-                    .fontWeight(.semibold)
-
             }
             .buttonStyle(.glassProminent)
             .controlSize(.large)
@@ -75,8 +73,7 @@ struct FeatureRow: View {
         HStack(spacing: 16) {
             Image(systemName: icon)
                 .font(.title2)
-                .frame(width: 30)
-                .foregroundColor(.accentColor)
+                .foregroundStyle(.accent)
 
             Text(text)
                 .font(.body)

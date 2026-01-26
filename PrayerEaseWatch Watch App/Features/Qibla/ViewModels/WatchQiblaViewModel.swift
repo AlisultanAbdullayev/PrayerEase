@@ -5,7 +5,7 @@
 //  Created by Antigravity on 12/23/25.
 //
 
-import CoreLocation
+@preconcurrency import CoreLocation
 import Foundation
 import SwiftUI
 
@@ -131,11 +131,14 @@ extension WatchQiblaViewModel: CLLocationManagerDelegate {
     nonisolated func locationManager(
         _ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading
     ) {
+        // Extract values before crossing isolation boundary
+        let trueHeading = newHeading.trueHeading
+        let magneticHeading = newHeading.magneticHeading
+        let headingAccuracy = newHeading.headingAccuracy
         Task { @MainActor in
-            let newValue =
-                newHeading.trueHeading >= 0 ? newHeading.trueHeading : newHeading.magneticHeading
+            let newValue = trueHeading >= 0 ? trueHeading : magneticHeading
             self.updateHeading(newValue)
-            self.headingAccuracy = newHeading.headingAccuracy
+            self.headingAccuracy = headingAccuracy
         }
     }
 
@@ -144,14 +147,16 @@ extension WatchQiblaViewModel: CLLocationManagerDelegate {
     }
 
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        // Extract value before crossing isolation boundary
         let status = manager.authorizationStatus
+        let isActive = (status == .authorizedWhenInUse || status == .authorizedAlways)
 
         Task { @MainActor in
-            self.isLocationActive = (status == .authorizedWhenInUse || status == .authorizedAlways)
+            self.isLocationActive = isActive
 
             if self.isLocationActive {
-                manager.startUpdatingLocation()
-                manager.startUpdatingHeading()
+                self.locationManager.startUpdatingLocation()
+                self.locationManager.startUpdatingHeading()
             }
         }
     }

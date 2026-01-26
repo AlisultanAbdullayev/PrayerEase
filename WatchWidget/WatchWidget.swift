@@ -228,7 +228,7 @@ struct CircularView: View {
         Gauge(value: 1.0 - progress) {
             // Always show NEXT prayer name
             Text(String(entry.nextPrayerName.prefix(3)).uppercased())
-                .fontWeight(.bold)
+                .bold()
         } currentValueLabel: {
             // Use timer for normal mode, compact format when luminance is reduced
             if isLuminanceReduced {

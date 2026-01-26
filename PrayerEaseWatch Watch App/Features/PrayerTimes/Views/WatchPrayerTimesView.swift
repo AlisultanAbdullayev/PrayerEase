@@ -15,11 +15,18 @@ struct WatchPrayerTimesView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 4) {
-                locationHeader
-                countdownSection
-                prayersList
-                optionalPrayersSection
-                emptyStateView
+                WatchLocationHeaderView(locationName: dataManager.locationName)
+                WatchCountdownSection(nextPrayer: dataManager.nextPrayer) {
+                    dataManager.refresh()
+                }
+                WatchPrayersListSection(
+                    prayers: dataManager.prayerTimes,
+                    isCurrent: { prayer in
+                        dataManager.isCurrent(prayer: prayer)
+                    }
+                )
+                WatchOptionalPrayersSection(optionalPrayers: dataManager.optionalPrayers)
+                WatchPrayerTimesEmptyStateView(isEmpty: dataManager.prayerTimes.isEmpty)
             }
         }
         .onChange(of: scenePhase) { _, phase in
@@ -29,40 +36,56 @@ struct WatchPrayerTimesView: View {
         }
     }
 
-    // MARK: - View Components
+}
 
-    private var locationHeader: some View {
-        Text(dataManager.locationName.isEmpty ? "Prayers" : dataManager.locationName)
+// MARK: - View Components
+
+private struct WatchLocationHeaderView: View {
+    let locationName: String
+
+    var body: some View {
+        Text(locationName.isEmpty ? "Prayers" : locationName)
             .foregroundStyle(.secondary)
     }
+}
 
-    @ViewBuilder
-    private var countdownSection: some View {
-        if let nextPrayer = dataManager.nextPrayer {
+private struct WatchCountdownSection: View {
+    let nextPrayer: SharedPrayerTime?
+    let onPrayerTimeReached: () -> Void
+
+    var body: some View {
+        if let nextPrayer {
             PrayerCountdownView(nextPrayer: nextPrayer) {
-                dataManager.refresh()
+                onPrayerTimeReached()
             }
             .padding(.bottom)
         }
     }
+}
 
-    @ViewBuilder
-    private var prayersList: some View {
-        if !dataManager.prayerTimes.isEmpty {
+private struct WatchPrayersListSection: View {
+    let prayers: [SharedPrayerTime]
+    let isCurrent: (SharedPrayerTime) -> Bool
+
+    var body: some View {
+        if !prayers.isEmpty {
             VStack(spacing: 2) {
-                ForEach(dataManager.prayerTimes) { prayer in
+                ForEach(prayers) { prayer in
                     PrayerRowView(
                         prayer: prayer,
-                        isCurrent: dataManager.isCurrent(prayer: prayer)
+                        isCurrent: isCurrent(prayer)
                     )
                 }
             }
         }
     }
+}
 
-    @ViewBuilder
-    private var optionalPrayersSection: some View {
-        if !dataManager.optionalPrayers.isEmpty {
+private struct WatchOptionalPrayersSection: View {
+    let optionalPrayers: [SharedPrayerTime]
+
+    var body: some View {
+        if !optionalPrayers.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Optional")
                     .font(.caption2)
@@ -70,7 +93,7 @@ struct WatchPrayerTimesView: View {
                     .padding(.horizontal, 8)
 
                 VStack(spacing: 2) {
-                    ForEach(dataManager.optionalPrayers) { prayer in
+                    ForEach(optionalPrayers) { prayer in
                         PrayerRowView(
                             prayer: prayer,
                             isCurrent: false
@@ -80,10 +103,13 @@ struct WatchPrayerTimesView: View {
             }
         }
     }
+}
 
-    @ViewBuilder
-    private var emptyStateView: some View {
-        if dataManager.prayerTimes.isEmpty {
+private struct WatchPrayerTimesEmptyStateView: View {
+    let isEmpty: Bool
+
+    var body: some View {
+        if isEmpty {
             ContentUnavailableView(
                 "No Prayer Data",
                 systemImage: "clock.badge.exclamationmark",

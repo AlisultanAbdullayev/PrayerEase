@@ -41,7 +41,9 @@ struct TasbihGaugeView: View {
                 // Count display
                 VStack(spacing: 2) {
                     Text("\(currentCount)")
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .font(.largeTitle)
+                        .bold()
+                        .fontDesign(.rounded)
                         .foregroundStyle(.primary)
                         .contentTransition(.numericText())
 

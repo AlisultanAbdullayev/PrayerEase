@@ -37,7 +37,7 @@ struct PrayerTimesList: View {
                             : formattedTime(item.time),
                         salahName: item.name
                     )
-                    .foregroundColor(isHighlighted(item) ? .accentColor : .none)
+                    .foregroundStyle(isHighlighted(item) ? .accent : .primary)
                 }
             } header: {
                 Label(
@@ -45,7 +45,7 @@ struct PrayerTimesList: View {
                     systemImage: locationManager.isLocationActive
                         ? "location.circle.fill" : "location.slash"
                 )
-                .foregroundColor(.accentColor)
+                .foregroundStyle(.accent)
             }
 
             if !optionalPrayers.isEmpty {

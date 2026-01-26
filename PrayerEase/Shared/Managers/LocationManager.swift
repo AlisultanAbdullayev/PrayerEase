@@ -6,8 +6,8 @@
 //
 
 import Adhan
-import CoreLocation
-import MapKit
+@preconcurrency import CoreLocation
+@preconcurrency import MapKit
 import SwiftUI
 import UserNotifications
 import WidgetKit
@@ -561,11 +561,13 @@ private class LocationDelegate: NSObject, CLLocationManagerDelegate {
         self.manager = manager
     }
 
-    func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
-        Task { @MainActor [weak self] in
-            guard let self = self?.manager else { return }
-            self.heading = newHeading.trueHeading
-            self.headingAccuracy = newHeading.headingAccuracy
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+        // Extract values before crossing isolation boundary
+        let trueHeading = newHeading.trueHeading
+        let headingAccuracy = newHeading.headingAccuracy
+        Task { @MainActor in
+            LocationManager.shared.heading = trueHeading
+            LocationManager.shared.headingAccuracy = headingAccuracy
         }
     }
 }

@@ -8,57 +8,56 @@
 import SwiftUI
 
 struct TabPageView: View {
-
-    @State private var selectedTab: Tab = .time
+    @State private var selectedTab: AppTab = .time
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            NavigationStack {
-                PrayerTimesView()
+            Tab(value: AppTab.time) {
+                NavigationStack {
+                    PrayerTimesView()
+                }
+            } label: {
+                Label(AppTab.time.title, systemImage: AppTab.time.imageName)
             }
-            .tabItem {
-                Label(Tab.time.title, systemImage: Tab.time.imageName)
-            }
-            .tag(Tab.time)
 
-            NavigationStack {
-                QiblaView()
+            Tab(value: AppTab.qibla) {
+                NavigationStack {
+                    QiblaView()
+                }
+            } label: {
+                Label(AppTab.qibla.title, systemImage: AppTab.qibla.imageName)
             }
-            .tabItem {
-                Label(Tab.qibla.title, systemImage: Tab.qibla.imageName)
-            }
-            .tag(Tab.qibla)
 
-            // NavigationStack {
-            //     ChatView()
+            // Tab(value: AppTab.chat) {
+            //     NavigationStack {
+            //         ChatView()
+            //     }
+            // } label: {
+            //     Label(AppTab.chat.title, systemImage: AppTab.chat.imageName)
             // }
-            // .tabItem {
-            //     Label(Tab.chat.title, systemImage: Tab.chat.imageName)
-            // }
-            // .tag(Tab.qibla)
 
-            NavigationStack {
-                EventsView()
+            Tab(value: AppTab.calendar) {
+                NavigationStack {
+                    EventsView()
+                }
+            } label: {
+                Label(AppTab.calendar.title, systemImage: AppTab.calendar.imageName)
             }
-            .tabItem {
-                Label(Tab.calendar.title, systemImage: Tab.calendar.imageName)
-            }
-            .tag(Tab.calendar)
 
-            NavigationStack {
-                SettingsView()
+            Tab(value: AppTab.settings) {
+                NavigationStack {
+                    SettingsView()
+                }
+            } label: {
+                Label(AppTab.settings.title, systemImage: AppTab.settings.imageName)
             }
-            .tabItem {
-                Label(Tab.settings.title, systemImage: Tab.settings.imageName)
-            }
-            .tag(Tab.settings)
         }
     }
 }
 
 extension TabPageView {
 
-    private enum Tab: String, Equatable {
+    private enum AppTab: String, Hashable {
         case time
         case qibla
         case chat
