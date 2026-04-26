@@ -10,16 +10,19 @@ import SwiftUI
 struct IslamicHolidaysView: View {
     private let hijriYear: Int
     @State private var holidays: [IslamicHoliday]
+    @State private var passedHolidayIDs: Set<String>
     @State private var selectedHoliday: IslamicHoliday?
 
     init(year: Int? = nil) {
         let currentHijriYear = Calendar(identifier: .islamicUmmAlQura).component(
             .year, from: Date())
         let resolvedYear = year ?? currentHijriYear
+        let initialHolidays = DiyanetHolidayProvider.localHolidays(for: resolvedYear)
         self.hijriYear = resolvedYear
         _holidays = State(
-            initialValue: DiyanetHolidayProvider.localHolidays(for: resolvedYear)
+            initialValue: initialHolidays
         )
+        _passedHolidayIDs = State(initialValue: Self.passedIDs(from: initialHolidays))
     }
 
     var body: some View {
@@ -30,7 +33,10 @@ struct IslamicHolidaysView: View {
                         Button {
                             selectedHoliday = holiday
                         } label: {
-                            HolidayRowView(holiday: holiday, isPassed: isPassed(holiday))
+                            HolidayRowView(
+                                holiday: holiday,
+                                isPassed: passedHolidayIDs.contains(holiday.id)
+                            )
                                 .id(holiday.id)
                         }
                         .buttonStyle(.plain)
@@ -41,24 +47,32 @@ struct IslamicHolidaysView: View {
             .task(id: hijriYear) {
                 if let refreshed = await DiyanetHolidayProvider.refreshedHolidays(for: hijriYear) {
                     holidays = refreshed
+                    passedHolidayIDs = Self.passedIDs(from: refreshed)
                 }
                 scrollToCurrentDay(using: proxy)
             }
             .onAppear {
+                passedHolidayIDs = Self.passedIDs(from: holidays)
                 scrollToCurrentDay(using: proxy)
             }
             .onChange(of: holidays.map(\.id)) { _, _ in
+                passedHolidayIDs = Self.passedIDs(from: holidays)
                 scrollToCurrentDay(using: proxy)
             }
+            .animation(.none, value: selectedHoliday?.id)
             .sheet(item: $selectedHoliday) { holiday in
                 HolidayDetailSheet(holiday: holiday)
             }
         }
     }
 
-    private func isPassed(_ holiday: IslamicHoliday) -> Bool {
+    private static func isPassed(_ holiday: IslamicHoliday) -> Bool {
         let calendar = Calendar.current
         return calendar.startOfDay(for: holiday.date) < calendar.startOfDay(for: Date())
+    }
+
+    private static func passedIDs(from holidays: [IslamicHoliday]) -> Set<String> {
+        Set(holidays.filter(isPassed).map(\.id))
     }
 
     private func scrollToCurrentDay(using proxy: ScrollViewProxy) {
@@ -111,8 +125,9 @@ private struct HolidayRowView: View {
                     .multilineTextAlignment(.trailing)
             }
         }
-        .opacity(isPassed ? 0.52 : 1)
         .customGlassContainer()
+        .opacity(isPassed ? 0.52 : 1)
+        .animation(.none, value: isPassed)
     }
 }
 
@@ -127,6 +142,7 @@ private struct HolidayDetailSheet: View {
                     Text(holiday.name)
                         .font(.title3)
                         .fontWeight(.bold)
+                        .foregroundStyle(.primary)
 
                     Text(holiday.date.formatted(date: .long, time: .omitted))
                         .font(.subheadline)
@@ -144,6 +160,14 @@ private struct HolidayDetailSheet: View {
                             .font(.caption.weight(.semibold))
                     }
                     .padding(.top, 8)
+
+                    if holiday.source != .baseline {
+                        Text(
+                            "This holiday summary is aligned with Diyanet-based references and local observance context."
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
@@ -152,9 +176,12 @@ private struct HolidayDetailSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
+                    Button {
                         dismiss()
+                    } label: {
+                        Image(systemName: "checkmark")
                     }
+                    .tint(.accent)
                 }
             }
         }

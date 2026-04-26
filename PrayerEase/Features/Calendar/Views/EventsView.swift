@@ -56,8 +56,6 @@ struct EventsView: View {
             .onChange(of: currentDate) { _, _ in
                 updateMonthlyPrayerTimes()
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
             .navigationTitle("Calendar")
             .navigationBarTitleDisplayMode(.inline)
         }
@@ -112,48 +110,62 @@ private struct PrayerTimesGridView: View {
 
     var body: some View {
         ScrollViewReader { proxy in
-            ScrollView {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
-                        GridRow {
-                            ForEach(prayerNames, id: \.self) { prayerName in
-                                Text(prayerName)
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .foregroundStyle(
-                                        prayerName == "Fajr" || prayerName == "Maghrib"
-                                            ? .primary : .secondary)
-                            }
-                        }
-                        .padding(.bottom)
-
-                        ForEach(
-                            prayerTimesManager.prayerTimesArr.enumerated(),
-                            id: \.element.date
-                        ) { index, prayerTime in
-                            CalendarRowView(
-                                index: index + 1,
-                                prayerTime: prayerTime,
-                                isToday: isToday(components: prayerTime.date)
-                            )
-                            .id(prayerTime.date)
-                            
-                            if index < prayerTimesManager.prayerTimesArr.count - 1 {
-                                Divider()
-                            }
+            ScrollView([.horizontal, .vertical], showsIndicators: false) {
+                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
+                    GridRow {
+                        ForEach(prayerNames, id: \.self) { prayerName in
+                            Text(prayerName)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundStyle(
+                                    prayerName == "Fajr" || prayerName == "Maghrib"
+                                        ? .primary : .secondary)
                         }
                     }
-                    .padding()
+                    .padding(.bottom)
+
+                    ForEach(
+                        Array(prayerTimesManager.prayerTimesArr.enumerated()),
+                        id: \.offset
+                    ) { index, prayerTime in
+                        CalendarRowView(
+                            index: index + 1,
+                            prayerTime: prayerTime,
+                            isToday: isToday(components: prayerTime.date)
+                        )
+                        .id(index)
+                        
+                        if index < prayerTimesManager.prayerTimesArr.count - 1 {
+                            Divider()
+                        }
+                    }
                 }
+                .padding()
                 .customGlassContainer()
                 .padding(.horizontal)
             }
             .onChange(of: prayerTimesManager.dataId) { _, _ in
-                scrollToCurrentDay(proxy: proxy)
+                scheduleScrollToCurrentDay(using: proxy)
+            }
+            .onChange(of: prayerDateKeys) { _, _ in
+                scheduleScrollToCurrentDay(using: proxy)
             }
             .onAppear {
-                scrollToCurrentDay(proxy: proxy)
+                scheduleScrollToCurrentDay(using: proxy)
             }
+        }
+    }
+
+    private var prayerDateKeys: [String] {
+        prayerTimesManager.prayerTimesArr.map {
+            "\($0.date.year ?? 0)-\($0.date.month ?? 0)-\($0.date.day ?? 0)"
+        }
+    }
+
+    private func scheduleScrollToCurrentDay(using proxy: ScrollViewProxy) {
+        scrollToCurrentDay(proxy: proxy)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            scrollToCurrentDay(proxy: proxy)
         }
     }
 
@@ -161,13 +173,15 @@ private struct PrayerTimesGridView: View {
         let calendar = Calendar.current
         let targetComponents = calendar.dateComponents([.year, .month, .day], from: Date())
 
-        if let target = prayerTimesManager.prayerTimesArr.first(where: {
+        if let targetIndex = prayerTimesManager.prayerTimesArr.firstIndex(where: {
             $0.date.year == targetComponents.year
                 && $0.date.month == targetComponents.month
                 && $0.date.day == targetComponents.day
         }) {
-            withAnimation {
-                proxy.scrollTo(target.date, anchor: .center)
+            DispatchQueue.main.async {
+                withAnimation {
+                    proxy.scrollTo(targetIndex, anchor: .center)
+                }
             }
         }
     }

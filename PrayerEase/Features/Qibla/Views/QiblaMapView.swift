@@ -13,8 +13,7 @@ struct QiblaMapView: View {
     @Environment(LocationManager.self) private var locationManager
 
     @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
-    @State private var mapStyle: MapStyle = .standard
-    @State private var selectedMapStyle = 0
+    @State private var selectedMapStyle: QiblaMapStyle = .defaultStyle
 
     private let kaabaCoordinate = CLLocationCoordinate2D(latitude: 21.422487, longitude: 39.826206)
 
@@ -33,7 +32,7 @@ struct QiblaMapView: View {
                     .stroke(.accent, style: StrokeStyle(lineWidth: 3, dash: [10, 5]))
                 }
             }
-            .mapStyle(selectedMapStyle == 0 ? .standard : .hybrid(elevation: .realistic))
+            .mapStyle(selectedMapStyle.style)
             .mapControls {
                 MapUserLocationButton()
                 MapCompass()
@@ -43,21 +42,32 @@ struct QiblaMapView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Close") {
+                    Button {
                         dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
                     }
+                    .tint(.primary)
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Picker("Map Style", selection: $selectedMapStyle) {
-                            Label("Standard", systemImage: "map").tag(0)
-                            Label("Satellite", systemImage: "globe.americas.fill").tag(1)
+                        Button {
+                            selectedMapStyle = .defaultStyle
+                        } label: {
+                            Label("Default", systemImage: "map")
+                        }
+
+                        Button {
+                            selectedMapStyle = .satellite
+                        } label: {
+                            Label("Satellite", systemImage: "globe.americas.fill")
                         }
                     } label: {
                         Label(
                             "Map Style",
-                            systemImage: selectedMapStyle == 0 ? "map" : "globe.americas.fill"
+                            systemImage: selectedMapStyle == .defaultStyle
+                                ? "map" : "globe.americas.fill"
                         )
                         .font(.headline)
                         .foregroundStyle(.accent)
@@ -77,6 +87,20 @@ struct QiblaMapView: View {
             repeating: kCLLocationCoordinate2DInvalid, count: polyline.pointCount)
         polyline.getCoordinates(&coords, range: NSRange(location: 0, length: polyline.pointCount))
         return coords
+    }
+}
+
+private enum QiblaMapStyle {
+    case defaultStyle
+    case satellite
+
+    var style: MapStyle {
+        switch self {
+        case .defaultStyle:
+            return .standard
+        case .satellite:
+            return .imagery(elevation: .realistic)
+        }
     }
 }
 

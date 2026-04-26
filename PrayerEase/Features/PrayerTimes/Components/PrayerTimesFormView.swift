@@ -33,7 +33,7 @@ struct PrayerTimesFormView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 VStack(alignment: .trailing) {
-                    Text(SharedFormatters.formatHijri(currentDate))
+                    Text(hijriDateText)
                         .font(.footnote)
                         .bold()
                         .foregroundStyle(.accent)
@@ -42,11 +42,18 @@ struct PrayerTimesFormView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                .customGlassContainer()
+                .padding()
+                .glassEffect(.regular, in: ContainerRelativeShape())
             }
         }
     }
 
+    private var hijriDateText: String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .islamicUmmAlQura)
+        formatter.dateFormat = "d MMMM yyyy"
+        return formatter.string(from: currentDate)
+    }
 }
 
 private struct PrayerTimesLoadingView: View {

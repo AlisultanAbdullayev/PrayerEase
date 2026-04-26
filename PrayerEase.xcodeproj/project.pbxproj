@@ -29,13 +29,6 @@
 			remoteGlobalIDString = D634CF0D2EFC73F00045E951;
 			remoteInfo = WatchWidgetExtension;
 		};
-		D66C4BDC2EF93EA300F59A64 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = C17B30212CD299F100BFE815 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = D66C4BD32EF93EA200F59A64;
-			remoteInfo = "PrayerEaseWatch Watch App";
-		};
 		D690B4962EF8703800312C04 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = C17B30212CD299F100BFE815 /* Project object */;
@@ -168,8 +161,6 @@
 		};
 		D66C4BD52EF93EA200F59A64 /* PrayerEaseWatch Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "PrayerEaseWatch Watch App";
 			sourceTree = "<group>";
 		};
@@ -474,11 +465,6 @@
 			isa = PBXTargetDependency;
 			target = D634CF0D2EFC73F00045E951 /* WatchWidgetExtension */;
 			targetProxy = D634CF1B2EFC73F10045E951 /* PBXContainerItemProxy */;
-		};
-		D66C4BDD2EF93EA300F59A64 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = D66C4BD32EF93EA200F59A64 /* PrayerEaseWatch Watch App */;
-			targetProxy = D66C4BDC2EF93EA300F59A64 /* PBXContainerItemProxy */;
 		};
 		D690B4972EF8703800312C04 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;

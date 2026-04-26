@@ -15,7 +15,7 @@ struct WatchQiblaMapView: View {
     let viewModel: WatchQiblaViewModel
 
     @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
-    @State private var selectedMapStyle = 0
+    @State private var selectedMapStyle: WatchQiblaMapStyle = .defaultStyle
     @State private var showMapStylePicker = false
 
     private let kaabaCoordinate = CLLocationCoordinate2D(latitude: 21.422487, longitude: 39.826206)
@@ -35,7 +35,7 @@ struct WatchQiblaMapView: View {
                     .stroke(.green, style: StrokeStyle(lineWidth: 2, dash: [8, 4]))
                 }
             }
-            .mapStyle(selectedMapStyle == 0 ? .standard : .imagery(elevation: .realistic))
+            .mapStyle(selectedMapStyle.style)
             .mapControls {
                 MapUserLocationButton()
                 MapCompass()
@@ -44,15 +44,18 @@ struct WatchQiblaMapView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close", systemImage: "xmark") {
+                    Button {
                         dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
                     }
+                    .tint(.primary)
                 }
 
                 ToolbarItem(placement: .bottomBar) {
                     Button(
                         "Map Style",
-                        systemImage: selectedMapStyle == 0 ? "map" : "globe.americas.fill"
+                        systemImage: selectedMapStyle == .defaultStyle ? "map" : "globe.americas.fill"
                     ) {
                         showMapStylePicker = true
                     }
@@ -63,31 +66,31 @@ struct WatchQiblaMapView: View {
                 NavigationStack {
                     List {
                         Button {
-                            selectedMapStyle = 0
+                            selectedMapStyle = .defaultStyle
                             showMapStylePicker = false
                         } label: {
                             HStack {
-                                Label("Standard", systemImage: "map")
+                                Label("Default", systemImage: "map")
                                     .foregroundStyle(.primary)
                                 Spacer()
-                                if selectedMapStyle == 0 {
+                                if selectedMapStyle == .defaultStyle {
                                     Image(systemName: "checkmark")
-                                        .foregroundStyle(Color.accentColor)
+                                        .foregroundStyle(.accent)
                                 }
                             }
                         }
 
                         Button {
-                            selectedMapStyle = 1
+                            selectedMapStyle = .satellite
                             showMapStylePicker = false
                         } label: {
                             HStack {
                                 Label("Satellite", systemImage: "globe.americas.fill")
                                     .foregroundStyle(.primary)
                                 Spacer()
-                                if selectedMapStyle == 1 {
+                                if selectedMapStyle == .satellite {
                                     Image(systemName: "checkmark")
-                                        .foregroundStyle(Color.accentColor)
+                                        .foregroundStyle(.accent)
                                 }
                             }
                         }
@@ -96,9 +99,12 @@ struct WatchQiblaMapView: View {
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
-                            Button("OK") {
+                            Button {
                                 showMapStylePicker = false
+                            } label: {
+                                Image(systemName: "checkmark")
                             }
+                            .tint(.accent)
                         }
                     }
                 }
@@ -119,6 +125,20 @@ struct WatchQiblaMapView: View {
         )
         polyline.getCoordinates(&coords, range: NSRange(location: 0, length: polyline.pointCount))
         return coords
+    }
+}
+
+private enum WatchQiblaMapStyle {
+    case defaultStyle
+    case satellite
+
+    var style: MapStyle {
+        switch self {
+        case .defaultStyle:
+            return .standard
+        case .satellite:
+            return .imagery(elevation: .realistic)
+        }
     }
 }
 
