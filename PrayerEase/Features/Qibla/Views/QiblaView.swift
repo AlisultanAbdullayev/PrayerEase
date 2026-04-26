@@ -183,7 +183,7 @@ struct QiblaView: View {
                 .foregroundStyle(.secondary)
             }
             .padding()
-            .glassEffect(.clear, in: .rect(cornerRadius: 12))
+        .customGlassContainer(glassType: .clear, shape: RoundedRectangle(cornerRadius: 12))
             .padding(.top)
             .transition(.scale.combined(with: .opacity))
         }

@@ -112,16 +112,7 @@ private struct HolidayRowView: View {
             }
         }
         .opacity(isPassed ? 0.52 : 1)
-        .padding()
-        .background(
-            Group {
-                if #available(iOS 26, *) {
-                    Color.clear.glassEffect(.regular, in: .rect(cornerRadius: 16))
-                } else {
-                    RoundedRectangle(cornerRadius: 16).fill(.ultraThinMaterial)
-                }
-            }
-        )
+        .customGlassContainer()
     }
 }
 

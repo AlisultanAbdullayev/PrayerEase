@@ -54,8 +54,7 @@ struct OnboardingLocationView: View {
                         "Enable Auto Location Detection",
                         isOn: $manager.isAutoLocationEnabled
                     )
-                    .padding()
-                    .glassEffect(.regular)
+                    .customGlassContainer()
                     .sensoryFeedback(.selection, trigger: locationManager.isAutoLocationEnabled)
                 }
             }

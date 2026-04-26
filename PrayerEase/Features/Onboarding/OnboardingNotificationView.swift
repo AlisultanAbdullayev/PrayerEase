@@ -33,8 +33,7 @@ struct OnboardingNotificationView: View {
                                 Text(key.capitalized)
                                     .font(.body)
                             }
-                            .padding()
-                            .glassEffect(.regular)
+                            .customGlassContainer()
                             .sensoryFeedback(.selection, trigger: binding.wrappedValue)
                         }
                     }

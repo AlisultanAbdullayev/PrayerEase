@@ -65,15 +65,7 @@ struct PrayerTimesList: View {
                     }
                 }
             }
-            .background(
-                Group {
-                    if #available(iOS 26, *) {
-                        Color.clear.glassEffect(.regular, in: .rect(cornerRadius: 24))
-                    } else {
-                        RoundedRectangle(cornerRadius: 24).fill(.ultraThinMaterial)
-                    }
-                }
-            )
+            .customGlassContainer()
             
             // Optional Prayers Card
             if !optional.isEmpty {
@@ -103,15 +95,7 @@ struct PrayerTimesList: View {
                         }
                     }
                 }
-                .background(
-                    Group {
-                        if #available(iOS 26, *) {
-                            Color.clear.glassEffect(.regular, in: .rect(cornerRadius: 24))
-                        } else {
-                            RoundedRectangle(cornerRadius: 24).fill(.ultraThinMaterial)
-                        }
-                    }
-                )
+                .customGlassContainer()
             }
         }
     }

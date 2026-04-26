@@ -32,34 +32,17 @@ struct PrayerTimesFormView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Group {
-                    if #available(iOS 26, *) {
-                        VStack(alignment: .trailing) {
-                            Text(SharedFormatters.formatHijri(currentDate))
-                                .font(.footnote)
-                                .bold()
-                                .foregroundStyle(.accent)
+                VStack(alignment: .trailing) {
+                    Text(SharedFormatters.formatHijri(currentDate))
+                        .font(.footnote)
+                        .bold()
+                        .foregroundStyle(.accent)
 
-                            Text(currentDate, style: .date)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding()
-                        .glassEffect(.regular, in: .rect(cornerRadius: 10))
-                    } else {
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text(SharedFormatters.formatHijri(currentDate))
-                                .font(.footnote)
-                                .bold()
-                                .foregroundStyle(.accent)
-
-                            Text(currentDate, style: .date)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding()
-                    }
+                    Text(currentDate, style: .date)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
+                .customGlassContainer()
             }
         }
     }

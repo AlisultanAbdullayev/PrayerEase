@@ -35,8 +35,7 @@ struct LeftTimeSection: View {
                     .font(.largeTitle)
                     .bold()
                     .id(prayers.fajr)
-                    .padding()
-                    .glassEffect(.clear, in: .rect(cornerRadius: 24))
+                    .customGlassContainer(glassType: .clear)
 
         }
     }

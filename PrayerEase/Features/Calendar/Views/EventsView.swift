@@ -145,15 +145,7 @@ private struct PrayerTimesGridView: View {
                     }
                     .padding()
                 }
-                .background(
-                    Group {
-                        if #available(iOS 26, *) {
-                            Color.clear.glassEffect(.regular, in: .rect(cornerRadius: 24))
-                        } else {
-                            RoundedRectangle(cornerRadius: 24).fill(.ultraThinMaterial)
-                        }
-                    }
-                )
+                .customGlassContainer()
                 .padding(.horizontal)
             }
             .onChange(of: prayerTimesManager.dataId) { _, _ in
