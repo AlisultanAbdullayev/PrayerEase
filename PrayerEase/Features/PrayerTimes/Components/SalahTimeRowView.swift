@@ -48,12 +48,11 @@ private struct SalahNotificationButton: View {
 
     var body: some View {
         let isEnabled = notificationManager.notificationSettings[salahName] ?? true
-        Button(
-            "",
-            systemImage: isEnabled ? "bell.fill" : "bell.slash"
-        ) {
+        Button(action: {
             toggleNotification()
-        }
+        }, label: {
+            Image(systemName: isEnabled ? "bell.fill" : "bell.slash")
+        })
         .buttonStyle(.glass)
         .sensoryFeedback(
             .selection, trigger: notificationManager.notificationSettings[salahName] ?? false)
