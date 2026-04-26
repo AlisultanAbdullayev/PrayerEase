@@ -111,8 +111,8 @@ struct NotificationSettingsView: View {
     @Environment(NotificationManager.self) private var notificationManager
     @Environment(PrayerTimeManager.self) private var prayerTimeManager
     @Environment(LocationManager.self) private var locationManager
+    @Environment(WidgetDataManager.self) private var widgetDataManager
 
-    @State private var widgetDataManager = WidgetDataManager.shared
     @State private var isNotifyBeforeExpanded = false
     @State private var isNotifyExactExpanded = false
 
@@ -156,7 +156,6 @@ struct NotificationSettingsView: View {
             set: { newValue in
                 self.notificationManager.updateNotificationSettings(
                     for: key, sendNotification: newValue, isBefore: isBefore)
-                UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
             }
         )
     }
@@ -176,28 +175,17 @@ struct NotificationSettingsView: View {
                 if newValue {
                     isEnabledBinding.wrappedValue = true
                 }
-
-                UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
             }
         )
     }
 
     private func startLiveActivityIfPossible() async {
         guard let prayerTimes = prayerTimeManager.prayerTimes else { return }
-        let islamicDate = getFormattedHijriDate()
         await widgetDataManager.startLiveActivity(
             prayerTimes: prayerTimes,
             locationName: locationManager.locationName,
-            islamicDate: islamicDate
+            islamicDate: SharedFormatters.formatHijri(Date())
         )
-    }
-
-    private func getFormattedHijriDate() -> String {
-        let hijriCalendar = Calendar(identifier: .islamicUmmAlQura)
-        let formatter = DateFormatter()
-        formatter.calendar = hijriCalendar
-        formatter.dateFormat = "d MMMM yyyy"
-        return formatter.string(from: Date())
     }
 }
 
@@ -252,25 +240,27 @@ private struct ExactAlertsSection: View {
                 ForEach(notificationManager.notificationSettings.keys.sorted(), id: \.self) { key in
                     // Exclude optional prayers and Qiraa (they have their own sections)
                     if key != "Tahajjud" && key != "Duha" && !key.starts(with: "Qiraa") {
-                        Toggle(isOn: bindingForNotification(key, false)) {
+                        let binding = bindingForNotification(key, false)
+                        Toggle(isOn: binding) {
                             Text(key).tag(key)
                         }
+                        .sensoryFeedback(.selection, trigger: binding.wrappedValue)
                     }
                 }
 
-                Toggle(
-                    isOn: bindingForOptionalPrayerNotification(
-                        "Duha", $widgetDataManager.isDuhaEnabled)
-                ) {
+                let duhaBinding = bindingForOptionalPrayerNotification(
+                    "Duha", $widgetDataManager.isDuhaEnabled)
+                Toggle(isOn: duhaBinding) {
                     Text("Duha")
                 }
+                .sensoryFeedback(.selection, trigger: duhaBinding.wrappedValue)
 
-                Toggle(
-                    isOn: bindingForOptionalPrayerNotification(
-                        "Tahajjud", $widgetDataManager.isTahajjudEnabled)
-                ) {
+                let tahajjudBinding = bindingForOptionalPrayerNotification(
+                    "Tahajjud", $widgetDataManager.isTahajjudEnabled)
+                Toggle(isOn: tahajjudBinding) {
                     Text("Tahajjud")
                 }
+                .sensoryFeedback(.selection, trigger: tahajjudBinding.wrappedValue)
 
             } label: {
                 SettingsRowWithSelection(
@@ -286,7 +276,8 @@ private struct QiraaSection: View {
 
     var body: some View {
         Section(header: Text("Qiraa Times")) {
-            Toggle(isOn: bindingForNotification("QiraaAfterSunrise", false)) {
+            let afterSunrise = bindingForNotification("Qiraa Ends (Sunrise)", false)
+            Toggle(isOn: afterSunrise) {
                 VStack(alignment: .leading) {
                     Text("After Sunrise")
                     Text("45 min after sunrise")
@@ -294,7 +285,9 @@ private struct QiraaSection: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            Toggle(isOn: bindingForNotification("QiraaBeforeDhuhr", false)) {
+            .sensoryFeedback(.selection, trigger: afterSunrise.wrappedValue)
+            let beforeDhuhr = bindingForNotification("Qiraa Starts (Dhuhr)", false)
+            Toggle(isOn: beforeDhuhr) {
                 VStack(alignment: .leading) {
                     Text("Before Dhuhr")
                     Text("45 min before dhuhr")
@@ -302,7 +295,9 @@ private struct QiraaSection: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            Toggle(isOn: bindingForNotification("QiraaBeforeMaghrib", false)) {
+            .sensoryFeedback(.selection, trigger: beforeDhuhr.wrappedValue)
+            let beforeMaghrib = bindingForNotification("Qiraa Starts (Maghrib)", false)
+            Toggle(isOn: beforeMaghrib) {
                 VStack(alignment: .leading) {
                     Text("Before Maghrib")
                     Text("45 min before maghrib")
@@ -310,6 +305,7 @@ private struct QiraaSection: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .sensoryFeedback(.selection, trigger: beforeMaghrib.wrappedValue)
         }
     }
 }
@@ -324,9 +320,11 @@ private struct PreAlertsSection: View {
             DisclosureGroup(isExpanded: $isNotifyBeforeExpanded) {
                 ForEach(notificationManager.notificationSettingsBefore.keys.sorted(), id: \.self) {
                     key in
-                    Toggle(isOn: bindingForNotification(key, true)) {
+                    let binding = bindingForNotification(key, true)
+                    Toggle(isOn: binding) {
                         Text(key).tag(key)
                     }
+                    .sensoryFeedback(.selection, trigger: binding.wrappedValue)
                 }
             } label: {
                 SettingsRowWithSelection(text: Text("Notify before salahs"), systemImage: "clock") {
@@ -353,36 +351,14 @@ private struct PreAlertsSection: View {
 
 struct PrayerSettingsView: View {
     @Environment(PrayerTimeManager.self) private var prayerTimeManager
-
-    @State private var widgetDataManager = WidgetDataManager.shared
+    @Environment(WidgetDataManager.self) private var widgetDataManager
 
     var body: some View {
         Form {
             OptionalPrayersSection(widgetDataManager: widgetDataManager)
-            CalculationSection(
-                prayerTimeManager: prayerTimeManager,
-                methodName: methodName
-            )
+            CalculationSection(prayerTimeManager: prayerTimeManager)
         }
         .navigationTitle("Prayer Settings")
-    }
-
-    private func methodName(for method: CalculationMethod) -> String {
-        switch method {
-        case .dubai: return "Dubai"
-        case .muslimWorldLeague: return "Muslim World League"
-        case .egyptian: return "Egyptian General Authority of Survey"
-        case .karachi: return "University of Islamic Sciences, Karachi"
-        case .ummAlQura: return "Umm Al-Qura University, Makkah"
-        case .moonsightingCommittee: return "Moonsighting Committee Worldwide"
-        case .northAmerica: return "Islamic Society of North America"
-        case .kuwait: return "Kuwait"
-        case .qatar: return "Qatar"
-        case .singapore: return "Majlis Ugama Islam Singapura, Singapore"
-        case .tehran: return "Institute of Geophysics, University of Tehran"
-        case .turkey: return "Diyanet İşleri Başkanlığı, Turkey"
-        case .other: return "Other"
-        }
     }
 }
 
@@ -424,7 +400,6 @@ private struct OptionalPrayersSection: View {
 
 private struct CalculationSection: View {
     @Bindable var prayerTimeManager: PrayerTimeManager
-    let methodName: (CalculationMethod) -> String
 
     var body: some View {
         Section(header: Text("Calculation Method")) {
@@ -440,7 +415,7 @@ private struct CalculationSection: View {
             SettingsRowWithSelection(text: Text("Institution"), systemImage: "book") {
                 Picker("", selection: $prayerTimeManager.method) {
                     ForEach(prayerTimeManager.methods, id: \.self) { method in
-                        Text(methodName(method)).tag(method)
+                        Text(method.displayName).tag(method)
                     }
                 }
                 .pickerStyle(NavigationLinkPickerStyle())

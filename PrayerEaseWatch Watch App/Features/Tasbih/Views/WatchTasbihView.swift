@@ -28,12 +28,10 @@ struct WatchTasbihView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
+                Button("More", systemImage: "ellipsis.circle") {
                     showSettings = true
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.headline)
                 }
+                .font(.headline)
             }
         }
         .sheet(isPresented: $showSettings) {

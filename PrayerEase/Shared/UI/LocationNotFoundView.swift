@@ -9,6 +9,7 @@ import SwiftUI
 
 struct LocationNotFoundView: View {
     @Environment(LocationManager.self) private var locationManager
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         VStack(spacing: 30) {
@@ -56,7 +57,7 @@ struct LocationNotFoundView: View {
                 if locationManager.authorizationStatus == .notDetermined {
                     locationManager.requestLocation()
                 } else if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url, options: [:], completionHandler: nil)
+                    openURL(url)
                 }
 
             } label: {

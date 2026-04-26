@@ -21,7 +21,7 @@ struct EventsView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
+            VStack {
                 Picker("View", selection: $selectedView) {
                     ForEach(CalendarTab.allCases, id: \.self) { tab in
                         Text(tab.rawValue).tag(tab)
@@ -36,8 +36,7 @@ struct EventsView: View {
                         currentDate: currentDate,
                         onChangeMonth: changeMonth
                     )
-                    PrayerTimesHeaderView()
-                    PrayerTimesListView()
+                    PrayerTimesGridView()
                 } else {
                     IslamicHolidaysView()
                 }
@@ -85,10 +84,10 @@ private struct MonthNavigationHeaderView: View {
 
     var body: some View {
         HStack {
-            Button(action: { onChangeMonth(-1) }) {
-                Image(systemName: "chevron.left")
-                    .padding()
+            Button("Previous", systemImage: "chevron.left") {
+                onChangeMonth(-1)
             }
+            .padding()
 
             Spacer()
 
@@ -98,55 +97,65 @@ private struct MonthNavigationHeaderView: View {
 
             Spacer()
 
-            Button(action: { onChangeMonth(1) }) {
-                Image(systemName: "chevron.right")
-                    .padding()
+            Button("Next", systemImage: "chevron.right") {
+                onChangeMonth(1)
             }
+            .padding()
         }
         .padding(.horizontal)
     }
 }
 
-private struct PrayerTimesHeaderView: View {
+private struct PrayerTimesGridView: View {
+    @Environment(PrayerTimeManager.self) private var prayerTimesManager
     private let prayerNames = ["Day", "Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"]
 
     var body: some View {
-        HStack {
-            ForEach(prayerNames, id: \.self) { prayerName in
-                Text(prayerName)
-                    .font(.subheadline)
-                    .foregroundStyle(
-                        prayerName == "Fajr" || prayerName == "Maghrib"
-                            ? Color(uiColor: .label) : .secondary)
-                if prayerName != "Isha" {
-                    Spacer()
-                }
-            }
-        }
-        .padding(.horizontal)
-        .padding(.top, 8)
-    }
-}
-
-private struct PrayerTimesListView: View {
-    @Environment(PrayerTimeManager.self) private var prayerTimesManager
-
-    var body: some View {
         ScrollViewReader { proxy in
-            List {
-                ForEach(prayerTimesManager.prayerTimesArr.indices, id: \.self) { index in
-                    if index < prayerTimesManager.prayerTimesArr.count {
-                        CalendarRowView(
-                            index: index + 1,
-                            prayerTime: prayerTimesManager.prayerTimesArr[index]
-                        )
-                        .id(index)
-                        .listRowBackground(
-                            isToday(index: index) ? Color.accentColor.opacity(0.3) : nil)
+            ScrollView {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
+                        GridRow {
+                            ForEach(prayerNames, id: \.self) { prayerName in
+                                Text(prayerName)
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(
+                                        prayerName == "Fajr" || prayerName == "Maghrib"
+                                            ? .primary : .secondary)
+                            }
+                        }
+                        .padding(.bottom)
+
+                        ForEach(
+                            prayerTimesManager.prayerTimesArr.enumerated(),
+                            id: \.element.date
+                        ) { index, prayerTime in
+                            CalendarRowView(
+                                index: index + 1,
+                                prayerTime: prayerTime,
+                                isToday: isToday(components: prayerTime.date)
+                            )
+                            .id(prayerTime.date)
+                            
+                            if index < prayerTimesManager.prayerTimesArr.count - 1 {
+                                Divider()
+                            }
+                        }
                     }
+                    .padding()
                 }
+                .background(
+                    Group {
+                        if #available(iOS 26, *) {
+                            Color.clear.glassEffect(.regular, in: .rect(cornerRadius: 24))
+                        } else {
+                            RoundedRectangle(cornerRadius: 24).fill(.ultraThinMaterial)
+                        }
+                    }
+                )
+                .padding(.horizontal)
             }
-            .listStyle(.grouped)
             .onChange(of: prayerTimesManager.dataId) { _, _ in
                 scrollToCurrentDay(proxy: proxy)
             }
@@ -160,22 +169,22 @@ private struct PrayerTimesListView: View {
         let calendar = Calendar.current
         let targetComponents = calendar.dateComponents([.year, .month, .day], from: Date())
 
-        if let index = prayerTimesManager.prayerTimesArr.firstIndex(where: {
-            $0.date.year == targetComponents.year && $0.date.month == targetComponents.month
+        if let target = prayerTimesManager.prayerTimesArr.first(where: {
+            $0.date.year == targetComponents.year
+                && $0.date.month == targetComponents.month
                 && $0.date.day == targetComponents.day
         }) {
             withAnimation {
-                proxy.scrollTo(index, anchor: .center)
+                proxy.scrollTo(target.date, anchor: .center)
             }
         }
     }
 
-    private func isToday(index: Int) -> Bool {
+    private func isToday(components: DateComponents) -> Bool {
         let todayComponents = Calendar.current.dateComponents([.year, .month, .day], from: Date())
-        let itemComponents = prayerTimesManager.prayerTimesArr[index].date
-        return todayComponents.year == itemComponents.year
-            && todayComponents.month == itemComponents.month
-            && todayComponents.day == itemComponents.day
+        return todayComponents.year == components.year
+            && todayComponents.month == components.month
+            && todayComponents.day == components.day
     }
 }
 

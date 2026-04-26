@@ -18,31 +18,45 @@ struct IslamicHolidaysView: View {
     }
 
     var body: some View {
-        List(holidays) { holiday in
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(holiday.name)
-                        .font(.headline)
-                        .fontWeight(.semibold)
+        ScrollView {
+            LazyVStack {
+                ForEach(holidays) { holiday in
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(holiday.name)
+                                .font(.headline)
+                                .fontWeight(.semibold)
 
-                    Text(holiday.description)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                            Text(holiday.description)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                        }
 
-                Spacer()
+                        Spacer()
 
-                VStack(alignment: .trailing) {
-                    Text(holiday.date, style: .date)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.accent)
-                        .multilineTextAlignment(.trailing)
+                        VStack(alignment: .trailing) {
+                            Text(holiday.date, style: .date)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.accent)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+                    .padding()
+                    .background(
+                        Group {
+                            if #available(iOS 26, *) {
+                                Color.clear.glassEffect(.regular, in: .rect(cornerRadius: 16))
+                            } else {
+                                RoundedRectangle(cornerRadius: 16).fill(.ultraThinMaterial)
+                            }
+                        }
+                    )
                 }
             }
-            .padding(.vertical, 4)
+            .padding()
         }
-        .listStyle(.grouped)
     }
 }
 

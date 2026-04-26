@@ -49,12 +49,19 @@ final class NotificationManager {
     private var currentLocation: CLLocation?
     private var lastScheduledLocation: CLLocation?
 
+    private static let qiraaKeyMap: [String: String] = [
+        "QiraaAfterSunrise": "Qiraa Ends (Sunrise)",
+        "QiraaBeforeDhuhr": "Qiraa Starts (Dhuhr)",
+        "QiraaBeforeMaghrib": "Qiraa Starts (Maghrib)",
+    ]
+
     private init() {
-        self.notificationSettings =
+        let rawSettings =
             userDefaults.dictionary(forKey: StorageKeys.notifications) as? [String: Bool] ?? [
                 PrayerNames.fajr: true, PrayerNames.sunrise: false, PrayerNames.dhuhr: true,
                 PrayerNames.asr: true, PrayerNames.maghrib: true, PrayerNames.isha: true,
             ]
+        self.notificationSettings = Self.migrateQiraaKeys(in: rawSettings)
         self.notificationSettingsBefore =
             userDefaults.dictionary(forKey: StorageKeys.notificationsBefore) as? [String: Bool] ?? [
                 PrayerNames.fajr: false, PrayerNames.sunrise: false, PrayerNames.dhuhr: false,
@@ -68,6 +75,17 @@ final class NotificationManager {
         }
 
         registerBackgroundTask()
+    }
+
+    private static func migrateQiraaKeys(in settings: [String: Bool]) -> [String: Bool] {
+        var migrated = settings
+        for (legacyKey, displayKey) in qiraaKeyMap {
+            if let value = migrated[legacyKey], migrated[displayKey] == nil {
+                migrated[displayKey] = value
+            }
+            migrated.removeValue(forKey: legacyKey)
+        }
+        return migrated
     }
 
     func updateLocation(_ location: CLLocation) {
@@ -188,7 +206,7 @@ final class NotificationManager {
             prayerTimesToNotify.append((PrayerNames.tahajjud, tahajjudTime))
         }
 
-        if notificationSettings["QiraaAfterSunrise"] == true {
+        if notificationSettings["Qiraa Ends (Sunrise)"] == true {
             prayerTimesToNotify.append(
                 (
                     "Qiraa Ends (Sunrise)",
@@ -196,7 +214,7 @@ final class NotificationManager {
                 ))
         }
 
-        if notificationSettings["QiraaBeforeDhuhr"] == true {
+        if notificationSettings["Qiraa Starts (Dhuhr)"] == true {
             prayerTimesToNotify.append(
                 (
                     "Qiraa Starts (Dhuhr)",
@@ -204,7 +222,7 @@ final class NotificationManager {
                 ))
         }
 
-        if notificationSettings["QiraaBeforeMaghrib"] == true {
+        if notificationSettings["Qiraa Starts (Maghrib)"] == true {
             prayerTimesToNotify.append(
                 (
                     "Qiraa Starts (Maghrib)",
@@ -213,13 +231,7 @@ final class NotificationManager {
         }
 
         for (prayerName, prayerTime) in prayerTimesToNotify {
-            var shouldNotify = notificationSettings[prayerName] == true
-
-            if prayerName == PrayerNames.tahajjud || prayerName == PrayerNames.duha
-                || prayerName.starts(with: "Qiraa")
-            {
-                shouldNotify = true
-            }
+            let shouldNotify = notificationSettings[prayerName] ?? false
 
             if shouldNotify {
                 scheduleNotification(for: prayerTime, with: prayerName, type: .exact)

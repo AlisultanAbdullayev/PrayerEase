@@ -47,22 +47,18 @@ struct WatchQiblaView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .bottomBar) {
-                    Button {
+                    Button("Map", systemImage: "map") {
                         isMapPresented = true
-                    } label: {
-                        Image(systemName: "map")
-                            .foregroundStyle(.green)
-                            .buttonStyle(.glassCircle)
                     }
+                    .buttonStyle(.glassCircle)
+                    .foregroundStyle(.green)
                 }
                 ToolbarItem(placement: .bottomBar) {
-                    Button {
+                    Button("Warning", systemImage: "exclamationmark.triangle.fill") {
                         showWarning = true
-                    } label: {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.yellow)
-                            .buttonStyle(.glassCircle)
                     }
+                    .buttonStyle(.glassCircle)
+                    .foregroundStyle(.yellow)
                 }
             }
             .sheet(isPresented: $isMapPresented) {

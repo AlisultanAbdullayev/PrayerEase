@@ -12,19 +12,20 @@ struct OnboardingWelcomeView: View {
     @State private var isPressed = false
 
     var body: some View {
-        VStack(spacing: 30) {
+        VStack {
             Spacer()
 
             // App Icon or Logo Placeholder
             Image("PrayerEase")  // Assuming AppIcon is available in assets, or use a system placeholder
                 .resizable()
                 .scaledToFit()
-                .frame(width: 120, height: 120)
+                .frame(maxWidth: 120)
+                .aspectRatio(1, contentMode: .fit)
                 .clipShape(.rect(cornerRadius: 24))
                 .shadow(radius: 10)
                 // Fallback if AppIcon asset is not directly loadable by name in SwiftUI Image yet
 
-            VStack(spacing: 10) {
+            VStack {
                 Text("Welcome to PrayerEase")
                     .font(.largeTitle)
                     .bold()
@@ -36,7 +37,7 @@ struct OnboardingWelcomeView: View {
                     .multilineTextAlignment(.center)
             }
 
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading) {
                 FeatureRow(
                     icon: "swift",
                     text: "Built with latest Swift & SwiftUI for a native experience.")
@@ -44,8 +45,7 @@ struct OnboardingWelcomeView: View {
                     icon: "bolt.fill", text: "Lightweight app size with blazing fast performance.")
                 FeatureRow(icon: "gift.fill", text: "Completely free forever. No ads, just peace.")
             }
-            .padding(.horizontal)
-            .padding(.top, 20)
+            .padding()
 
             Spacer()
 
@@ -70,7 +70,7 @@ struct FeatureRow: View {
     let text: String
 
     var body: some View {
-        HStack(spacing: 16) {
+        HStack {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundStyle(.accent)

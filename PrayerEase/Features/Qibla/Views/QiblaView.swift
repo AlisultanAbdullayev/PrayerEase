@@ -23,7 +23,7 @@ struct QiblaView: View {
     var body: some View {
         NavigationStack {
             if locationManager.isLocationActive {
-                VStack(spacing: 12) {
+                VStack {
                     CompassView(
                         rotationDegrees: qiblaDirection - locationManager.heading,
                         isPointingToQibla: isPointingToQibla
@@ -57,13 +57,11 @@ struct QiblaView: View {
                 }
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button {
+                        Button("Map", systemImage: "map.fill") {
                             presentedSheet = .map
-                        } label: {
-                            Image(systemName: "map.fill")
-                                .font(.headline)
-                                .foregroundStyle(Color.green)
                         }
+                        .font(.headline)
+                        .foregroundStyle(.green)
                     }
                 }
                 .sheet(item: $presentedSheet) { sheet in
@@ -167,7 +165,7 @@ struct QiblaView: View {
         let accuracyPercentage: Int
 
         var body: some View {
-            VStack(spacing: 8) {
+            VStack {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.title)
                     .foregroundStyle(.yellow)
@@ -186,7 +184,7 @@ struct QiblaView: View {
             }
             .padding()
             .glassEffect(.clear, in: .rect(cornerRadius: 12))
-            .padding(.top, 10)
+            .padding(.top)
             .transition(.scale.combined(with: .opacity))
         }
     }

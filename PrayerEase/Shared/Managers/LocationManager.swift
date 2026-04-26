@@ -49,6 +49,7 @@ final class LocationManager {
     var hasPendingLocationChange: Bool = false
     var isShowingLocationPrompt: Bool = false
     private var pendingNotificationSent: Bool = false  // Prevent duplicate notifications
+    private var lastDeclinedLocation: CLLocation?
 
     // App state tracking (set from scenePhase in PrayerEaseApp)
     var isAppActive: Bool = true
@@ -232,6 +233,13 @@ final class LocationManager {
 
         print("DEBUG: Significant location change detected: \(Int(distance))m")
 
+        if let lastDeclinedLocation,
+            newLocation.distance(from: lastDeclinedLocation) < significantDistanceThreshold
+        {
+            print("DEBUG: Location change previously declined. Skipping prompt.")
+            return
+        }
+
         // Store as PENDING location (do NOT update confirmed location)
         self.pendingLocation = newLocation
         self.hasPendingLocationChange = true
@@ -307,6 +315,7 @@ final class LocationManager {
         self.userLocation = pending
         self.locationName = pendingLocationName
         self.isLocationActive = true
+        self.lastDeclinedLocation = nil
 
         // Geocode for timezone
         await reverseGeocode(location: pending)
@@ -329,12 +338,13 @@ final class LocationManager {
     /// Called when user declines the location update
     func declinePendingLocation() {
         print("DEBUG: User declined location update, keeping: \(locationName)")
-        // Clear pending but KEEP pendingNotificationSent=true so we don't re-notify
+        // Clear pending and record the declined location to avoid re-prompting for the same change
+        lastDeclinedLocation = pendingLocation
         pendingLocation = nil
         pendingLocationName = ""
         hasPendingLocationChange = false
         isShowingLocationPrompt = false
-        // NOTE: pendingNotificationSent stays TRUE until a genuinely new location change
+        pendingNotificationSent = false
     }
 
     private func clearPendingLocation() {
@@ -511,6 +521,7 @@ final class LocationManager {
         self.locationName = name
         self.userTimeZone = timeZone?.identifier ?? TimeZone.current.identifier
         self.isLocationActive = true
+        self.lastDeclinedLocation = nil
 
         // Refresh widgets when manual location is set
         WidgetCenter.shared.reloadAllTimelines()

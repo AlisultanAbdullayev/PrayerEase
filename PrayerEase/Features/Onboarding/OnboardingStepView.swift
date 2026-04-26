@@ -46,16 +46,16 @@ struct OnboardingStepView<Content: View>: View {
     }
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack {
             Spacer()
 
             Image(systemName: systemImage)
                 .font(.largeTitle)
                 .imageScale(.large)
                 .foregroundStyle(.accent)
-                .padding(.bottom, 10)
+                .padding(.bottom)
 
-            VStack(spacing: 8) {
+            VStack {
                 Text(title)
                     .font(.largeTitle)
                     .bold()
@@ -78,11 +78,11 @@ struct OnboardingStepView<Content: View>: View {
 
             // Custom content injection
             customContent()
-                .padding(.vertical, 4)
+                .padding(.vertical)
 
             Spacer()
 
-            VStack(spacing: 16) {
+            VStack {
                 if !actionButtonTitle.isEmpty {
                     Button(action: {
                         isPressed.toggle()
@@ -104,7 +104,7 @@ struct OnboardingStepView<Content: View>: View {
                     }
                 }
             }
-            .padding(.bottom, 30)
+            .padding(.bottom)
         }
         .padding()
     }

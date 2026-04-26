@@ -99,12 +99,15 @@ final class PrayerTimeManager {
 
         prayerTimesArr.removeAll()
 
+        var params = method.params
+        params.madhab = madhab
+
         for day in range {
             let currentDate = calendar.date(byAdding: .day, value: day - 1, to: startOfMonth)!
             let dateComponents = calendar.dateComponents([.year, .month, .day], from: currentDate)
 
             if let prayers = PrayerTimes(
-                coordinates: coordinates, date: dateComponents, calculationParameters: method.params
+                coordinates: coordinates, date: dateComponents, calculationParameters: params
             ) {
                 prayerTimesArr.append(prayers)
             }

@@ -80,7 +80,7 @@ struct PrayerScheduleView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            ForEach(Array(prayers.enumerated()), id: \.element.id) { index, prayer in
+            ForEach(prayers.enumerated(), id: \.element.id) { index, prayer in
                 PrayerGridCell(
                     prayer: prayer,
                     isActive: prayer.name == currentPrayerName

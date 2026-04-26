@@ -24,16 +24,18 @@ struct OnboardingNotificationView: View {
             secondaryAction: onSkip,
             customContent: {
                 ScrollView {
-                    VStack(spacing: 8) {
+                    VStack {
                         ForEach(
                             notificationManager.notificationSettingsBefore.keys.sorted(), id: \.self
                         ) { key in
-                            Toggle(isOn: bindingForNotification(key: key)) {
+                            let binding = bindingForNotification(key: key)
+                            Toggle(isOn: binding) {
                                 Text(key.capitalized)
                                     .font(.body)
                             }
                             .padding()
                             .glassEffect(.regular)
+                            .sensoryFeedback(.selection, trigger: binding.wrappedValue)
                         }
                     }
                 }
@@ -48,7 +50,6 @@ struct OnboardingNotificationView: View {
             set: { newValue in
                 self.notificationManager.updateNotificationSettings(
                     for: key, sendNotification: newValue)
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
             }
         )
     }

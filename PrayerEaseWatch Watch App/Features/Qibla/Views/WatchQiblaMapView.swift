@@ -44,18 +44,19 @@ struct WatchQiblaMapView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("", systemImage: "xmark") {
+                    Button("Close", systemImage: "xmark") {
                         dismiss()
                     }
                 }
 
                 ToolbarItem(placement: .bottomBar) {
-                    Button {
+                    Button(
+                        "Map Style",
+                        systemImage: selectedMapStyle == 0 ? "map" : "globe.americas.fill"
+                    ) {
                         showMapStylePicker = true
-                    } label: {
-                        Image(systemName: selectedMapStyle == 0 ? "map" : "globe.americas.fill")
-                            .font(.headline)
                     }
+                    .font(.headline)
                 }
             }
             .sheet(isPresented: $showMapStylePicker) {

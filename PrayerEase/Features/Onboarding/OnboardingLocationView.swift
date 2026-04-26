@@ -13,6 +13,7 @@ struct OnboardingLocationView: View {
     let onContinue: () -> Void
 
     @State private var isShowingManualSearch = false
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         @Bindable var manager = locationManager
@@ -37,7 +38,7 @@ struct OnboardingLocationView: View {
                     || locationManager.authorizationStatus == .restricted
                 {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
-                        UIApplication.shared.open(url)
+                        openURL(url)
                     }
                 } else {
                     locationManager.isAutoLocationEnabled = true

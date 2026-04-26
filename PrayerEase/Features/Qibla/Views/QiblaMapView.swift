@@ -55,9 +55,12 @@ struct QiblaMapView: View {
                             Label("Satellite", systemImage: "globe.americas.fill").tag(1)
                         }
                     } label: {
-                        Image(systemName: selectedMapStyle == 0 ? "map" : "globe.americas.fill")
-                            .font(.headline)
-                            .foregroundStyle(.accent)
+                        Label(
+                            "Map Style",
+                            systemImage: selectedMapStyle == 0 ? "map" : "globe.americas.fill"
+                        )
+                        .font(.headline)
+                        .foregroundStyle(.accent)
                     }
                 }
             }

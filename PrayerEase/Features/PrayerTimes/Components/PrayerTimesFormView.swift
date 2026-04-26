@@ -13,16 +13,18 @@ struct PrayerTimesFormView: View {
     @Environment(LocationManager.self) private var locationManager
 
     let currentDate: Date
-    let hijriCalendar: Calendar
 
     var body: some View {
-        Form {
-            if let prayerTimes = prayerTimeManager.prayerTimes {
-                LeftTimeSection(prayers: prayerTimes)
-                PrayerTimesList(prayers: prayerTimes)
-            } else {
-                PrayerTimesLoadingView()
+        ScrollView {
+            VStack {
+                if let prayerTimes = prayerTimeManager.prayerTimes {
+                    LeftTimeSection(prayers: prayerTimes)
+                    PrayerTimesList(prayers: prayerTimes)
+                } else {
+                    PrayerTimesLoadingView()
+                }
             }
+            .padding()
         }
         .refreshable {
             // Force location check - shows keep/update prompt if location differs
@@ -30,26 +32,36 @@ struct PrayerTimesFormView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(formattedHijriDate)
-                        .font(.footnote)
-                        .bold()
-                        .foregroundStyle(.accent)
+                Group {
+                    if #available(iOS 26, *) {
+                        VStack(alignment: .trailing) {
+                            Text(SharedFormatters.formatHijri(currentDate))
+                                .font(.footnote)
+                                .bold()
+                                .foregroundStyle(.accent)
 
-                    Text(currentDate, style: .date)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                            Text(currentDate, style: .date)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding()
+                        .glassEffect(.regular, in: .rect(cornerRadius: 10))
+                    } else {
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text(SharedFormatters.formatHijri(currentDate))
+                                .font(.footnote)
+                                .bold()
+                                .foregroundStyle(.accent)
+
+                            Text(currentDate, style: .date)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding()
+                    }
                 }
-                .padding()
             }
         }
-    }
-
-    private var formattedHijriDate: String {
-        let formatter = DateFormatter()
-        formatter.calendar = hijriCalendar
-        formatter.dateFormat = "d MMMM yyyy"
-        return formatter.string(from: currentDate)
     }
 
 }

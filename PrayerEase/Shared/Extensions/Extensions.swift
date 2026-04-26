@@ -11,7 +11,7 @@ import Foundation
 
 extension Double {
     var radiansToDegrees: Double {
-        self * .pi / 180
+        self * 180 / .pi
     }
 }
 
@@ -23,12 +23,12 @@ extension UserDefaults {
     }
     
     func location(forKey key: String) -> CLLocation? {
-        if let locationDictionary = self.object(forKey: key) as? Dictionary<String,NSNumber> {
-            let locationLat = locationDictionary["lat"]!.doubleValue
-            let locationLon = locationDictionary["long"]!.doubleValue
-            return CLLocation(latitude: locationLat, longitude: locationLon)
-        }
-        return nil
+        guard let locationDictionary = self.object(forKey: key) as? [String: NSNumber],
+            let locationLat = locationDictionary["lat"]?.doubleValue,
+            let locationLon = locationDictionary["long"]?.doubleValue
+        else { return nil }
+
+        return CLLocation(latitude: locationLat, longitude: locationLon)
     }
 }
 

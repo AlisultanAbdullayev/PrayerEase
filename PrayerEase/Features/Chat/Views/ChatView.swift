@@ -21,10 +21,11 @@ final class ChatController {
     private var typingTask: Task<Void, Never>?
 
     func sendNewMessage(content: String) {
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
         isLoading = true
         botTypingText = "" // Reset typing text
-        guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        let userMessage = Message(content: content, isUser: true)
+        let userMessage = Message(content: trimmed, isUser: true)
         self.messages.append(userMessage)
         
         // Start typing animation asynchronously
@@ -51,8 +52,11 @@ final class ChatController {
     
     private func getBotReply() async {
         let query = ChatQuery(
-            messages: self.messages.map {
-                .init(role: .user, content: $0.content)!
+            messages: self.messages.compactMap { message in
+                if message.isUser {
+                    return .init(role: .user, content: message.content)
+                }
+                return .init(role: .assistant, content: message.content)
             },
             model: .gpt4_turbo
         )
@@ -92,6 +96,7 @@ struct ChatView: View {
     @State private var chatController = ChatController()
     @State private var userMessage = ""
     @Namespace private var bottomID // For scroll animation
+    @FocusState private var isInputFocused: Bool
 
     var body: some View {
         VStack {
@@ -100,7 +105,7 @@ struct ChatView: View {
                     VStack {
                         ForEach(chatController.messages) { message in
                             MessageView(message: message)
-                                .padding(5)
+                                .padding()
                         }
                         if chatController.isLoading {
                             HStack {
@@ -125,13 +130,15 @@ struct ChatView: View {
             
             HStack {
                 TextField("Message...", text: $userMessage, axis: .vertical)
-                    .padding(8)
+                    .padding()
                     .background(Color.gray.opacity(0.1))
                     .clipShape(.rect(cornerRadius: 8))
+                    .focused($isInputFocused)
                 
                 Button("Send") {
                     chatController.sendNewMessage(content: userMessage)
                     userMessage = ""
+                    isInputFocused = false
                 }
                 .disabled(userMessage.isEmpty)
                 .buttonStyle(.borderedProminent)
@@ -139,12 +146,6 @@ struct ChatView: View {
             .padding()
         }
     }
-}
-
-extension View {
-  func hideKeyboard() {
-    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-  }
 }
 
 struct MessageView: View {
@@ -157,7 +158,7 @@ struct MessageView: View {
                     Text(attributedContent(message.content))
                         .padding()
                         .background(.green.opacity(0.3))
-                        .foregroundStyle(Color(.label))
+                        .foregroundStyle(.primary)
                         .clipShape(.rect(cornerRadius: 15))
                 }
             } else {
@@ -165,7 +166,7 @@ struct MessageView: View {
                     Text(attributedContent(message.content))
                         .padding()
                         .background(.regularMaterial)
-                        .foregroundStyle(Color(.label))
+                        .foregroundStyle(.primary)
                         .clipShape(.rect(cornerRadius: 15))
                     Spacer()
                 }

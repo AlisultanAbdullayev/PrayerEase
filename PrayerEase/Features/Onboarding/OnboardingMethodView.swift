@@ -24,8 +24,8 @@ struct OnboardingMethodView: View {
             action: onContinue,
             secondaryAction: nil,
             customContent: {
-                VStack(spacing: 20) {
-                    VStack(alignment: .leading, spacing: 8) {
+                VStack {
+                    VStack(alignment: .leading) {
                         Text("Calculation Method")
                             .font(.headline)
                             .foregroundStyle(.primary)
@@ -33,13 +33,13 @@ struct OnboardingMethodView: View {
                         Menu {
                             Picker("Method", selection: $manager.method) {
                                 ForEach(prayerTimeManager.methods, id: \.self) { method in
-                                    Text(methodName(for: method))
+                                    Text(method.displayName)
                                         .tag(method)
                                 }
                             }
                         } label: {
                             HStack {
-                                Text(methodName(for: prayerTimeManager.method))
+                                Text(prayerTimeManager.method.displayName)
                                     .foregroundStyle(.primary)
                                 Spacer()
                                 Image(systemName: "chevron.up.chevron.down")
@@ -51,7 +51,7 @@ struct OnboardingMethodView: View {
                         }
                     }
 
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading) {
                         Text("Madhab")
                             .font(.headline)
                             .foregroundStyle(.primary)
@@ -85,23 +85,6 @@ struct OnboardingMethodView: View {
         .padding(.horizontal)
     }
 
-    private func methodName(for method: CalculationMethod) -> String {
-        switch method {
-        case .dubai: return "Dubai"
-        case .muslimWorldLeague: return "Muslim World League"
-        case .egyptian: return "Egyptian General Authority of Survey"
-        case .karachi: return "University of Islamic Sciences, Karachi"
-        case .ummAlQura: return "Umm Al-Qura University, Makkah"
-        case .moonsightingCommittee: return "Moonsighting Committee Worldwide"
-        case .northAmerica: return "Islamic Society of North America"
-        case .kuwait: return "Kuwait"
-        case .qatar: return "Qatar"
-        case .singapore: return "Singapore"
-        case .tehran: return "Tehran"
-        case .turkey: return "Turkey"
-        case .other: return "Other"
-        }
-    }
 }
 
 #Preview {

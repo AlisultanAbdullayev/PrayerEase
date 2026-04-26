@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SalahTimeRowView: View {
-    @State private var notificationManager = NotificationManager.shared
+    @Environment(NotificationManager.self) private var notificationManager
 
     let imageName: String
     let salahTime: String
@@ -17,7 +17,7 @@ struct SalahTimeRowView: View {
     var body: some View {
         HStack {
             SalahLeadingContentView(imageName: imageName, salahName: salahName)
-            Spacer(minLength: 80)
+            Spacer()
             SalahNotificationButton(
                 salahName: salahName,
                 notificationManager: notificationManager
@@ -38,7 +38,7 @@ private struct SalahLeadingContentView: View {
                 .font(.body)
             Text(salahName)
         }
-        .frame(maxWidth: 110, alignment: .leading)
+        .frame(width: 100, alignment: .leading)
     }
 }
 
@@ -47,15 +47,21 @@ private struct SalahNotificationButton: View {
     let notificationManager: NotificationManager
 
     var body: some View {
-        Button(action: toggleNotification) {
-            Image(
-                systemName: notificationManager.notificationSettings[salahName] ?? true
-                    ? "bell.fill" : "bell.slash"
-            )
+        let isEnabled = notificationManager.notificationSettings[salahName] ?? true
+        Button(
+            "",
+            systemImage: isEnabled ? "bell.fill" : "bell.slash"
+        ) {
+            toggleNotification()
         }
         .buttonStyle(.glass)
         .sensoryFeedback(
             .selection, trigger: notificationManager.notificationSettings[salahName] ?? false)
+        .accessibilityLabel(
+            isEnabled
+                ? "Disable \(salahName) notification"
+                : "Enable \(salahName) notification"
+        )
     }
 
     private func toggleNotification() {

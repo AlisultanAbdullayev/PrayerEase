@@ -16,13 +16,7 @@ struct PrayerEaseWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: PrayerTimelineProvider()) { entry in
             PrayerEaseWidgetEntryView(entry: entry)
-                .containerBackground(for: .widget) {
-                    #if os(iOS)
-                        Color(UIColor.systemBackground)
-                    #else
-                        Color.black
-                    #endif
-                }
+                .containerBackground(.background, for: .widget)
         }
         .configurationDisplayName("Prayer Times")
         .description("Unified prayer times widget.")

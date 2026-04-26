@@ -15,14 +15,12 @@ struct PrayerTimesView: View {
     @Environment(LocationManager.self) private var locationManager
     @Environment(NotificationManager.self) private var notificationManager
     @Environment(PrayerTimeManager.self) private var prayerTimeManager
+    @Environment(WidgetDataManager.self) private var widgetDataManager
     @Environment(\.scenePhase) private var scenePhase
 
     // MARK: - State
     @State private var presentedSheet: PresentedSheet?
     @State private var currentDate = Date()
-
-    // MARK: - Constants
-    private let hijriCalendar = Calendar(identifier: .islamicUmmAlQura)
 
     // MARK: - Body
     var body: some View {
@@ -30,12 +28,12 @@ struct PrayerTimesView: View {
             if locationManager.userLocation == nil {
                 LocationNotFoundTriggerView(presentedSheet: $presentedSheet)
             } else {
-                PrayerTimesFormView(currentDate: currentDate, hijriCalendar: hijriCalendar)
+                PrayerTimesFormView(currentDate: currentDate)
             }
         }
             .navigationTitle("Salah time")
-            .task { updatePrayerTimes() }
             .task {
+                updatePrayerTimes()
                 await setupDayChangeTimer()
             }
             .sheet(item: $presentedSheet) { sheet in
@@ -67,13 +65,6 @@ struct PrayerTimesView: View {
             }
     }
 
-    // MARK: - Helpers
-    private func getFormattedHijriDate() -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = hijriCalendar
-        formatter.dateFormat = "d MMMM yyyy"
-        return formatter.string(from: currentDate)
-    }
 
     // MARK: - Event Handlers
 
@@ -108,8 +99,12 @@ struct PrayerTimesView: View {
 
     private func setupDayChangeTimer() async {
         while !Task.isCancelled {
-            try? await Task.sleep(for: .seconds(60))
-            checkForDayChange()
+            do {
+                try await Task.sleep(for: .seconds(60))
+                checkForDayChange()
+            } catch {
+                break
+            }
         }
     }
 
@@ -128,18 +123,18 @@ struct PrayerTimesView: View {
     private func syncWidgetData() {
         guard let prayerTimes = prayerTimeManager.prayerTimes else { return }
 
-        let islamicDate = getFormattedHijriDate()
+        let islamicDate = SharedFormatters.formatHijri(currentDate)
         let locationName = locationManager.locationName
 
-        WidgetDataManager.shared.updateWidgetData(
+        widgetDataManager.updateWidgetData(
             prayerTimes: prayerTimes,
             locationName: locationName,
             islamicDate: islamicDate
         )
 
-        if WidgetDataManager.shared.isLiveActivityEnabled {
+        if widgetDataManager.isLiveActivityEnabled {
             Task {
-                await WidgetDataManager.shared.updateLiveActivity(
+                await widgetDataManager.updateLiveActivity(
                     prayerTimes: prayerTimes,
                     locationName: locationName,
                     islamicDate: islamicDate

@@ -82,6 +82,7 @@ struct PrayerEaseApp: App {
     @State private var locationManager = LocationManager.shared
     @State private var prayerTimeManager = PrayerTimeManager.shared
     @State private var notificationManager = NotificationManager.shared
+    @State private var widgetDataManager = WidgetDataManager.shared
     @State private var connectivityManager = IOSConnectivityManager.shared
 
     @AppStorage("hasCompletedOnboarding") var hasCompletedOnboarding: Bool = false
@@ -98,9 +99,7 @@ struct PrayerEaseApp: App {
             .environment(locationManager)
             .environment(notificationManager)
             .environment(prayerTimeManager)
-            .task(id: hasCompletedOnboarding) {
-                setupApp()
-            }
+            .environment(widgetDataManager)
             // Sync app state and check for pending location change
             .onChange(of: scenePhase) { _, newPhase in
                 locationManager.isAppActive = (newPhase == .active)

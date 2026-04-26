@@ -204,8 +204,10 @@ struct WatchWidgetEntryView: View {
             RectangularView(entry: entry)
         case .accessoryInline:
             InlineView(entry: entry)
+#if os(watchOS)
         case .accessoryCorner:
             CornerView(entry: entry)
+#endif
         default:
             RectangularView(entry: entry)
         }
@@ -271,6 +273,7 @@ struct InlineView: View {
     }
 }
 
+#if os(watchOS)
 struct CornerView: View {
     let entry: WatchWidgetEntry
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
@@ -289,6 +292,7 @@ struct CornerView: View {
         .widgetLabel { Text(entry.nextPrayerName) }
     }
 }
+#endif
 
 // MARK: - Widget
 
@@ -302,9 +306,15 @@ struct WatchWidget: Widget {
         }
         .configurationDisplayName("Prayer Times")
         .description("Shows countdown to next prayer.")
+#if os(watchOS)
         .supportedFamilies([
             .accessoryCircular, .accessoryRectangular, .accessoryInline, .accessoryCorner,
         ])
+#else
+        .supportedFamilies([
+            .accessoryCircular, .accessoryRectangular, .accessoryInline,
+        ])
+#endif
     }
 }
 

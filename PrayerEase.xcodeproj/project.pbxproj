@@ -12,7 +12,6 @@
 		D634CF0F2EFC73F00045E951 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D690B4862EF8703800312C04 /* WidgetKit.framework */; };
 		D634CF102EFC73F00045E951 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D690B4882EF8703800312C04 /* SwiftUI.framework */; };
 		D634CF1D2EFC73F10045E951 /* WatchWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D634CF0E2EFC73F00045E951 /* WatchWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		D66C4BDE2EF93EA300F59A64 /* PrayerEaseWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D66C4BD42EF93EA200F59A64 /* PrayerEaseWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D66C4BE42EF93EC000F59A64 /* Adhan in Frameworks */ = {isa = PBXBuildFile; productRef = D66C4BE32EF93EC000F59A64 /* Adhan */; };
 		D690B4872EF8703800312C04 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D690B4862EF8703800312C04 /* WidgetKit.framework */; };
 		D690B4892EF8703800312C04 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D690B4882EF8703800312C04 /* SwiftUI.framework */; };
@@ -64,7 +63,6 @@
 			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
 			dstSubfolderSpec = 16;
 			files = (
-				D66C4BDE2EF93EA300F59A64 /* PrayerEaseWatch Watch App.app in Embed Watch Content */,
 			);
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -170,6 +168,8 @@
 		};
 		D66C4BD52EF93EA200F59A64 /* PrayerEaseWatch Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "PrayerEaseWatch Watch App";
 			sourceTree = "<group>";
 		};
@@ -276,7 +276,6 @@
 			);
 			dependencies = (
 				D690B4972EF8703800312C04 /* PBXTargetDependency */,
-				D66C4BDD2EF93EA300F59A64 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				C17B302B2CD299F100BFE815 /* PrayerEase */,
@@ -306,8 +305,6 @@
 				D634CF112EFC73F00045E951 /* WatchWidget */,
 			);
 			name = WatchWidgetExtension;
-			packageProductDependencies = (
-			);
 			productName = WatchWidgetExtension;
 			productReference = D634CF0E2EFC73F00045E951 /* WatchWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";

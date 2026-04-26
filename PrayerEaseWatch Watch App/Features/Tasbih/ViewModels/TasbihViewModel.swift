@@ -7,7 +7,9 @@
 
 import Foundation
 import SwiftUI
+#if os(watchOS)
 import WatchKit
+#endif
 
 /// View model for Tasbih counter screen (watch-only feature)
 @MainActor
@@ -60,20 +62,26 @@ final class TasbihViewModel {
     func increment() {
         currentCount += 1
         totalCount += 1
+#if os(watchOS)
         WKInterfaceDevice.current().play(.click)
+#endif
     }
 
     /// Resets the current session count
     func resetCurrent() {
         currentCount = 0
+#if os(watchOS)
         WKInterfaceDevice.current().play(.stop)
+#endif
     }
 
     /// Resets the total historical count
     func resetTotal() {
         totalCount = 0
         currentCount = 0
+#if os(watchOS)
         WKInterfaceDevice.current().play(.stop)
+#endif
     }
 
     /// Sets a new target count
@@ -91,7 +99,9 @@ final class TasbihViewModel {
 
     private func checkTargetReached() {
         if currentCount >= targetCount && currentCount > 0 {
+#if os(watchOS)
             WKInterfaceDevice.current().play(.success)
+#endif
 
             Task {
                 try? await Task.sleep(for: .milliseconds(500))
