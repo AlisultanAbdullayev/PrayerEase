@@ -1,0 +1,92 @@
+{
+  "holidays": [
+    {
+      "key": "islamic-new-year",
+      "name": "Islamic New Year",
+      "month": 1,
+      "day": 1,
+      "summary": "Beginning of the Hijri year.",
+      "explanation": "The first day of Muharram starts a new Hijri year. In Diyanet calendars, it is treated as a day of remembrance and self-renewal, connected to the Hijrah era. Many Muslims mark it with personal reflection, additional prayers, and intention-setting for the year ahead."
+    },
+    {
+      "key": "ashura",
+      "name": "Ashura",
+      "month": 1,
+      "day": 10,
+      "summary": "10 Muharram observance.",
+      "explanation": "Ashura is observed on 10 Muharram. In Sunni tradition, it is associated with Allah granting deliverance to Prophet Musa and his people. Diyanet guidance commonly highlights voluntary fasting on this day, gratitude, charity, and remembrance."
+    },
+    {
+      "key": "mawlid-al-nabi",
+      "name": "Mawlid al-Nabi",
+      "month": 3,
+      "day": 12,
+      "summary": "Commemoration of the Prophet's birth.",
+      "explanation": "Mawlid al-Nabi commemorates the birth of Prophet Muhammad. Diyanet programs typically emphasize learning his character and mercy through recitation, sermons, salawat, and community gatherings focused on moral and spiritual renewal."
+    },
+    {
+      "key": "raghaib-night",
+      "name": "Regaib Night",
+      "month": 7,
+      "day": 1,
+      "summary": "A holy night in Rajab.",
+      "explanation": "Regaib Night (Regaib Kandili) is one of the sacred nights in the Three Holy Months season. In Turkish and Diyanet tradition, it is observed through night prayers, Quran recitation, dua, repentance, and renewal of intention before Ramadan."
+    },
+    {
+      "key": "isra-miraj-night",
+      "name": "Isra and Mi'raj Night",
+      "month": 7,
+      "day": 27,
+      "summary": "Night of Isra and Mi'raj.",
+      "explanation": "Isra and Mi'raj Night (Mirac Kandili) commemorates the Prophet's night journey and ascension. Diyanet-centered observance focuses on the spiritual lessons of faith, prayer, and steadfastness, with special worship and remembrance at night."
+    },
+    {
+      "key": "baraat-night",
+      "name": "Bara'at Night",
+      "month": 8,
+      "day": 15,
+      "summary": "Mid-Sha'ban holy night.",
+      "explanation": "Bara'at Night (Berat Kandili), observed in mid-Sha'ban, is traditionally treated as a night of seeking forgiveness and mercy. Diyanet teachings often emphasize tawbah, reconciliation, and sincere dua in preparation for Ramadan."
+    },
+    {
+      "key": "ramadan-start",
+      "name": "Ramadan Start",
+      "month": 9,
+      "day": 1,
+      "summary": "Beginning of Ramadan.",
+      "explanation": "The first day of Ramadan begins the month of fasting from dawn to sunset. Diyanet guidance emphasizes that Ramadan is not only abstaining from food and drink, but also strengthening character, discipline, Quran recitation, and generosity."
+    },
+    {
+      "key": "laylat-al-qadr",
+      "name": "Laylat al-Qadr",
+      "month": 9,
+      "day": 27,
+      "summary": "The Night of Power.",
+      "explanation": "Laylat al-Qadr (Kadir Gecesi) is among the final nights of Ramadan and is described in the Quran as better than a thousand months. Diyanet observance highlights deep worship, Quran recitation, repentance, and prayers for forgiveness and guidance."
+    },
+    {
+      "key": "eid-al-fitr",
+      "name": "Eid al-Fitr",
+      "month": 10,
+      "day": 1,
+      "summary": "Festival after Ramadan.",
+      "explanation": "Eid al-Fitr starts on 1 Shawwal and celebrates the completion of Ramadan. In Diyanet practice, the day includes Eid prayer, zakat al-fitr completion, family visits, reconciliation, and support for those in need."
+    },
+    {
+      "key": "day-of-arafah",
+      "name": "Day of Arafah",
+      "month": 12,
+      "day": 9,
+      "summary": "The day before Eid al-Adha.",
+      "explanation": "The Day of Arafah on 9 Dhu al-Hijjah is central to Hajj and is regarded as one of the most virtuous days of the year. Diyanet resources commonly encourage fasting for non-pilgrims, abundant dua, and remembrance throughout the day."
+    },
+    {
+      "key": "eid-al-adha",
+      "name": "Eid al-Adha",
+      "month": 12,
+      "day": 10,
+      "summary": "Festival of Sacrifice.",
+      "explanation": "Eid al-Adha begins on 10 Dhu al-Hijjah and commemorates Prophet Ibrahim's devotion and trust in Allah. Diyanet observance centers on Eid prayer, sacrificial worship for those able, and distributing meat to relatives, neighbors, and vulnerable families."
+    }
+  ]
+}
