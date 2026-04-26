@@ -46,8 +46,7 @@ struct OnboardingMethodView: View {
                                     .foregroundStyle(.secondary)
                                     .font(.caption)
                             }
-                            .padding()
-                            .glassEffect(.regular)
+                            .customGlassContainer()
                         }
                     }
 
@@ -75,8 +74,7 @@ struct OnboardingMethodView: View {
                                     .foregroundStyle(.secondary)
                                     .font(.caption)
                             }
-                            .padding()
-                            .glassEffect(.regular)
+                            .customGlassContainer()
                         }
                     }
                 }
